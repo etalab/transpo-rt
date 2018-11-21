@@ -1,0 +1,11 @@
+[package]
+name = "transpo-rt"
+version = "0.1.0"
+authors = ["antoine-de <antoine.desbordes@gmail.com>"]
+
+[dependencies]
+actix = "0.7"
+actix-web = "0.7"
+env_logger = "0.6"
+reqwest = "0.9"
+log = "0.4"
