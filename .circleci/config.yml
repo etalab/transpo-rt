@@ -1,0 +1,20 @@
+version: 2
+defaults: &defaults
+  docker:
+    - image: circleci/rust:latest
+
+jobs:
+  tests:
+    <<: *defaults
+    steps:
+      - checkout
+      - run:
+        command: cargo test
+
+  linter:
+    <<: *defaults
+    steps:
+      - checkout
+      - run:
+        command: cargo fmt --all -- --check
+
