@@ -10,14 +10,14 @@ jobs:
     steps:
       - checkout
       - run:
-        command: cargo test
+          command: cargo test
 
   linter:
     <<: *defaults
     steps:
       - checkout
       - run:
-        command: "cargo fmt --all -- --check"
+          command: "cargo fmt --all -- --check"
 
 workflows:
   version: 2
