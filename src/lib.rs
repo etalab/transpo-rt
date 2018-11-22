@@ -12,14 +12,12 @@ extern crate prost_derive;
 #[macro_use]
 extern crate serde_derive;
 extern crate bytes;
+extern crate gtfs_structures;
 extern crate serde;
 
 pub mod transit_realtime {
     include!(concat!(env!("OUT_DIR"), "/transit_realtime.rs"));
 }
 
+pub mod context;
 pub mod gtfs_rt;
-pub mod state;
-
-pub use gtfs_rt::{gtfs_rt, gtfs_rt_json};
-pub use state::State;
