@@ -17,7 +17,7 @@ jobs:
     steps:
       - checkout
       - run:
-        command: cargo fmt --all -- --check
+        command: "cargo fmt --all -- --check"
 
 workflows:
   version: 2
