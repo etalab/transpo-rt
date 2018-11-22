@@ -9,8 +9,15 @@ jobs:
     <<: *defaults
     steps:
       - checkout
+      - restore_cache:
+          key: project-cache
       - run:
           command: cargo test
+      - save_cache:
+          key: project-cache
+          paths:
+            - "~/.cargo"
+            - "./target"
 
   linter:
     <<: *defaults
