@@ -17,6 +17,8 @@ jobs:
     steps:
       - checkout
       - run:
+          command: "rustup component add rustfmt-preview"
+      - run:
           command: "cargo fmt --all -- --check"
 
 workflows:
