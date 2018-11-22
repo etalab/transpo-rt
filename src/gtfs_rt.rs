@@ -1,10 +1,14 @@
 use actix_web::http::{ContentEncoding, StatusCode};
-use actix_web::{error, HttpRequest, HttpResponse, Result};
+use actix_web::{error, HttpRequest, HttpResponse, Json, Result};
+use bytes::IntoBuf;
 use chrono::Utc;
 use crate::state::{GtfsRT, State};
+use crate::transit_realtime;
 use failure::Error;
+use prost::Message;
 use reqwest;
 use std::io::Read;
+use std::sync::MutexGuard;
 
 const REFRESH_TIMEOUT_S: i64 = 60;
 
@@ -27,14 +31,20 @@ fn refresh_needed(previous: &Option<GtfsRT>) -> bool {
         .unwrap_or(true)
 }
 
-pub fn gtfs_rt(req: &HttpRequest<State>) -> Result<HttpResponse> {
-    let mut saved_data = req.state().gtfs_rt.lock().unwrap();
+fn get_gtfs_rt(state: &State) -> Result<MutexGuard<Option<GtfsRT>>, Error> {
+    let mut saved_data = state.gtfs_rt.lock().unwrap();
     if refresh_needed(&saved_data) {
         *saved_data = Some(GtfsRT {
-            data: fetch_gtfs().map_err(|e| error::ErrorInternalServerError(e))?,
+            data: fetch_gtfs()?,
             datetime: Utc::now(),
         });
     }
+    Ok(saved_data)
+}
+
+pub fn gtfs_rt(req: &HttpRequest<State>) -> Result<HttpResponse> {
+    let saved_data = get_gtfs_rt(req.state()).map_err(|e| error::ErrorInternalServerError(e))?;
+
     let data: Vec<u8> =
         saved_data
             .as_ref()
@@ -47,4 +57,22 @@ pub fn gtfs_rt(req: &HttpRequest<State>) -> Result<HttpResponse> {
         .content_type("application/x-protobuf")
         .content_encoding(ContentEncoding::Identity)
         .body(data))
+}
+
+pub fn gtfs_rt_json(req: &HttpRequest<State>) -> Result<Json<transit_realtime::FeedMessage>> {
+    let saved_data = get_gtfs_rt(req.state()).map_err(|e| error::ErrorInternalServerError(e))?;
+    let data = saved_data
+        .as_ref()
+        .map(|d| {
+            transit_realtime::FeedMessage::decode((&d.data).into_buf()).map_err(|e| {
+                error::ErrorInternalServerError(format!(
+                    "impossible to decode protobuf message: {}",
+                    e
+                ))
+            })
+        }).ok_or(error::ErrorInternalServerError(
+            "impossible to access stored data",
+        ))?;
+
+    Ok(Json(data?))
 }

@@ -8,7 +8,7 @@ extern crate log;
 use actix_web::{middleware, server, App};
 use env_logger::{Builder, Env};
 use std::sync::{Arc, Mutex};
-use transpo_rt::gtfs_rt::gtfs_rt;
+use transpo_rt::gtfs_rt::{gtfs_rt, gtfs_rt_json};
 use transpo_rt::state::State;
 
 fn main() {
@@ -21,6 +21,7 @@ fn main() {
             gtfs_rt: gtfs_rt_data.clone(),
         }).middleware(middleware::Logger::default())
         .resource("/gtfs_rt", |r| r.f(gtfs_rt))
+        .resource("/gtfs_rt.json", |r| r.f(gtfs_rt_json))
     }).bind("127.0.0.1:8080")
     .unwrap()
     .start();
