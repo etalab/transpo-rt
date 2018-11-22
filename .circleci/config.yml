@@ -19,3 +19,9 @@ jobs:
       - run:
         command: cargo fmt --all -- --check
 
+workflows:
+  version: 2
+  build_and_test:
+    jobs:
+      - test
+      - linter
