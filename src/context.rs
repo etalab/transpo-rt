@@ -1,3 +1,5 @@
+use gtfs_structures;
+
 use chrono::{DateTime, Utc};
 use std::sync::Arc;
 use std::sync::Mutex;
@@ -8,7 +10,7 @@ pub struct GtfsRT {
     pub data: Vec<u8>,
 }
 
-#[derive(Clone)]
-pub struct State {
+pub struct Context {
     pub gtfs_rt: Arc<Mutex<Option<GtfsRT>>>,
+    pub gtfs: gtfs_structures::Gtfs,
 }
