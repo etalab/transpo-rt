@@ -7,14 +7,14 @@ defaults: &defaults
 jobs:
   tests:
     <<: *defaults
-    steps:
+    step:
       - checkout
       - run:
         command: cargo test
 
   linter:
     <<: *defaults
-    steps:
+    step:
       - checkout
       - run:
         command: cargo fmt --all -- --check
