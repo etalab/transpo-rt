@@ -21,3 +21,4 @@ pub mod transit_realtime {
 
 pub mod context;
 pub mod gtfs_rt;
+pub mod stoppoints_discovery;

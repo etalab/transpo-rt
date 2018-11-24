@@ -11,6 +11,7 @@ use env_logger::{Builder, Env};
 use std::sync::{Arc, Mutex};
 use transpo_rt::context::Context;
 use transpo_rt::gtfs_rt::{gtfs_rt, gtfs_rt_json};
+use transpo_rt::stoppoints_discovery::stoppoints_discovery;
 
 fn main() {
     Builder::from_env(Env::default().default_filter_or("info")).init();
@@ -25,6 +26,9 @@ fn main() {
         }).middleware(middleware::Logger::default())
         .resource("/gtfs_rt", |r| r.f(gtfs_rt))
         .resource("/gtfs_rt.json", |r| r.f(gtfs_rt_json))
+        .resource("/stoppoints_discovery.json", |r| {
+            r.with(stoppoints_discovery)
+        })
     }).bind("127.0.0.1:8080")
     .unwrap()
     .start();
