@@ -24,9 +24,11 @@ jobs:
     steps:
       - checkout
       - run:
-          command: "rustup component add rustfmt-preview"
+          command: "rustup component add rustfmt-preview clippy-preview"
       - run:
           command: "cargo fmt --all -- --check"
+      - run:
+          command: "cargo clippy -- -D warnings"
 
 workflows:
   version: 2
