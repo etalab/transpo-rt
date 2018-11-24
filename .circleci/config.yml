@@ -23,12 +23,19 @@ jobs:
     <<: *defaults
     steps:
       - checkout
+      - restore_cache:
+          key: lint-cache
       - run:
           command: "rustup component add rustfmt-preview clippy-preview"
       - run:
           command: "cargo fmt --all -- --check"
       - run:
           command: "cargo clippy -- -D warnings"
+      - save_cache:
+          key: lint-cache
+          paths:
+            - "~/.cargo"
+            - "./target"
 
 workflows:
   version: 2
