@@ -60,15 +60,47 @@ impl<'a> From<&'a gtfs_structures::Stop> for AnnotatedStopPoint {
 #[derive(Deserialize)]
 pub struct Params {
     q: Option<String>,
+    #[serde(rename = "BoundingBoxStructure.UpperLeft.Longitude")]
+    upper_left_longitude: Option<f64>,
+    #[serde(rename = "BoundingBoxStructure.UpperLeft.Latitude")]
+    upper_left_latitude: Option<f64>,
+    #[serde(rename = "BoundingBoxStructure.LowerRight.Latitude")]
+    lower_right_longitude: Option<f64>,
+    #[serde(rename = "BoundingBoxStructure.LowerRight.Latitude")]
+    lower_right_latitude: Option<f64>,
+}
+
+fn name_matches(stop: &gtfs_structures::Stop, q: &str) -> bool {
+    stop.name.to_lowercase().contains(q)
+}
+
+fn bounding_box_matches(
+    stop: &gtfs_structures::Stop,
+    min_lon: f64,
+    max_lon: f64,
+    min_lat: f64,
+    max_lat: f64,
+) -> bool {
+    stop.longitude >= min_lon
+        && stop.longitude <= max_lon
+        && stop.latitude >= min_lat
+        && stop.latitude <= max_lat
 }
 
 pub fn stoppoints_discovery((state, query): (State<Context>, Query<Params>)) -> Result<Json<Siri>> {
     let stops = &state.gtfs.stops;
 
-    let q = query.into_inner().q.unwrap_or_default().to_lowercase();
+    let request = query.into_inner();
+    let q = request.q.unwrap_or_default().to_lowercase();
+    let min_lon = request.upper_left_longitude.unwrap_or(-180.);
+    let max_lon = request.lower_right_longitude.unwrap_or(180.);
+    let min_lat = request.lower_right_latitude.unwrap_or(-90.);
+    let max_lat = request.upper_left_latitude.unwrap_or(90.);
+
     let filtered = stops
         .values()
-        .filter(|stop| stop.name.to_lowercase().contains(q.as_str()))
+        .filter(|s| name_matches(s, &q))
+        .filter(|s| bounding_box_matches(s, min_lon, max_lon, min_lat, max_lat))
         .map(|stop| AnnotatedStopPoint::from(stop.borrow()))
         .collect();
 
