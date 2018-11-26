@@ -43,15 +43,12 @@ fn get_gtfs_rt(context: &Context) -> Result<MutexGuard<Option<GtfsRT>>, Error> {
 }
 
 pub fn gtfs_rt(req: &HttpRequest<Context>) -> Result<HttpResponse> {
-    let saved_data = get_gtfs_rt(req.state()).map_err(|e| error::ErrorInternalServerError(e))?;
+    let saved_data = get_gtfs_rt(req.state()).map_err(error::ErrorInternalServerError)?;
 
-    let data: Vec<u8> =
-        saved_data
-            .as_ref()
-            .map(|d| d.data.clone())
-            .ok_or(error::ErrorInternalServerError(
-                "impossible to access stored data",
-            ))?;
+    let data: Vec<u8> = saved_data
+        .as_ref()
+        .map(|d| d.data.clone())
+        .ok_or_else(|| error::ErrorInternalServerError("impossible to access stored data"))?;
 
     Ok(HttpResponse::build(StatusCode::OK)
         .content_type("application/x-protobuf")
@@ -60,7 +57,7 @@ pub fn gtfs_rt(req: &HttpRequest<Context>) -> Result<HttpResponse> {
 }
 
 pub fn gtfs_rt_json(req: &HttpRequest<Context>) -> Result<Json<transit_realtime::FeedMessage>> {
-    let saved_data = get_gtfs_rt(req.state()).map_err(|e| error::ErrorInternalServerError(e))?;
+    let saved_data = get_gtfs_rt(req.state()).map_err(error::ErrorInternalServerError)?;
     let data = saved_data
         .as_ref()
         .map(|d| {
@@ -70,9 +67,7 @@ pub fn gtfs_rt_json(req: &HttpRequest<Context>) -> Result<Json<transit_realtime:
                     e
                 ))
             })
-        }).ok_or(error::ErrorInternalServerError(
-            "impossible to access stored data",
-        ))?;
+        }).ok_or_else(|| error::ErrorInternalServerError("impossible to access stored data"))?;
 
     Ok(Json(data?))
 }
