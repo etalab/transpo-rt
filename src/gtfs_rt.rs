@@ -12,11 +12,9 @@ use std::sync::MutexGuard;
 
 const REFRESH_TIMEOUT_S: i64 = 60;
 
-fn fetch_gtfs() -> Result<Vec<u8>, Error> {
+fn fetch_gtfs(url: &str) -> Result<Vec<u8>, Error> {
     info!("fetching a gtfs_rt");
-    let url = std::env::var("URL").expect("cannot find env var URL");
-
-    let pbf = reqwest::get(url.as_str())?.error_for_status()?;
+    let pbf = reqwest::get(url)?.error_for_status()?;
 
     pbf.bytes()
         .collect::<Result<Vec<u8>, _>>()
@@ -35,7 +33,7 @@ fn get_gtfs_rt(context: &Context) -> Result<MutexGuard<Option<GtfsRT>>, Error> {
     let mut saved_data = context.gtfs_rt.lock().unwrap();
     if refresh_needed(&saved_data) {
         *saved_data = Some(GtfsRT {
-            data: fetch_gtfs()?,
+            data: fetch_gtfs(&context.gtfs_rt_provider_url)?,
             datetime: Utc::now(),
         });
     }

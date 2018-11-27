@@ -13,4 +13,5 @@ pub struct GtfsRT {
 pub struct Context {
     pub gtfs_rt: Arc<Mutex<Option<GtfsRT>>>,
     pub gtfs: gtfs_structures::Gtfs,
+    pub gtfs_rt_provider_url: String,
 }
