@@ -43,12 +43,21 @@ pub struct Siri {
     stop_points_delivery: StopPointsDelivery,
 }
 
-impl<'a> From<&'a gtfs_structures::Stop> for AnnotatedStopPoint {
-    fn from(stop: &gtfs_structures::Stop) -> Self {
+impl AnnotatedStopPoint {
+    fn from(stop: &gtfs_structures::Stop, context: &Context) -> Self {
+        let lines = context
+            .lines_of_stops
+            .get(&stop.id)
+            .unwrap_or(&std::collections::HashSet::new())
+            .iter()
+            .map(|route_id| Line {
+                line_ref: route_id.to_owned(),
+            }).collect();
+
         Self {
-            stop_point_ref: stop.id.clone(),
-            stop_name: stop.name.clone(),
-            lines: vec![],
+            stop_point_ref: stop.id.to_owned(),
+            stop_name: stop.name.to_owned(),
+            lines,
             location: Location {
                 longitude: stop.longitude,
                 latitude: stop.latitude,
@@ -101,7 +110,7 @@ pub fn stoppoints_discovery((state, query): (State<Context>, Query<Params>)) -> 
         .values()
         .filter(|s| name_matches(s, &q))
         .filter(|s| bounding_box_matches(s, min_lon, max_lon, min_lat, max_lat))
-        .map(|stop| AnnotatedStopPoint::from(stop.borrow()))
+        .map(|stop| AnnotatedStopPoint::from(stop.borrow(), &state))
         .collect();
 
     Ok(Json(Siri {
