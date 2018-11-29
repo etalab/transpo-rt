@@ -12,7 +12,7 @@ use env_logger::{Builder, Env};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use structopt::StructOpt;
-use transpo_rt::context::Context;
+use transpo_rt::context::{lines_of_stop, Context};
 use transpo_rt::gtfs_rt::{gtfs_rt, gtfs_rt_json};
 use transpo_rt::stoppoints_discovery::stoppoints_discovery;
 
@@ -42,9 +42,15 @@ fn main() {
 
     server::new(move || {
         let params = Params::from_args();
+        let gtfs = gtfs_structures::Gtfs::from_zip(params.gtfs.to_str().unwrap()).unwrap();
         App::with_state(Context {
             gtfs_rt: gtfs_rt_data.clone(),
-            gtfs: gtfs_structures::Gtfs::from_zip(params.gtfs.to_str().unwrap()).unwrap(),
+            lines_of_stops: gtfs
+                .stops
+                .values()
+                .map(|stop| (stop.id.to_owned(), lines_of_stop(&gtfs, stop)))
+                .collect(),
+            gtfs,
             gtfs_rt_provider_url: params.url,
         }).middleware(middleware::Logger::default())
         .resource("/gtfs_rt", |r| r.f(gtfs_rt))
