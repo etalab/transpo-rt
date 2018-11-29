@@ -4,7 +4,8 @@ extern crate transpo_rt;
 use actix_web::http;
 use actix_web::test::TestServer;
 use actix_web::HttpMessage;
-use transpo_rt::stoppoints_discovery::Siri;
+use transpo_rt::siri_model::SiriResponse;
+use transpo_rt::stoppoints_discovery;
 
 #[test]
 fn sp_discovery_integration_test() {
@@ -22,14 +23,14 @@ fn sp_discovery_integration_test() {
     let bytes = srv.execute(response.body()).unwrap();
     let body = std::str::from_utf8(&bytes).unwrap();
 
-    let siri: Siri = serde_json::from_str(body).unwrap();
-    assert_eq!(siri.stop_points_delivery.version, "2.0");
-    assert_eq!(siri.stop_points_delivery.status, true);
+    let resp: SiriResponse = serde_json::from_str(body).unwrap();
+    let spd = resp.siri.stop_points_delivery.unwrap();
+    assert_eq!(spd.version, "2.0");
+    assert_eq!(spd.status, true);
     // no filtering, we fetch all stops
-    assert_eq!(siri.stop_points_delivery.annotated_stop_point.len(), 5);
+    assert_eq!(spd.annotated_stop_point.len(), 5);
 
-    let stop1 = siri
-        .stop_points_delivery
+    let stop1 = spd
         .annotated_stop_point
         .iter()
         .find(|s| s.stop_point_ref == "stop2")
