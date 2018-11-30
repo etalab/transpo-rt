@@ -1,7 +1,7 @@
 use actix_web::{Json, Query, Result, State};
 use crate::context::Context;
 use gtfs_structures;
-use siri_model::{AnnotatedStopPoint, Siri, StopPointsDelivery};
+use siri_model::{AnnotatedStopPoint, Siri, SiriResponse, StopPointsDelivery};
 use std::borrow::Borrow;
 
 #[derive(Deserialize)]
@@ -34,15 +34,9 @@ fn bounding_box_matches(
         && stop.latitude <= max_lat
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "PascalCase")]
-pub struct Response {
-    pub siri: Siri,
-}
-
 pub fn stoppoints_discovery(
     (state, query): (State<Context>, Query<Params>),
-) -> Result<Json<Response>> {
+) -> Result<Json<SiriResponse>> {
     let stops = &state.gtfs.stops;
 
     let request = query.into_inner();
@@ -59,15 +53,16 @@ pub fn stoppoints_discovery(
         .map(|stop| AnnotatedStopPoint::from(stop.borrow(), &state))
         .collect();
 
-    Ok(Json(Response {
+    Ok(Json(SiriResponse {
         siri: Siri {
-            stop_points_delivery: StopPointsDelivery {
+            stop_points_delivery: Some(StopPointsDelivery {
                 version: "2.0".to_string(),
                 response_time_stamp: chrono::Utc::now().to_rfc3339(),
                 annotated_stop_point: filtered,
                 error_condition: None,
                 status: true,
-            },
+            }),
+            ..Default::default()
         },
     }))
 }

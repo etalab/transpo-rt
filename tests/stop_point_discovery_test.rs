@@ -5,7 +5,6 @@ use actix_web::http;
 use actix_web::test::TestServer;
 use actix_web::HttpMessage;
 use transpo_rt::siri_model::SiriResponse;
-use transpo_rt::stoppoints_discovery;
 
 #[test]
 fn sp_discovery_integration_test() {

@@ -23,4 +23,5 @@ pub mod context;
 pub mod gtfs_rt;
 pub mod server;
 pub mod siri_model;
+pub mod stop_monitoring;
 pub mod stoppoints_discovery;
