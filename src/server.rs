@@ -5,9 +5,14 @@ use crate::stoppoints_discovery::stoppoints_discovery;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
-pub fn create_server(gtfs: &PathBuf, url: String) -> App<Context> {
+pub fn create_server(gtfs: &PathBuf, url: &str) -> App<Context> {
     let gtfs_rt_data = Arc::new(Mutex::new(None));
-    let gtfs = gtfs_structures::Gtfs::from_zip(gtfs.to_str().unwrap()).unwrap();
+    let gtfs = if gtfs.starts_with("http://") {
+        gtfs_structures::Gtfs::from_url(gtfs.to_str().unwrap()).unwrap()
+    } else {
+        gtfs_structures::Gtfs::from_zip(gtfs.to_str().unwrap()).unwrap()
+    };
+
     App::with_state(Context {
         gtfs_rt: gtfs_rt_data.clone(),
         lines_of_stops: gtfs
@@ -16,7 +21,7 @@ pub fn create_server(gtfs: &PathBuf, url: String) -> App<Context> {
             .map(|stop| (stop.id.to_owned(), lines_of_stop(&gtfs, stop)))
             .collect(),
         gtfs,
-        gtfs_rt_provider_url: url,
+        gtfs_rt_provider_url: url.to_owned(),
     }).middleware(middleware::Logger::default())
     .resource("/gtfs_rt", |r| r.f(gtfs_rt))
     .resource("/gtfs_rt.json", |r| r.f(gtfs_rt_json))
