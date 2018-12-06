@@ -2,15 +2,14 @@ use actix_web::{middleware, App};
 use crate::context::{lines_of_stop, Context};
 use crate::gtfs_rt::{gtfs_rt, gtfs_rt_json};
 use crate::stoppoints_discovery::stoppoints_discovery;
-use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
-pub fn create_server(gtfs: &PathBuf, url: &str) -> App<Context> {
+pub fn create_server(gtfs: &str, url: &str) -> App<Context> {
     let gtfs_rt_data = Arc::new(Mutex::new(None));
-    let gtfs = if gtfs.starts_with("http://") {
-        gtfs_structures::Gtfs::from_url(gtfs.to_str().unwrap()).unwrap()
+    let gtfs = if gtfs.starts_with("http") {
+        gtfs_structures::Gtfs::from_url(gtfs).unwrap()
     } else {
-        gtfs_structures::Gtfs::from_zip(gtfs.to_str().unwrap()).unwrap()
+        gtfs_structures::Gtfs::from_zip(gtfs).unwrap()
     };
 
     App::with_state(Context {
