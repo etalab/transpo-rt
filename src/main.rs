@@ -1,15 +1,13 @@
 extern crate actix;
 extern crate actix_web;
 extern crate env_logger;
-extern crate transpo_rt;
-#[macro_use]
-extern crate log;
 extern crate gtfs_structures;
+extern crate log;
 extern crate structopt;
+extern crate transpo_rt;
 
 use actix_web::server;
 use env_logger::{Builder, Env};
-use std::path::PathBuf;
 use structopt::StructOpt;
 
 #[derive(StructOpt, Debug, Clone)]
@@ -18,11 +16,10 @@ struct Params {
     #[structopt(
         short = "g",
         long = "gtfs",
-        parse(from_os_str),
-        help = "path to the GTFS zip",
+        help = "path or url to the GTFS zip",
         env = "TRANSPO_RT_GTFS",
     )]
-    gtfs: PathBuf,
+    gtfs: String,
     #[structopt(
         short = "u",
         long = "url",
@@ -58,6 +55,5 @@ fn main() {
         .unwrap()
         .start();
 
-    info!("Started http server: 127.0.0.1:8080");
     let _ = sys.run();
 }

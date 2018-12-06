@@ -4,13 +4,11 @@ extern crate transpo_rt;
 use actix_web::http;
 use actix_web::test::TestServer;
 use actix_web::HttpMessage;
-use std::path::PathBuf;
 use transpo_rt::stoppoints_discovery::Siri;
 
 #[test]
 fn sp_discovery_integration_test() {
-    let make_server =
-        || transpo_rt::server::create_server(&PathBuf::from("fixtures/gtfs.zip"), "".into());
+    let make_server = || transpo_rt::server::create_server("fixtures/gtfs.zip", "");
 
     let mut srv = TestServer::with_factory(make_server);
 
