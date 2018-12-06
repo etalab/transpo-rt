@@ -1,6 +1,7 @@
 use actix_web::{middleware, App};
 use crate::context::{lines_of_stop, Context};
 use crate::gtfs_rt::{gtfs_rt, gtfs_rt_json};
+use crate::stop_monitoring::stop_monitoring;
 use crate::stoppoints_discovery::stoppoints_discovery;
 use std::sync::{Arc, Mutex};
 
@@ -26,5 +27,5 @@ pub fn create_server(gtfs: &str, url: &str) -> App<Context> {
     .resource("/gtfs_rt.json", |r| r.f(gtfs_rt_json))
     .resource("/stoppoints_discovery.json", |r| {
         r.with(stoppoints_discovery)
-    })
+    }).resource("/stop_monitoring.json", |r| r.with(stop_monitoring))
 }
