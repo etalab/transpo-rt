@@ -7,7 +7,12 @@ use std::sync::{Arc, Mutex};
 
 pub fn create_server(gtfs: &PathBuf, url: &str) -> App<Context> {
     let gtfs_rt_data = Arc::new(Mutex::new(None));
-    let gtfs = gtfs_structures::Gtfs::from_zip(gtfs.to_str().unwrap()).unwrap();
+    let gtfs = if gtfs.starts_with("http://") {
+        gtfs_structures::Gtfs::from_url(gtfs.to_str().unwrap()).unwrap()
+    } else {
+        gtfs_structures::Gtfs::from_zip(gtfs.to_str().unwrap()).unwrap()
+    };
+
     App::with_state(Context {
         gtfs_rt: gtfs_rt_data.clone(),
         lines_of_stops: gtfs
