@@ -1,9 +1,9 @@
+use crate::context::{Context, GtfsRT};
+use crate::transit_realtime;
 use actix_web::http::{ContentEncoding, StatusCode};
 use actix_web::{error, HttpRequest, HttpResponse, Json, Result};
 use bytes::IntoBuf;
 use chrono::Utc;
-use crate::context::{Context, GtfsRT};
-use crate::transit_realtime;
 use failure::Error;
 use prost::Message;
 use reqwest;
@@ -65,7 +65,8 @@ pub fn gtfs_rt_json(req: &HttpRequest<Context>) -> Result<Json<transit_realtime:
                     e
                 ))
             })
-        }).ok_or_else(|| error::ErrorInternalServerError("impossible to access stored data"))?;
+        })
+        .ok_or_else(|| error::ErrorInternalServerError("impossible to access stored data"))?;
 
     Ok(Json(data?))
 }

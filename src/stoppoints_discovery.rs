@@ -1,5 +1,5 @@
-use actix_web::{Json, Query, Result, State};
 use crate::context::Context;
+use actix_web::{Json, Query, Result, State};
 use gtfs_structures;
 use siri_model::{AnnotatedStopPoint, Siri, SiriResponse, StopPointsDelivery};
 use std::borrow::Borrow;
@@ -37,7 +37,10 @@ fn bounding_box_matches(
 pub fn stoppoints_discovery(
     (state, query): (State<Context>, Query<Params>),
 ) -> Result<Json<SiriResponse>> {
-    let stops = &state.gtfs.stops;
+    let arc_data = state.data.clone();
+
+    let data = arc_data.lock().unwrap();
+    let stops = &data.gtfs.stops;
 
     let request = query.into_inner();
     let q = request.q.unwrap_or_default().to_lowercase();
@@ -50,7 +53,7 @@ pub fn stoppoints_discovery(
         .values()
         .filter(|s| name_matches(s, &q))
         .filter(|s| bounding_box_matches(s, min_lon, max_lon, min_lat, max_lat))
-        .map(|stop| AnnotatedStopPoint::from(stop.borrow(), &state))
+        .map(|stop| AnnotatedStopPoint::from(stop.borrow(), &data))
         .collect();
 
     Ok(Json(SiriResponse {
