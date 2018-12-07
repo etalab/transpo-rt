@@ -5,6 +5,7 @@ use actix_web::{error, HttpRequest, HttpResponse, Json, Result};
 use bytes::IntoBuf;
 use chrono::Utc;
 use failure::Error;
+use log::info;
 use prost::Message;
 use reqwest;
 use std::io::Read;
