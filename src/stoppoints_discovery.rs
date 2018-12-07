@@ -1,7 +1,7 @@
 use crate::context::Context;
+use crate::siri_model::{AnnotatedStopPoint, Siri, SiriResponse, StopPointsDelivery};
 use actix_web::{Json, Query, Result, State};
 use gtfs_structures;
-use siri_model::{AnnotatedStopPoint, Siri, SiriResponse, StopPointsDelivery};
 use std::borrow::Borrow;
 
 #[derive(Deserialize)]
