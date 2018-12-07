@@ -1,11 +1,3 @@
-extern crate actix;
-extern crate actix_web;
-extern crate env_logger;
-extern crate gtfs_structures;
-extern crate log;
-extern crate structopt;
-extern crate transpo_rt;
-
 use actix_web::server;
 use env_logger::{Builder, Env};
 use structopt::StructOpt;

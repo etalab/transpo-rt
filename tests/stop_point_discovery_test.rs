@@ -1,6 +1,3 @@
-extern crate actix_web;
-extern crate serde_json;
-extern crate transpo_rt;
 use actix_web::http;
 use actix_web::test::TestServer;
 use actix_web::HttpMessage;
