@@ -1,7 +1,7 @@
-use actix_web::{error, Json, Query, Result, State};
-use chrono::Timelike;
 use crate::context::{Context, Data};
 use crate::siri_model as model;
+use actix_web::{error, Json, Query, Result, State};
+use chrono::Timelike;
 use gtfs_structures;
 use serde;
 use std::sync::Arc;
@@ -113,7 +113,8 @@ fn create_stop_monitoring(
             .filter(|stop_time| {
                 let stop_id = &stop_time.stop.id;
                 stop_id == &stop.id || stop.parent_station.as_ref() == Some(stop_id)
-            }).filter(|stop_time| keep_stop_time(&stop_time, request))
+            })
+            .filter(|stop_time| keep_stop_time(&stop_time, request))
         // TODO filter on departure after request.start_time
         // TODO filter on the other request's param (PreviewInterval, MaximumStopVisits)
         {

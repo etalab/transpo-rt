@@ -1,5 +1,5 @@
-use actix_web::{Json, Query, Result, State};
 use crate::context::Context;
+use actix_web::{Json, Query, Result, State};
 use gtfs_structures;
 use siri_model::{AnnotatedStopPoint, Siri, SiriResponse, StopPointsDelivery};
 use std::borrow::Borrow;

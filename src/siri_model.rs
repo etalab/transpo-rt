@@ -127,7 +127,8 @@ impl AnnotatedStopPoint {
             .iter()
             .map(|route_id| Line {
                 line_ref: route_id.to_owned(),
-            }).collect();
+            })
+            .collect();
 
         Self {
             stop_point_ref: stop.id.to_owned(),

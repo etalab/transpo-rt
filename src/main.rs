@@ -17,14 +17,14 @@ struct Params {
         short = "g",
         long = "gtfs",
         help = "path or url to the GTFS zip",
-        env = "TRANSPO_RT_GTFS",
+        env = "TRANSPO_RT_GTFS"
     )]
     gtfs: String,
     #[structopt(
         short = "u",
         long = "url",
         help = "URL to the GTFS-RT provider",
-        env = "TRANSPO_RT_GTFS_RT_URL",
+        env = "TRANSPO_RT_GTFS_RT_URL"
     )]
     url: String,
     #[structopt(
@@ -32,7 +32,7 @@ struct Params {
         long = "port",
         help = "Port to listen to",
         env = "TRANSPO_RT_PORT",
-        default_value = "8080",
+        default_value = "8080"
     )]
     port: usize,
     #[structopt(
@@ -40,7 +40,7 @@ struct Params {
         long = "bind",
         help = "Bind adress",
         env = "TRANSPO_RT_BIND",
-        default_value = "0.0.0.0",
+        default_value = "0.0.0.0"
     )]
     bind: String,
 }
