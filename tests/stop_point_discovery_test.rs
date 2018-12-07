@@ -8,7 +8,9 @@ use transpo_rt::siri_model::SiriResponse;
 
 #[test]
 fn sp_discovery_integration_test() {
-    let make_server = || transpo_rt::server::create_server("fixtures/gtfs.zip", "");
+    let make_server = || {
+        transpo_rt::server::create_server(transpo_rt::server::make_context("fixtures/gtfs.zip", ""))
+    };
 
     let mut srv = TestServer::with_factory(make_server);
 

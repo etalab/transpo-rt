@@ -1,4 +1,4 @@
-use crate::context::Context;
+use crate::context::Data;
 
 // TODO store a real date, and only change serialization
 #[derive(Debug, Serialize, Deserialize)]
@@ -119,8 +119,8 @@ pub struct SiriResponse {
 }
 
 impl AnnotatedStopPoint {
-    pub fn from(stop: &gtfs_structures::Stop, context: &Context) -> Self {
-        let lines = context
+    pub fn from(stop: &gtfs_structures::Stop, data: &Data) -> Self {
+        let lines = data
             .lines_of_stops
             .get(&stop.id)
             .unwrap_or(&std::collections::HashSet::new())

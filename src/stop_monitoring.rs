@@ -1,10 +1,10 @@
 use actix_web::{error, Json, Query, Result, State};
 use chrono::Timelike;
-use crate::context::Context;
+use crate::context::{Context, Data};
 use crate::siri_model as model;
 use gtfs_structures;
 use serde;
-use std::rc::Rc;
+use std::sync::Arc;
 
 pub fn siri_datetime_param<'de, D>(
     deserializer: D,
@@ -54,7 +54,7 @@ fn make_dt(stop_time: u32) -> model::DateTime {
 }
 
 fn create_monitored_stop_visit(
-    context: &Context,
+    data: &Data,
     trip: &gtfs_structures::Trip,
     stop_time: &gtfs_structures::StopTime,
 ) -> model::MonitoredStopVisit {
@@ -71,7 +71,7 @@ fn create_monitored_stop_visit(
     model::MonitoredStopVisit {
         monitoring_ref: stop_time.stop.id.clone(),
         monitoring_vehicle_journey: model::MonitoredVehicleJourney {
-            line_ref: context
+            line_ref: data
                 .gtfs
                 .routes
                 .get(&trip.route_id)
@@ -96,12 +96,12 @@ fn keep_stop_time(stop_time: &gtfs_structures::StopTime, request: &Params) -> bo
 }
 
 fn create_stop_monitoring(
-    stop: &Rc<gtfs_structures::Stop>,
-    context: &Context,
+    stop: &Arc<gtfs_structures::Stop>,
+    data: &Data,
     request: &Params,
 ) -> Vec<model::StopMonitoringDelivery> {
     let mut stop_times = Vec::new(); //TODO rustify all this....
-    for trip in context
+    for trip in data
         .gtfs
         .trips
         .values()
@@ -126,7 +126,7 @@ fn create_stop_monitoring(
     vec![model::StopMonitoringDelivery {
         monitored_stop_visits: stop_times
             .into_iter()
-            .map(|(trip, st)| create_monitored_stop_visit(context, trip, st))
+            .map(|(trip, st)| create_monitored_stop_visit(data, trip, st))
             .take(2)
             .collect(),
     }]
@@ -135,7 +135,10 @@ fn create_stop_monitoring(
 pub fn stop_monitoring(
     (state, query): (State<Context>, Query<Params>),
 ) -> Result<Json<model::SiriResponse>> {
-    let stops = &state.gtfs.stops;
+    let arc_data = state.data.clone();
+
+    let data = arc_data.lock().unwrap();
+    let stops = &data.gtfs.stops;
 
     let request = query.into_inner();
 
@@ -154,7 +157,7 @@ pub fn stop_monitoring(
                 address: "".into(),
                 response_message_identifier: "".into(),
                 request_message_ref: "".into(),
-                stop_monitoring_delivery: create_stop_monitoring(&stop, &state, &request),
+                stop_monitoring_delivery: create_stop_monitoring(&stop, &data, &request),
             }),
             ..Default::default()
         },
