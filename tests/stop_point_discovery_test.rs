@@ -1,6 +1,7 @@
 use actix_web::http;
 use actix_web::test::TestServer;
 use actix_web::HttpMessage;
+use std::collections::BTreeSet;
 use transpo_rt::siri_model::SiriResponse;
 
 #[test]
@@ -12,7 +13,7 @@ fn sp_discovery_integration_test() {
     let mut srv = TestServer::with_factory(make_server);
 
     let request = srv
-        .client(http::Method::GET, "/stoppoints_discovery.json")
+        .client(http::Method::GET, "/stoppoints_discovery.json?q=mai")
         .finish()
         .unwrap();
     let response = srv.execute(request.send()).unwrap();
@@ -26,18 +27,24 @@ fn sp_discovery_integration_test() {
     assert_eq!(spd.version, "2.0");
     assert_eq!(spd.status, true);
     // no filtering, we fetch all stops
-    assert_eq!(spd.annotated_stop_point.len(), 5);
+    assert_eq!(spd.annotated_stop_point.len(), 2);
 
     let stop1 = spd
         .annotated_stop_point
         .iter()
-        .find(|s| s.stop_point_ref == "stop2")
+        .find(|s| s.stop_point_ref == "EMSI")
         .unwrap();
 
-    assert_eq!(stop1.stop_name, "StopPoint");
-    assert_eq!(stop1.location.longitude, 2.449386);
-    assert_eq!(stop1.location.latitude, 48.796058);
-    assert_eq!(stop1.lines.len(), 1);
-    assert_eq!(stop1.lines[0].line_ref, "route1");
+    assert_eq!(stop1.stop_name, "E Main St / S Irving St (Demo)");
+    assert_eq!(stop1.location.longitude, -116.76218);
+    assert_eq!(stop1.location.latitude, 36.905697);
+    assert_eq!(
+        stop1
+            .lines
+            .iter()
+            .map(|l| l.line_ref.clone())
+            .collect::<BTreeSet<_>>(),
+        vec!["CITY_R".into(), "CITY".into()].into_iter().collect()
+    );
     //TODO more tests
 }

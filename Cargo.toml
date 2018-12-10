@@ -19,6 +19,7 @@ serde = "1.0"
 serde_derive = "1"
 gtfs-structures = "0.8"
 structopt = "0.2"
+navitia_model = { git = "https://github.com/antoine-de/navitia_model.git", rev = "e02b0ec1e3232b5245245698d7448d1709ae0a4b" }
 
 [dev-dependencies]
 serde_json = "1.0"
