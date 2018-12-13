@@ -1,8 +1,7 @@
-use crate::context::Context;
+use crate::context::{Context, Stop};
 use crate::siri_model::{AnnotatedStopPoint, Siri, SiriResponse, StopPointsDelivery};
 use actix_web::{Json, Query, Result, State};
 use gtfs_structures;
-use std::borrow::Borrow;
 
 #[derive(Deserialize)]
 pub struct Params {
@@ -17,30 +16,22 @@ pub struct Params {
     lower_right_latitude: Option<f64>,
 }
 
-fn name_matches(stop: &gtfs_structures::Stop, q: &str) -> bool {
-    stop.name.to_lowercase().contains(q)
-}
-
 fn bounding_box_matches(
-    stop: &gtfs_structures::Stop,
+    coord: &navitia_model::objects::Coord,
     min_lon: f64,
     max_lon: f64,
     min_lat: f64,
     max_lat: f64,
 ) -> bool {
-    stop.longitude >= min_lon
-        && stop.longitude <= max_lon
-        && stop.latitude >= min_lat
-        && stop.latitude <= max_lat
+    coord.lon >= min_lon && coord.lon <= max_lon && coord.lat >= min_lat && coord.lat <= max_lat
 }
 
 pub fn stoppoints_discovery(
     (state, query): (State<Context>, Query<Params>),
 ) -> Result<Json<SiriResponse>> {
     let arc_data = state.data.clone();
-
     let data = arc_data.lock().unwrap();
-    let stops = &data.gtfs.stops;
+    let model = &data.raw;
 
     let request = query.into_inner();
     let q = request.q.unwrap_or_default().to_lowercase();
@@ -49,11 +40,21 @@ pub fn stoppoints_discovery(
     let min_lat = request.lower_right_latitude.unwrap_or(-90.);
     let max_lat = request.upper_left_latitude.unwrap_or(90.);
 
-    let filtered = stops
-        .values()
-        .filter(|s| name_matches(s, &q))
-        .filter(|s| bounding_box_matches(s, min_lon, max_lon, min_lat, max_lat))
-        .map(|stop| AnnotatedStopPoint::from(stop.borrow(), &data))
+    let filtered = model
+        .stop_points
+        .iter()
+        .filter(|(_, s)| s.name.to_lowercase().contains(&q))
+        .filter(|(_, s)| bounding_box_matches(&s.coord, min_lon, max_lon, min_lat, max_lat))
+        .map(|(id, _)| Stop::StopPoint(id))
+        .chain(
+            model
+                .stop_areas
+                .iter()
+                .filter(|(_, s)| s.name.to_lowercase().contains(&q))
+                .filter(|(_, s)| bounding_box_matches(&s.coord, min_lon, max_lon, min_lat, max_lat))
+                .map(|(id, _)| Stop::StopArea(id)),
+        )
+        .map(|s| AnnotatedStopPoint::from(&s, &model))
         .collect();
 
     Ok(Json(SiriResponse {

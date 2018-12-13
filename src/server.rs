@@ -7,12 +7,18 @@ use std::sync::{Arc, Mutex};
 
 pub fn make_context(gtfs: &str, url: &str) -> Context {
     let gtfs_rt_data = Arc::new(Mutex::new(None));
-    let gtfs = if gtfs.starts_with("http") {
+    let gtfs_data = if gtfs.starts_with("http") {
         gtfs_structures::Gtfs::from_url(gtfs).unwrap()
     } else {
         gtfs_structures::Gtfs::from_zip(gtfs).unwrap()
     };
-    let data = Data::new(gtfs);
+    let nav_data = if gtfs.starts_with("http") {
+        navitia_model::gtfs::read_from_url(gtfs, None::<&str>, None).unwrap()
+    } else {
+        navitia_model::gtfs::read_from_zip(gtfs, None::<&str>, None).unwrap()
+    };
+
+    let data = Data::new(gtfs_data, nav_data);
     let data = Arc::new(Mutex::new(data));
     Context {
         gtfs_rt: gtfs_rt_data.clone(),
