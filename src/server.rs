@@ -1,8 +1,9 @@
-use crate::context::{Context, Data};
+use crate::context::{Context, Data, Period};
 use crate::gtfs_rt::{gtfs_rt, gtfs_rt_json};
 use crate::stop_monitoring::stop_monitoring;
 use crate::stoppoints_discovery::stoppoints_discovery;
 use actix_web::{middleware, App};
+use chrono::Local;
 use std::sync::{Arc, Mutex};
 
 pub fn make_context(gtfs: &str, url: &str) -> Context {
@@ -18,7 +19,12 @@ pub fn make_context(gtfs: &str, url: &str) -> Context {
         navitia_model::gtfs::read_from_zip(gtfs, None::<&str>, None).unwrap()
     };
 
-    let data = Data::new(gtfs_data, nav_data);
+    let today = Local::today(); //TODO use the timezone's dataset ?
+    let period = Period {
+        begin: today,
+        end: today.succ(),
+    };
+    let data = Data::new(gtfs_data, nav_data, period);
     let data = Arc::new(Mutex::new(data));
     Context {
         gtfs_rt: gtfs_rt_data.clone(),
