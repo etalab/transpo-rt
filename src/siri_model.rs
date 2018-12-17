@@ -2,7 +2,7 @@ use crate::context::Stop;
 use navitia_model::Model;
 
 #[derive(Debug)]
-pub struct DateTime(pub chrono::DateTime<chrono::Local>);
+pub struct DateTime(pub chrono::NaiveDateTime);
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ErrorCondition {}
@@ -157,7 +157,7 @@ impl serde::Serialize for DateTime {
     where
         S: ::serde::Serializer,
     {
-        serializer.serialize_str(&self.0.to_rfc3339())
+        serializer.serialize_str(&self.0.format("%Y-%m-%dT%H:%M:%S").to_string())
     }
 }
 
@@ -166,14 +166,11 @@ impl<'de> ::serde::Deserialize<'de> for DateTime {
     where
         D: ::serde::Deserializer<'de>,
     {
-        use chrono::offset::TimeZone;
-        use serde::de::Error;
-
-        let date_str = String::deserialize(deserializer)?;
-        let dt = chrono::DateTime::parse_from_rfc3339(&date_str).map_err(Error::custom)?;
-        let offset = chrono::Local::from_offset(&dt.offset());
-        let dt = dt.with_timezone(&offset);
-
-        Ok(DateTime(dt))
+        let s = String::deserialize(deserializer)?;
+        Ok(DateTime(
+            chrono::NaiveDateTime::parse_from_str(&s, "%Y-%m-%dT%H:%M:%S").map_err(|e| {
+                serde::de::Error::custom(format!("datetime format not valid: {}", e))
+            })?,
+        ))
     }
 }

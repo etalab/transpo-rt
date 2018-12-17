@@ -7,18 +7,9 @@ use navitia_model::collection::Idx;
 use navitia_model::objects::StopPoint;
 use serde;
 
-pub fn siri_datetime_param<'de, D>(
-    deserializer: D,
-) -> Result<chrono::DateTime<chrono::Local>, D::Error>
-where
-    D: serde::Deserializer<'de>,
-{
-    use serde::Deserialize;
-    let s = String::deserialize(deserializer)?;
-
-    chrono::DateTime::<chrono::FixedOffset>::parse_from_rfc3339(&s)
-        .map_err(serde::de::Error::custom)
-        .map(|dt| dt.with_timezone(&chrono::Local))
+fn current_datetime() -> model::DateTime {
+    //TODO better datetime handling (if the server is not in the dataset's timezone it might lead to problems)
+    model::DateTime(chrono::Local::now().naive_local())
 }
 
 #[derive(Debug, Deserialize)]
@@ -28,11 +19,8 @@ pub struct Params {
     monitoring_ref: String,
     _line_ref: Option<String>,
     _destination_ref: Option<String>,
-    #[serde(
-        default = "chrono::Local::now",
-        deserialize_with = "siri_datetime_param"
-    )]
-    start_time: chrono::DateTime<chrono::Local>,
+    #[serde(default = "current_datetime")]
+    start_time: model::DateTime,
     #[serde(skip)] //TODO
     _preview_interval: Option<chrono::Duration>,
 }
@@ -72,7 +60,7 @@ fn create_stop_monitoring(
         .timetable
         .connections
         .iter()
-        .skip_while(|c| c.dep_time < request.start_time)
+        .skip_while(|c| c.dep_time < request.start_time.0)
         .filter(|c| c.stop_point_idx == stop_idx)
         // .filter() // filter on lines
         .map(|c| create_monitored_stop_visit(data, c))

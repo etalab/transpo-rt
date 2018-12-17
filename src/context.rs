@@ -1,10 +1,6 @@
-use crate::Result;
-use chrono::offset::TimeZone;
-use chrono::{Date, DateTime, Local, Utc};
-use failure::format_err;
+use chrono::{DateTime, NaiveDate, NaiveDateTime, Utc};
 use gtfs_structures;
 use log::info;
-use log::warn;
 use navitia_model::collection::Idx;
 use std::sync::Arc;
 use std::sync::Mutex;
@@ -24,8 +20,8 @@ pub struct GtfsRT {
 pub struct Connection {
     pub vj_idx: Idx<navitia_model::objects::VehicleJourney>,
     pub stop_point_idx: Idx<navitia_model::objects::StopPoint>,
-    pub dep_time: DateTime<Local>,
-    pub arr_time: DateTime<Local>,
+    pub dep_time: NaiveDateTime,
+    pub arr_time: NaiveDateTime,
     pub sequence: u32,
 }
 
@@ -48,12 +44,12 @@ pub struct Context {
 
 #[derive(Debug)]
 pub struct Period {
-    pub begin: Date<Local>,
-    pub end: Date<Local>,
+    pub begin: NaiveDate,
+    pub end: NaiveDate,
 }
 
 impl Period {
-    pub fn contains(&self, date: &Date<Local>) -> bool {
+    pub fn contains(&self, date: &NaiveDate) -> bool {
         self.begin <= *date && *date < self.end
     }
 }
@@ -61,7 +57,7 @@ impl Period {
 // create a dt from a Date and a StopTime's time
 // Note: the time might be on the next day, for example "26:00:00"
 // is the next day at 2 in the morning
-fn create_dt(date: &Date<Local>, time: &navitia_model::objects::Time) -> Result<DateTime<Local>> {
+fn create_dt(date: &NaiveDate, time: &navitia_model::objects::Time) -> NaiveDateTime {
     let date = if time.hours() > 24 {
         date.succ()
     } else {
@@ -73,7 +69,7 @@ fn create_dt(date: &Date<Local>, time: &navitia_model::objects::Time) -> Result<
         time.seconds(),
     ))
     // .map(|dt| dt + chrono::Duration::seconds(time.total_seconds()))
-    .ok_or(format_err!("invalid date: {:?}", time))
+    // .ok_or(format_err!("invalid date: {:?}", time))
 }
 
 fn create_timetable(ntm: &navitia_model::Model, generation_period: Period) -> Timetable {
@@ -88,14 +84,14 @@ fn create_timetable(ntm: &navitia_model::Model, generation_period: Period) -> Ti
             for date in service
                 .dates
                 .iter()
-                .filter_map(|naive| Local.from_local_date(&naive).earliest())
-                .filter(|date| generation_period.contains(&date))
+                // .filter_map(|naive| Local.from_local_date(&naive).earliest())
+                .filter(|date| generation_period.contains(date))
             {
                 timetable.connections.push(Connection {
                     vj_idx: vj_idx,
                     stop_point_idx: st.stop_point_idx,
-                    dep_time: skip_fail!(create_dt(&date, &st.departure_time)),
-                    arr_time: skip_fail!(create_dt(&date, &st.arrival_time)),
+                    dep_time: create_dt(&date, &st.departure_time),
+                    arr_time: create_dt(&date, &st.arrival_time),
                     sequence: st.sequence,
                 });
             }

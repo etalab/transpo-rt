@@ -21,8 +21,8 @@ pub fn make_context(gtfs: &str, url: &str) -> Context {
 
     let today = Local::today(); //TODO use the timezone's dataset ?
     let period = Period {
-        begin: today,
-        end: today.succ(),
+        begin: today.naive_local(),
+        end: today.succ().naive_local(),
     };
     let data = Data::new(gtfs_data, nav_data, period);
     let data = Arc::new(Mutex::new(data));
