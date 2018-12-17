@@ -1,10 +1,8 @@
 use crate::context::Stop;
 use navitia_model::Model;
 
-// TODO store a real date, and only change serialization
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "PascalCase")]
-pub struct DateTime(pub String);
+#[derive(Debug)]
+pub struct DateTime(pub chrono::DateTime<chrono::Local>);
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ErrorCondition {}
@@ -151,5 +149,31 @@ impl AnnotatedStopPoint {
                 latitude: lat,
             },
         }
+    }
+}
+
+impl serde::Serialize for DateTime {
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: ::serde::Serializer,
+    {
+        serializer.serialize_str(&self.0.to_rfc3339())
+    }
+}
+
+impl<'de> ::serde::Deserialize<'de> for DateTime {
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: ::serde::Deserializer<'de>,
+    {
+        use chrono::offset::TimeZone;
+        use serde::de::Error;
+
+        let date_str = String::deserialize(deserializer)?;
+        let dt = chrono::DateTime::parse_from_rfc3339(&date_str).map_err(Error::custom)?;
+        let offset = chrono::Local::from_offset(&dt.offset());
+        let dt = dt.with_timezone(&offset);
+
+        Ok(DateTime(dt))
     }
 }

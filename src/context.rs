@@ -26,6 +26,7 @@ pub struct Connection {
     pub stop_point_idx: Idx<navitia_model::objects::StopPoint>,
     pub dep_time: DateTime<Local>,
     pub arr_time: DateTime<Local>,
+    pub sequence: u32,
 }
 
 pub struct Timetable {
@@ -45,6 +46,7 @@ pub struct Context {
     pub data: Arc<Mutex<Data>>,
 }
 
+#[derive(Debug)]
 pub struct Period {
     pub begin: Date<Local>,
     pub end: Date<Local>,
@@ -75,39 +77,38 @@ fn create_dt(date: &Date<Local>, time: &navitia_model::objects::Time) -> Result<
 }
 
 fn create_timetable(ntm: &navitia_model::Model, generation_period: Period) -> Timetable {
-    info!("computing timetable");
+    info!("computing timetable for {:?}", &generation_period);
     let begin_dt = Utc::now();
     let mut timetable = Timetable {
         connections: vec![],
     };
     for (vj_idx, vj) in ntm.vehicle_journeys.iter() {
+        let service = ntm.calendars.get(&vj.service_id).unwrap();
         for st in &vj.stop_times {
-            let service = ntm.calendars.get(&vj.service_id).unwrap();
             for date in service
                 .dates
                 .iter()
                 .filter_map(|naive| Local.from_local_date(&naive).earliest())
+                .filter(|date| generation_period.contains(&date))
             {
-                if !generation_period.contains(&date) {
-                    continue;
-                }
                 timetable.connections.push(Connection {
                     vj_idx: vj_idx,
                     stop_point_idx: st.stop_point_idx,
                     dep_time: skip_fail!(create_dt(&date, &st.departure_time)),
                     arr_time: skip_fail!(create_dt(&date, &st.arrival_time)),
+                    sequence: st.sequence,
                 });
             }
         }
     }
-    timetable
-        .connections
-        .sort_by(|a, b| b.dep_time.cmp(&a.dep_time));
+    timetable.connections.sort_by_key(|a| a.dep_time);
 
     info!(
-        "timetable computed in {}",
+        "timetable of {} elements computed in {}",
+        timetable.connections.len(),
         Utc::now().signed_duration_since(begin_dt)
     );
+
     timetable
 }
 

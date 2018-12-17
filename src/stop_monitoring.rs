@@ -1,10 +1,11 @@
-use crate::context::{Context, Data};
+use crate::context::{Connection, Context, Data};
 use crate::siri_model as model;
 use actix_web::{error, Json, Query, Result, State};
-use chrono::Timelike;
 use gtfs_structures;
+use log::info;
+use navitia_model::collection::Idx;
+use navitia_model::objects::StopPoint;
 use serde;
-use std::sync::Arc;
 
 pub fn siri_datetime_param<'de, D>(
     deserializer: D,
@@ -20,7 +21,7 @@ where
         .map(|dt| dt.with_timezone(&chrono::Local))
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 #[serde(rename_all = "PascalCase")]
 pub struct Params {
     _requestor_ref: Option<String>,
@@ -36,47 +37,23 @@ pub struct Params {
     _preview_interval: Option<chrono::Duration>,
 }
 
-// TODO move this helper
-fn trip_is_valid(_trip: &gtfs_structures::Trip, _dt: &chrono::DateTime<chrono::Local>) -> bool {
-    // TODO check the validity pattern
-    true
-}
-
-fn make_dt(stop_time: u32) -> model::DateTime {
-    let date = chrono::Local::now()
-        .with_hour(stop_time / 60 / 60)
-        .and_then(|d| d.with_minute(stop_time / 60 % 60))
-        .and_then(|d| d.with_second(stop_time % 60))
-        .map(|d| d.to_rfc3339())
-        .unwrap_or_else(|| "".into());
-
-    model::DateTime(date)
-}
-
-fn create_monitored_stop_visit(
-    data: &Data,
-    trip: &gtfs_structures::Trip,
-    stop_time: &gtfs_structures::StopTime,
-) -> model::MonitoredStopVisit {
+fn create_monitored_stop_visit(data: &Data, connection: &Connection) -> model::MonitoredStopVisit {
+    let stop = &data.raw.stop_points[connection.stop_point_idx];
+    let vj = &data.raw.vehicle_journeys[connection.vj_idx];
     let call = model::MonitoredCall {
-        order: stop_time.stop_sequence,
-        stop_point_name: stop_time.stop.name.clone(),
+        order: connection.sequence as u16,
+        stop_point_name: stop.name.clone(),
         vehicle_at_stop: None,
         destination_display: None,
-        aimed_arrival_time: Some(make_dt(stop_time.arrival_time)),
-        aimed_departure_time: Some(make_dt(stop_time.departure_time)),
+        aimed_arrival_time: Some(model::DateTime(connection.arr_time.clone())),
+        aimed_departure_time: Some(model::DateTime(connection.dep_time.clone())),
         expected_arrival_time: None,
         expected_departure_time: None,
     };
     model::MonitoredStopVisit {
-        monitoring_ref: stop_time.stop.id.clone(),
+        monitoring_ref: stop.id.clone(),
         monitoring_vehicle_journey: model::MonitoredVehicleJourney {
-            line_ref: data
-                .gtfs
-                .routes
-                .get(&trip.route_id)
-                .map(|r| r.id.clone())
-                .unwrap_or_else(|| "line_unknown".into()),
+            line_ref: vj.route_id.clone(),
             operator_ref: None,
             journey_pattern_ref: None,
             monitored_call: Some(call),
@@ -86,50 +63,24 @@ fn create_monitored_stop_visit(
     }
 }
 
-fn keep_stop_time(stop_time: &gtfs_structures::StopTime, request: &Params) -> bool {
-    let request_seconds_since_midnight = {
-        let dt = request.start_time;
-        60 * 60 * dt.hour() + 60 * dt.minute() + dt.second()
-    };
-    // TODO check request.preview_interval
-    stop_time.departure_time >= request_seconds_since_midnight
-}
-
 fn create_stop_monitoring(
-    stop: &Arc<gtfs_structures::Stop>,
+    stop_idx: Idx<StopPoint>,
     data: &Data,
     request: &Params,
 ) -> Vec<model::StopMonitoringDelivery> {
-    let mut stop_times = Vec::new(); //TODO rustify all this....
-    for trip in data
-        .gtfs
-        .trips
-        .values()
-        .filter(|t| trip_is_valid(t, &request.start_time))
-    {
-        for st in trip
-            .stop_times
-            .iter()
-            .filter(|stop_time| {
-                let stop_id = &stop_time.stop.id;
-                stop_id == &stop.id || stop.parent_station.as_ref() == Some(stop_id)
-            })
-            .filter(|stop_time| keep_stop_time(&stop_time, request))
-        // TODO filter on departure after request.start_time
-        // TODO filter on the other request's param (PreviewInterval, MaximumStopVisits)
-        {
-            stop_times.push((trip, st));
-        }
-    }
-
-    stop_times.sort_by_key(|s| s.1.departure_time);
+    let stop_visit = data
+        .timetable
+        .connections
+        .iter()
+        .skip_while(|c| c.dep_time < request.start_time)
+        .filter(|c| c.stop_point_idx == stop_idx)
+        // .filter() // filter on lines
+        .map(|c| create_monitored_stop_visit(data, c))
+        .take(2) //TODO make it a param
+        .collect();
 
     vec![model::StopMonitoringDelivery {
-        monitored_stop_visits: stop_times
-            .into_iter()
-            .map(|(trip, st)| create_monitored_stop_visit(data, trip, st))
-            .take(2)
-            .collect(),
+        monitored_stop_visits: stop_visit,
     }]
 }
 
@@ -139,11 +90,13 @@ pub fn stop_monitoring(
     let arc_data = state.data.clone();
 
     let data = arc_data.lock().unwrap();
-    let stops = &data.gtfs.stops;
+    let stops = &data.raw.stop_points;
 
     let request = query.into_inner();
+    info!("receiving :{:?}", &request);
 
-    let stop = stops.get(&request.monitoring_ref).ok_or_else(|| {
+    //TODO handle stop_area ?
+    let stop_idx = stops.get_idx(&request.monitoring_ref).ok_or_else(|| {
         error::ErrorNotFound(format!(
             "impossible to find stop: '{}'",
             &request.monitoring_ref
@@ -158,7 +111,7 @@ pub fn stop_monitoring(
                 address: "".into(),
                 response_message_identifier: "".into(),
                 request_message_ref: "".into(),
-                stop_monitoring_delivery: create_stop_monitoring(&stop, &data, &request),
+                stop_monitoring_delivery: create_stop_monitoring(stop_idx, &data, &request),
             }),
             ..Default::default()
         },
