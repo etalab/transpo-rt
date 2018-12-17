@@ -152,12 +152,18 @@ impl AnnotatedStopPoint {
     }
 }
 
+impl std::string::ToString for DateTime {
+    fn to_string(&self) -> String {
+        self.0.format("%Y-%m-%dT%H:%M:%S").to_string()
+    }
+}
+
 impl serde::Serialize for DateTime {
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
     where
         S: ::serde::Serializer,
     {
-        serializer.serialize_str(&self.0.format("%Y-%m-%dT%H:%M:%S").to_string())
+        serializer.serialize_str(&self.to_string())
     }
 }
 

@@ -42,7 +42,13 @@ fn main() {
     let sys = actix::System::new("transpo-rt");
     let params = Params::from_args();
     let bind = format!("{}:{}", &params.bind, &params.port);
-    let context = transpo_rt::server::make_context(&params.gtfs, &params.url);
+
+    let today = chrono::Local::today(); //TODO use the timezone's dataset ?
+    let period = transpo_rt::context::Period {
+        begin: today.naive_local(),
+        end: today.succ().naive_local(),
+    };
+    let context = transpo_rt::server::make_context(&params.gtfs, &params.url, period);
     server::new(move || transpo_rt::server::create_server(context.clone()))
         .bind(bind)
         .unwrap()
