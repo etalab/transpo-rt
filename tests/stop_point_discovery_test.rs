@@ -25,7 +25,7 @@ fn sp_discovery_integration_test() {
     assert_eq!(spd.version, "2.0");
     assert_eq!(spd.status, true);
     // no filtering, we fetch all stops
-    assert_eq!(spd.annotated_stop_point.len(), 2);
+    assert_eq!(spd.annotated_stop_point.len(), 1);
 
     let stop1 = spd
         .annotated_stop_point

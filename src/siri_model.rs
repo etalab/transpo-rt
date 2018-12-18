@@ -1,4 +1,5 @@
-use crate::context::Stop;
+use navitia_model::collection::Idx;
+use navitia_model::objects::StopPoint;
 use navitia_model::Model;
 
 #[derive(Debug)]
@@ -118,35 +119,24 @@ pub struct SiriResponse {
 }
 
 impl AnnotatedStopPoint {
-    pub fn from(stop: &Stop, model: &Model) -> Self {
-        let lines = match stop {
-            Stop::StopPoint(sp) => model.get_corresponding_from_idx(*sp),
-            Stop::StopArea(sa) => model.get_corresponding_from_idx(*sa),
-        }
-        .into_iter()
-        .map(|route_id| Line {
-            line_ref: model.routes[route_id].id.clone(),
-        })
-        .collect();
+    pub fn from(stop_point_idx: Idx<StopPoint>, model: &Model) -> Self {
+        let lines = model
+            .get_corresponding_from_idx(stop_point_idx)
+            .into_iter()
+            .map(|route_id| Line {
+                line_ref: model.routes[route_id].id.clone(),
+            })
+            .collect();
 
-        let (id, name, lon, lat) = match stop {
-            Stop::StopPoint(idx) => {
-                let sp = &model.stop_points[*idx];
-                (sp.id.clone(), sp.name.clone(), sp.coord.lon, sp.coord.lat)
-            }
-            Stop::StopArea(idx) => {
-                let sp = &model.stop_areas[*idx];
-                (sp.id.clone(), sp.name.clone(), sp.coord.lon, sp.coord.lat)
-            }
-        };
+        let sp = &model.stop_points[stop_point_idx];
 
         Self {
-            stop_point_ref: id,
-            stop_name: name,
+            stop_point_ref: sp.id.clone(),
+            stop_name: sp.name.clone(),
             lines,
             location: Location {
-                longitude: lon,
-                latitude: lat,
+                longitude: sp.coord.lon,
+                latitude: sp.coord.lat,
             },
         }
     }
