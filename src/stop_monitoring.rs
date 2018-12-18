@@ -82,11 +82,8 @@ fn apply_rt_update(data: &mut Data, gtfs_rt: &transit_realtime::FeedMessage) -> 
     let parsed_trip_update = gtfs_rt_utils::get_model_update(&data.ntm, gtfs_rt)?;
 
     for connection in &mut data.timetable.connections {
-        let trip_update = parsed_trip_update.trips.get(&connection.dated_vj.vj_idx);
+        let trip_update = parsed_trip_update.trips.get(&connection.dated_vj);
         if let Some(trip_update) = trip_update {
-            if connection.dated_vj.date != trip_update.date {
-                continue;
-            }
             let stop_time_update = trip_update
                 .stop_time_update_by_sequence
                 .get(&connection.sequence);
@@ -150,7 +147,11 @@ pub fn stop_monitoring(
     (state, query): (State<Context>, Query<Params>),
 ) -> Result<Json<model::SiriResponse>> {
     let request = query.into_inner();
-    realtime_update(&*state)?;
+    if false {
+        //deactivate the realtime for the moment
+        // "if false" is used not to have warnings
+        realtime_update(&*state)?;
+    }
     let arc_data = state.data.clone();
     let data = arc_data.lock().unwrap();
 

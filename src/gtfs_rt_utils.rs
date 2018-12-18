@@ -1,12 +1,14 @@
-use crate::context::{Context, GtfsRT};
+use crate::context::{Context, DatedVehicleJourney, GtfsRT};
 use crate::transit_realtime;
 use actix_web::Result;
 use chrono::NaiveDateTime;
 use chrono::Utc;
+use failure::format_err;
 use failure::Error;
-use log::info;
+use failure::ResultExt;
+use log::{debug, info, warn};
 use navitia_model::collection::Idx;
-use navitia_model::objects::{StopPoint, VehicleJourney};
+use navitia_model::objects::StopPoint;
 use reqwest;
 use std::collections::HashMap;
 use std::io::Read;
@@ -56,16 +58,71 @@ pub struct StopTimeUpdate {
 pub struct TripUpdate {
     pub stop_time_update_by_sequence: HashMap<u32, StopTimeUpdate>,
     pub update_dt: chrono::DateTime<chrono::Utc>,
-    pub date: chrono::NaiveDate,
 }
 
 pub struct ModelUpdate {
-    pub trips: HashMap<Idx<VehicleJourney>, TripUpdate>,
+    pub trips: HashMap<DatedVehicleJourney, TripUpdate>,
+}
+
+fn create_stop_time_updates(
+    _trip_update: &transit_realtime::TripUpdate,
+) -> Result<HashMap<u32, StopTimeUpdate>> {
+    unimplemented!()
 }
 
 pub fn get_model_update(
     model: &navitia_model::Model,
     gtfs_rt: &transit_realtime::FeedMessage,
 ) -> Result<ModelUpdate> {
-    unimplemented!()
+    let mut model_update = ModelUpdate {
+        trips: HashMap::new(),
+    };
+
+    for entity in &gtfs_rt.entity {
+        let entity_id = &entity.id;
+        if let Some(tu) = &entity.trip_update {
+            let trip_id = tu.trip.trip_id();
+            let date = skip_fail!(tu
+                .trip
+                .start_date
+                .as_ref()
+                .ok_or_else(|| format_err!(
+                    "The date is a mandatory field to apply a trip update, cannot apply entity {}",
+                    &entity_id
+                ))
+                .and_then(
+                    |date_str| Ok(
+                        chrono::NaiveDate::parse_from_str(&date_str, "%Y%m%d").context(format!(
+                            "impossible to read date from entity {}",
+                            &entity_id
+                        ))?
+                    )
+                ));
+
+            let vj_idx =
+                skip_fail!(model
+                    .vehicle_journeys
+                    .get_idx(trip_id)
+                    .ok_or_else(|| format_err!(
+                        "impossible to find trip {} for entity {}",
+                        &trip_id,
+                        &entity_id
+                    )));
+
+            let dated_vj = DatedVehicleJourney { vj_idx, date };
+            model_update.trips.insert(
+                dated_vj,
+                TripUpdate {
+                    stop_time_update_by_sequence: create_stop_time_updates(tu)?,
+                    update_dt: chrono::DateTime::<chrono::Utc>::from_utc(
+                        chrono::NaiveDateTime::from_timestamp(tu.timestamp.unwrap_or(0) as i64, 0),
+                        chrono::Utc,
+                    ),
+                },
+            );
+        } else {
+            debug!("unhandled feed entity");
+        }
+    }
+    Ok(model_update)
 }

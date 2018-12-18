@@ -31,7 +31,7 @@ pub struct RealTimeConnection {
     pub update_time: chrono::DateTime<chrono::Utc>, //TODO move it to have one update_time for a trip, not one by stop_time
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Hash, Eq, PartialEq)]
 pub struct DatedVehicleJourney {
     pub vj_idx: Idx<navitia_model::objects::VehicleJourney>,
     pub date: chrono::NaiveDate,
