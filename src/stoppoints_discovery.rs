@@ -1,4 +1,4 @@
-use crate::context::{Context, Stop};
+use crate::context::Context;
 use crate::siri_model::{AnnotatedStopPoint, Siri, SiriResponse, StopPointsDelivery};
 use actix_web::{Json, Query, Result, State};
 use gtfs_structures;
@@ -45,16 +45,7 @@ pub fn stoppoints_discovery(
         .iter()
         .filter(|(_, s)| s.name.to_lowercase().contains(&q))
         .filter(|(_, s)| bounding_box_matches(&s.coord, min_lon, max_lon, min_lat, max_lat))
-        .map(|(id, _)| Stop::StopPoint(id))
-        .chain(
-            model
-                .stop_areas
-                .iter()
-                .filter(|(_, s)| s.name.to_lowercase().contains(&q))
-                .filter(|(_, s)| bounding_box_matches(&s.coord, min_lon, max_lon, min_lat, max_lat))
-                .map(|(id, _)| Stop::StopArea(id)),
-        )
-        .map(|s| AnnotatedStopPoint::from(&s, &model))
+        .map(|(id, _)| AnnotatedStopPoint::from(id, &model))
         .collect();
 
     Ok(Json(SiriResponse {
