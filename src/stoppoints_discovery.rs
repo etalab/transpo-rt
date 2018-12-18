@@ -30,7 +30,7 @@ pub fn stoppoints_discovery(
 ) -> Result<Json<SiriResponse>> {
     let arc_data = state.data.clone();
     let data = arc_data.lock().unwrap();
-    let model = &data.raw;
+    let model = &data.ntm;
 
     let request = query.into_inner();
     let q = request.q.unwrap_or_default().to_lowercase();

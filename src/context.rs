@@ -29,7 +29,7 @@ pub struct Timetable {
 }
 
 pub struct Data {
-    pub raw: navitia_model::Model,
+    pub ntm: navitia_model::Model,
     pub timetable: Timetable,
 }
 
@@ -99,7 +99,7 @@ impl Data {
     pub fn new(ntm: navitia_model::Model, generation_period: &Period) -> Self {
         Self {
             timetable: create_timetable(&ntm, generation_period),
-            raw: ntm,
+            ntm,
         }
     }
 }
