@@ -1,7 +1,6 @@
 use crate::context::{Connection, Context, Data};
 use crate::siri_model as model;
 use actix_web::{error, Json, Query, Result, State};
-use gtfs_structures;
 use log::info;
 use navitia_model::collection::Idx;
 use navitia_model::objects::StopPoint;
@@ -26,8 +25,8 @@ pub struct Params {
 }
 
 fn create_monitored_stop_visit(data: &Data, connection: &Connection) -> model::MonitoredStopVisit {
-    let stop = &data.raw.stop_points[connection.stop_point_idx];
-    let vj = &data.raw.vehicle_journeys[connection.vj_idx];
+    let stop = &data.ntm.stop_points[connection.stop_point_idx];
+    let vj = &data.ntm.vehicle_journeys[connection.vj_idx];
     let call = model::MonitoredCall {
         order: connection.sequence as u16,
         stop_point_name: stop.name.clone(),
@@ -78,7 +77,7 @@ pub fn stop_monitoring(
     let arc_data = state.data.clone();
 
     let data = arc_data.lock().unwrap();
-    let stops = &data.raw.stop_points;
+    let stops = &data.ntm.stop_points;
 
     let request = query.into_inner();
     info!("receiving :{:?}", &request);
