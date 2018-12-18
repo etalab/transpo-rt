@@ -58,12 +58,8 @@ impl Period {
 // Note: the time might be on the next day, for example "26:00:00"
 // is the next day at 2 in the morning
 fn create_dt(date: NaiveDate, time: navitia_model::objects::Time) -> NaiveDateTime {
-    let date = if time.hours() > 24 { date.succ() } else { date };
-    date.and_time(chrono::NaiveTime::from_hms(
-        time.hours() % 24,
-        time.minutes(),
-        time.seconds(),
-    ))
+    date.and_time(chrono::NaiveTime::from_hms(0, 0, 0))
+        + chrono::Duration::seconds(i64::from(time.total_seconds()))
 }
 
 fn create_timetable(ntm: &navitia_model::Model, generation_period: &Period) -> Timetable {
