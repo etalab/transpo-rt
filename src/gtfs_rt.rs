@@ -1,45 +1,10 @@
-use crate::context::{Context, GtfsRT};
+use crate::context::Context;
+use crate::gtfs_rt_utils::get_gtfs_rt;
 use crate::transit_realtime;
 use actix_web::http::{ContentEncoding, StatusCode};
 use actix_web::{error, HttpRequest, HttpResponse, Json, Result};
 use bytes::IntoBuf;
-use chrono::Utc;
-use failure::Error;
-use log::info;
 use prost::Message;
-use reqwest;
-use std::io::Read;
-use std::sync::MutexGuard;
-
-const REFRESH_TIMEOUT_S: i64 = 60;
-
-fn fetch_gtfs(url: &str) -> Result<Vec<u8>, Error> {
-    info!("fetching a gtfs_rt");
-    let pbf = reqwest::get(url)?.error_for_status()?;
-
-    pbf.bytes()
-        .collect::<Result<Vec<u8>, _>>()
-        .map_err(|e| e.into())
-}
-
-fn refresh_needed(previous: &Option<GtfsRT>) -> bool {
-    previous
-        .as_ref()
-        .map(|g| g.datetime)
-        .map(|dt| (chrono::Utc::now() - dt).num_seconds().abs() > REFRESH_TIMEOUT_S)
-        .unwrap_or(true)
-}
-
-fn get_gtfs_rt(context: &Context) -> Result<MutexGuard<Option<GtfsRT>>, Error> {
-    let mut saved_data = context.gtfs_rt.lock().unwrap();
-    if refresh_needed(&saved_data) {
-        *saved_data = Some(GtfsRT {
-            data: fetch_gtfs(&context.gtfs_rt_provider_url)?,
-            datetime: Utc::now(),
-        });
-    }
-    Ok(saved_data)
-}
 
 pub fn gtfs_rt(req: &HttpRequest<Context>) -> Result<HttpResponse> {
     let saved_data = get_gtfs_rt(req.state()).map_err(error::ErrorInternalServerError)?;

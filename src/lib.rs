@@ -13,6 +13,7 @@ pub type Result<T> = std::result::Result<T, failure::Error>;
 
 pub mod context;
 pub mod gtfs_rt;
+pub(crate) mod gtfs_rt_utils;
 pub mod server;
 pub mod siri_model;
 pub mod stop_monitoring;
