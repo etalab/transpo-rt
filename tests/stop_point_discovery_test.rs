@@ -1,22 +1,20 @@
 use actix_web::http;
-use actix_web::test::TestServer;
 use actix_web::HttpMessage;
 use std::collections::BTreeSet;
 use transpo_rt::siri_model::SiriResponse;
 
+mod utils;
+
 #[test]
 fn sp_discovery_integration_test() {
-    let make_server = || {
-        transpo_rt::server::create_server(transpo_rt::server::make_context("fixtures/gtfs.zip", ""))
-    };
-
-    let mut srv = TestServer::with_factory(make_server);
+    let mut srv = utils::make_test_server();
 
     let request = srv
         .client(http::Method::GET, "/stoppoints_discovery.json?q=mai")
         .finish()
         .unwrap();
     let response = srv.execute(request.send()).unwrap();
+
     assert!(response.status().is_success());
 
     let bytes = srv.execute(response.body()).unwrap();

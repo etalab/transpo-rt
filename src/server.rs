@@ -1,11 +1,11 @@
-use crate::context::{Context, Data};
+use crate::context::{Context, Data, Period};
 use crate::gtfs_rt::{gtfs_rt, gtfs_rt_json};
 use crate::stop_monitoring::stop_monitoring;
 use crate::stoppoints_discovery::stoppoints_discovery;
 use actix_web::{middleware, App};
 use std::sync::{Arc, Mutex};
 
-pub fn make_context(gtfs: &str, url: &str) -> Context {
+pub fn make_context(gtfs: &str, url: &str, generation_period: &Period) -> Context {
     let gtfs_rt_data = Arc::new(Mutex::new(None));
     let gtfs_data = if gtfs.starts_with("http") {
         gtfs_structures::Gtfs::from_url(gtfs).unwrap()
@@ -18,7 +18,7 @@ pub fn make_context(gtfs: &str, url: &str) -> Context {
         navitia_model::gtfs::read_from_zip(gtfs, None::<&str>, None).unwrap()
     };
 
-    let data = Data::new(gtfs_data, nav_data);
+    let data = Data::new(gtfs_data, nav_data, &generation_period);
     let data = Arc::new(Mutex::new(data));
     Context {
         gtfs_rt: gtfs_rt_data.clone(),
