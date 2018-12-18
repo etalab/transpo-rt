@@ -1,5 +1,4 @@
 use chrono::{DateTime, NaiveDate, NaiveDateTime, Utc};
-use gtfs_structures;
 use log::info;
 use navitia_model::collection::Idx;
 use std::sync::Arc;
@@ -30,7 +29,6 @@ pub struct Timetable {
 }
 
 pub struct Data {
-    pub gtfs: gtfs_structures::Gtfs,
     pub raw: navitia_model::Model,
     pub timetable: Timetable,
 }
@@ -98,13 +96,8 @@ fn create_timetable(ntm: &navitia_model::Model, generation_period: &Period) -> T
 }
 
 impl Data {
-    pub fn new(
-        gtfs: gtfs_structures::Gtfs,
-        ntm: navitia_model::Model,
-        generation_period: &Period,
-    ) -> Self {
+    pub fn new(ntm: navitia_model::Model, generation_period: &Period) -> Self {
         Self {
-            gtfs,
             timetable: create_timetable(&ntm, generation_period),
             raw: ntm,
         }

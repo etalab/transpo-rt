@@ -1,7 +1,6 @@
 use crate::context::{Connection, Context, Data};
 use crate::siri_model as model;
 use actix_web::{error, Json, Query, Result, State};
-use gtfs_structures;
 use log::info;
 use navitia_model::collection::Idx;
 use navitia_model::objects::StopPoint;

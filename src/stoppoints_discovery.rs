@@ -1,7 +1,6 @@
 use crate::context::Context;
 use crate::siri_model::{AnnotatedStopPoint, Siri, SiriResponse, StopPointsDelivery};
 use actix_web::{Json, Query, Result, State};
-use gtfs_structures;
 
 #[derive(Deserialize)]
 pub struct Params {
