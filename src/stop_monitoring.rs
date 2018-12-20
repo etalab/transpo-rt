@@ -15,6 +15,12 @@ fn current_datetime() -> model::DateTime {
     model::DateTime(chrono::Local::now().naive_local())
 }
 
+#[derive(Debug, Deserialize, PartialEq, Eq)]
+enum DataFreshness {
+    RealTime,
+    Scheduled,
+}
+
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "PascalCase")]
 pub struct Params {
@@ -26,6 +32,7 @@ pub struct Params {
     start_time: model::DateTime,
     #[serde(skip)] //TODO
     _preview_interval: Option<chrono::Duration>,
+    data_freshness: DataFreshness,
 }
 
 fn create_monitored_stop_visit(data: &Data, connection: &Connection) -> model::MonitoredStopVisit {
@@ -163,7 +170,9 @@ pub fn stop_monitoring(
     (state, query): (State<Context>, Query<Params>),
 ) -> Result<Json<model::SiriResponse>> {
     let request = query.into_inner();
-    realtime_update(&*state)?;
+    if request.data_freshness == DataFreshness::RealTime {
+        realtime_update(&*state)?;
+    }
     let arc_data = state.data.clone();
     let data = arc_data.lock().unwrap();
 
