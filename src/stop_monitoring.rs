@@ -31,6 +31,7 @@ pub struct Params {
 fn create_monitored_stop_visit(data: &Data, connection: &Connection) -> model::MonitoredStopVisit {
     let stop = &data.ntm.stop_points[connection.stop_point_idx];
     let vj = &data.ntm.vehicle_journeys[connection.dated_vj.vj_idx];
+    let update_time = connection.realtime_info.as_ref().map(|c| c.update_time);
     let call = model::MonitoredCall {
         order: connection.sequence as u16,
         stop_point_name: stop.name.clone(),
@@ -38,8 +39,16 @@ fn create_monitored_stop_visit(data: &Data, connection: &Connection) -> model::M
         destination_display: None,
         aimed_arrival_time: Some(model::DateTime(connection.arr_time)),
         aimed_departure_time: Some(model::DateTime(connection.dep_time)),
-        expected_arrival_time: None,
-        expected_departure_time: None,
+        expected_arrival_time: connection
+            .realtime_info
+            .as_ref()
+            .and_then(|c| c.arr_time)
+            .map(model::DateTime),
+        expected_departure_time: connection
+            .realtime_info
+            .as_ref()
+            .and_then(|c| c.dep_time)
+            .map(model::DateTime),
     };
     model::MonitoredStopVisit {
         monitoring_ref: stop.id.clone(),
@@ -49,7 +58,7 @@ fn create_monitored_stop_visit(data: &Data, connection: &Connection) -> model::M
             journey_pattern_ref: None,
             monitored_call: Some(call),
         },
-        recorded_at_time: "".into(),
+        recorded_at_time: update_time,
         item_identifier: "".into(),
     }
 }
@@ -80,6 +89,7 @@ fn create_stop_monitoring(
 // For each trip update, we only have to find the corresponding connection and update it.
 fn apply_rt_update(data: &mut Data, gtfs_rt: &transit_realtime::FeedMessage) -> Result<()> {
     let parsed_trip_update = gtfs_rt_utils::get_model_update(&data.ntm, gtfs_rt)?;
+    let mut nb_changes = 0;
 
     for connection in &mut data.timetable.connections {
         let trip_update = parsed_trip_update.trips.get(&connection.dated_vj);
@@ -104,6 +114,7 @@ fn apply_rt_update(data: &mut Data, gtfs_rt: &transit_realtime::FeedMessage) -> 
                     schedule_relationship: ScheduleRelationship::Scheduled,
                     update_time: trip_update.update_dt,
                 });
+                nb_changes += 1;
             } else {
                 continue;
             }
@@ -112,6 +123,11 @@ fn apply_rt_update(data: &mut Data, gtfs_rt: &transit_realtime::FeedMessage) -> 
             continue;
         }
     }
+
+    info!(
+        "{} connections have been updated with trip updates",
+        nb_changes
+    );
 
     Ok(())
 }
@@ -147,11 +163,7 @@ pub fn stop_monitoring(
     (state, query): (State<Context>, Query<Params>),
 ) -> Result<Json<model::SiriResponse>> {
     let request = query.into_inner();
-    if false {
-        //deactivate the realtime for the moment
-        // "if false" is used not to have warnings
-        realtime_update(&*state)?;
-    }
+    realtime_update(&*state)?;
     let arc_data = state.data.clone();
     let data = arc_data.lock().unwrap();
 

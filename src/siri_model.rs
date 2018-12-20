@@ -81,7 +81,7 @@ pub struct MonitoredVehicleJourney {
 pub struct MonitoredStopVisit {
     pub monitoring_ref: String,
     pub monitoring_vehicle_journey: MonitoredVehicleJourney,
-    pub recorded_at_time: String,
+    pub recorded_at_time: Option<chrono::DateTime<chrono::Utc>>, // TODO make it a mandatory field
     /// Id of the couple Stop / VehicleJourney
     pub item_identifier: String,
 }
