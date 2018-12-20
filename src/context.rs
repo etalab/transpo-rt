@@ -16,12 +16,35 @@ pub struct GtfsRT {
 }
 
 #[derive(Clone, Debug)]
-pub struct Connection {
+pub enum ScheduleRelationship {
+    Scheduled,
+    Skipped,
+    NoData,
+}
+
+#[derive(Clone, Debug)]
+pub struct RealTimeConnection {
+    pub dep_time: Option<NaiveDateTime>,
+    pub arr_time: Option<NaiveDateTime>,
+    pub schedule_relationship: ScheduleRelationship,
+    //TODO handle uncertainty
+    pub update_time: chrono::DateTime<chrono::Utc>, //TODO move it to have one update_time for a trip, not one by stop_time
+}
+
+#[derive(Clone, Debug, Hash, Eq, PartialEq)]
+pub struct DatedVehicleJourney {
     pub vj_idx: Idx<navitia_model::objects::VehicleJourney>,
+    pub date: chrono::NaiveDate,
+}
+
+#[derive(Clone, Debug)]
+pub struct Connection {
+    pub dated_vj: DatedVehicleJourney,
     pub stop_point_idx: Idx<navitia_model::objects::StopPoint>,
     pub dep_time: NaiveDateTime,
     pub arr_time: NaiveDateTime,
     pub sequence: u32,
+    pub realtime_info: Option<RealTimeConnection>,
 }
 
 pub struct Timetable {
@@ -75,11 +98,15 @@ fn create_timetable(ntm: &navitia_model::Model, generation_period: &Period) -> T
                 .filter(|date| generation_period.contains(**date))
             {
                 timetable.connections.push(Connection {
-                    vj_idx,
+                    dated_vj: DatedVehicleJourney {
+                        vj_idx,
+                        date: *date,
+                    },
                     stop_point_idx: st.stop_point_idx,
                     dep_time: create_dt(*date, st.departure_time),
                     arr_time: create_dt(*date, st.arrival_time),
                     sequence: st.sequence,
+                    realtime_info: None,
                 });
             }
         }

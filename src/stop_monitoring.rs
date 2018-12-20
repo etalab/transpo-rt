@@ -1,9 +1,13 @@
-use crate::context::{Connection, Context, Data};
+use crate::context::{Connection, Context, Data, RealTimeConnection, ScheduleRelationship};
+use crate::gtfs_rt_utils;
 use crate::siri_model as model;
+use crate::transit_realtime;
 use actix_web::{error, Json, Query, Result, State};
-use log::info;
+use bytes::IntoBuf;
+use log::{info, warn};
 use navitia_model::collection::Idx;
 use navitia_model::objects::StopPoint;
+use prost::Message;
 use serde;
 
 fn current_datetime() -> model::DateTime {
@@ -26,7 +30,7 @@ pub struct Params {
 
 fn create_monitored_stop_visit(data: &Data, connection: &Connection) -> model::MonitoredStopVisit {
     let stop = &data.ntm.stop_points[connection.stop_point_idx];
-    let vj = &data.ntm.vehicle_journeys[connection.vj_idx];
+    let vj = &data.ntm.vehicle_journeys[connection.dated_vj.vj_idx];
     let call = model::MonitoredCall {
         order: connection.sequence as u16,
         stop_point_name: stop.name.clone(),
@@ -71,24 +75,96 @@ fn create_stop_monitoring(
     }]
 }
 
+// modify the generated timetable with a given GTFS-RT
+// Since the connection are sorted by scheduled departure time we don't need to reorder the connections, we can update them in place
+// For each trip update, we only have to find the corresponding connection and update it.
+fn apply_rt_update(data: &mut Data, gtfs_rt: &transit_realtime::FeedMessage) -> Result<()> {
+    let parsed_trip_update = gtfs_rt_utils::get_model_update(&data.ntm, gtfs_rt)?;
+
+    for connection in &mut data.timetable.connections {
+        let trip_update = parsed_trip_update.trips.get(&connection.dated_vj);
+        if let Some(trip_update) = trip_update {
+            let stop_time_update = trip_update
+                .stop_time_update_by_sequence
+                .get(&connection.sequence);
+            if let Some(stop_time_update) = stop_time_update {
+                // integrity check
+                if stop_time_update.stop_point_idx != connection.stop_point_idx {
+                    warn!("for trip {}, invalid stop connection, the stop n.{} '{}' does not correspond to the gtfsrt stop '{}'",
+                    &data.ntm.vehicle_journeys[connection.dated_vj.vj_idx].id,
+                    &connection.sequence,
+                    &data.ntm.stop_points[connection.stop_point_idx].id,
+                    &data.ntm.stop_points[stop_time_update.stop_point_idx].id,
+                    );
+                    continue;
+                }
+                connection.realtime_info = Some(RealTimeConnection {
+                    dep_time: stop_time_update.updated_departure,
+                    arr_time: stop_time_update.updated_arrival,
+                    schedule_relationship: ScheduleRelationship::Scheduled,
+                    update_time: trip_update.update_dt,
+                });
+            } else {
+                continue;
+            }
+        } else {
+            // no trip update for this vehicle journey, we can skip
+            continue;
+        }
+    }
+
+    Ok(())
+}
+
+fn apply_latest_rt_update(context: &Context) -> actix_web::Result<()> {
+    let gtfs_rt = context.gtfs_rt.lock().unwrap();
+
+    let mut data = context.data.lock().unwrap();
+
+    info!("applying realtime data on the scheduled data");
+    let feed_message = gtfs_rt
+        .as_ref()
+        .map(|d| {
+            transit_realtime::FeedMessage::decode((&d.data).into_buf()).map_err(|e| {
+                error::ErrorInternalServerError(format!(
+                    "impossible to decode protobuf message: {}",
+                    e
+                ))
+            })
+        })
+        .ok_or_else(|| error::ErrorInternalServerError("impossible to access stored data"))??;
+
+    apply_rt_update(&mut data, &feed_message)
+}
+
+fn realtime_update(context: &Context) -> actix_web::Result<()> {
+    gtfs_rt_utils::update_gtfs_rt(context).map_err(error::ErrorInternalServerError)?;
+
+    apply_latest_rt_update(context)
+}
+
 pub fn stop_monitoring(
     (state, query): (State<Context>, Query<Params>),
 ) -> Result<Json<model::SiriResponse>> {
-    let arc_data = state.data.clone();
-
-    let data = arc_data.lock().unwrap();
-    let stops = &data.ntm.stop_points;
-
     let request = query.into_inner();
-    info!("receiving :{:?}", &request);
+    if false {
+        //deactivate the realtime for the moment
+        // "if false" is used not to have warnings
+        realtime_update(&*state)?;
+    }
+    let arc_data = state.data.clone();
+    let data = arc_data.lock().unwrap();
 
-    //TODO handle stop_area ?
-    let stop_idx = stops.get_idx(&request.monitoring_ref).ok_or_else(|| {
-        error::ErrorNotFound(format!(
-            "impossible to find stop: '{}'",
-            &request.monitoring_ref
-        ))
-    })?;
+    let stop_idx = data
+        .ntm
+        .stop_points
+        .get_idx(&request.monitoring_ref)
+        .ok_or_else(|| {
+            error::ErrorNotFound(format!(
+                "impossible to find stop: '{}'",
+                &request.monitoring_ref
+            ))
+        })?;
 
     Ok(Json(model::SiriResponse {
         siri: model::Siri {
