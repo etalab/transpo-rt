@@ -6,7 +6,7 @@ use chrono::Utc;
 use failure::format_err;
 use failure::Error;
 use failure::ResultExt;
-use log::{debug, info, warn};
+use log::{debug, info, trace, warn};
 use navitia_model::collection::Idx;
 use navitia_model::objects::StopPoint;
 use reqwest;
@@ -64,16 +64,68 @@ pub struct ModelUpdate {
     pub trips: HashMap<DatedVehicleJourney, TripUpdate>,
 }
 
-fn create_stop_time_updates(
-    _trip_update: &transit_realtime::TripUpdate,
-) -> Result<HashMap<u32, StopTimeUpdate>> {
-    unimplemented!()
+fn get_date_time(
+    stop_time_event: &Option<transit_realtime::trip_update::StopTimeEvent>,
+) -> Option<NaiveDateTime> {
+    stop_time_event
+        .as_ref()
+        .and_then(|ste| ste.time)
+        .map(|t| chrono::NaiveDateTime::from_timestamp(t, 0))
+        //TODO change it to the dataset's timezone, for the moment we hard code the shift to winter Europe/Paris
+        .map(|dt| dt + chrono::Duration::hours(1))
 }
 
+// Create the list of StopTimeUpdates from a gtfs-RT TripUpdate
+//
+// Note: we do not read the delay, we only read the updated time and compute the delay base on the scheduled time
+// this reduce the problems when the GTFS-RT producer's data and our scheduled data are different
+fn create_stop_time_updates(
+    trip_update: &transit_realtime::TripUpdate,
+    model: &navitia_model::Model,
+) -> Result<HashMap<u32, StopTimeUpdate>> {
+    let mut res = HashMap::default();
+    for stop_time_update in &trip_update.stop_time_update {
+        let stop_sequence = stop_time_update.stop_sequence();
+        let stop_id = stop_time_update.stop_id();
+        let stop_idx = skip_fail!(model
+            .stop_points
+            .get_idx(&stop_id)
+            .ok_or_else(|| format_err!(
+                "impossible to find stop {} for vj {}",
+                &stop_id,
+                &trip_update.trip.trip_id()
+            )));
+
+        // first draft does not handle holes in the stoptimeupdates
+
+        let updated_departure = get_date_time(&stop_time_update.departure);
+        let updated_arrival = get_date_time(&stop_time_update.arrival);
+
+        res.insert(
+            stop_sequence,
+            StopTimeUpdate {
+                stop_point_idx: stop_idx,
+                updated_departure,
+                updated_arrival,
+            },
+        );
+    }
+
+    trace!(
+        "trip {}, {} stop time events",
+        &trip_update.trip.trip_id(),
+        res.len()
+    );
+    Ok(res)
+}
+
+/// read a gtfs-rt FeedMessage to create a ModelUpdate,
+/// a temporary structure used to
 pub fn get_model_update(
     model: &navitia_model::Model,
     gtfs_rt: &transit_realtime::FeedMessage,
 ) -> Result<ModelUpdate> {
+    debug!("applying a trip update");
     let mut model_update = ModelUpdate {
         trips: HashMap::new(),
     };
@@ -113,7 +165,7 @@ pub fn get_model_update(
             model_update.trips.insert(
                 dated_vj,
                 TripUpdate {
-                    stop_time_update_by_sequence: create_stop_time_updates(tu)?,
+                    stop_time_update_by_sequence: create_stop_time_updates(tu, model)?,
                     update_dt: chrono::DateTime::<chrono::Utc>::from_utc(
                         chrono::NaiveDateTime::from_timestamp(tu.timestamp.unwrap_or(0) as i64, 0),
                         chrono::Utc,
@@ -121,8 +173,13 @@ pub fn get_model_update(
                 },
             );
         } else {
-            debug!("unhandled feed entity");
+            debug!("unhandled feed entity: {}", &entity_id);
         }
     }
+
+    debug!(
+        "trip update applyed. {} trip updates",
+        model_update.trips.len()
+    );
     Ok(model_update)
 }

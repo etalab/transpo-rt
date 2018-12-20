@@ -11,7 +11,7 @@ fn sp_monitoring_integration_test() {
     let request = srv
         .client(
             http::Method::GET,
-            "/stop_monitoring.json?MonitoringRef=EMSI&StartTime=2018-12-15T15:22:00",
+            "/stop_monitoring.json?MonitoringRef=EMSI&StartTime=2018-12-15T15:22:00&DataFreshness=Scheduled",
         )
         .finish()
         .unwrap();
