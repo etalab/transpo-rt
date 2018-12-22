@@ -4,6 +4,7 @@ use log::info;
 use navitia_model::collection::Idx;
 use std::sync::Arc;
 use std::sync::Mutex;
+use actix::Actor;
 
 pub enum Stop {
     StopPoint(Idx<navitia_model::objects::StopPoint>),
@@ -63,6 +64,14 @@ pub struct Context {
     pub gtfs_rt: Arc<Mutex<Option<GtfsRT>>>,
     pub gtfs_rt_provider_url: String,
     pub data: Arc<Mutex<Data>>,
+}
+
+impl Actor for Context {
+    type Context = actix::Context<Self>;
+
+    fn started(&mut self, _ctx: &mut Self::Context) {
+        println!("Starting the context actor");
+    }
 }
 
 #[derive(Debug)]
