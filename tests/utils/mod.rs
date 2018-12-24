@@ -1,10 +1,12 @@
 use chrono::NaiveDate;
 use prost::Message;
+use std::sync::{Once, ONCE_INIT};
 
+static LOGGER_INIT: Once = ONCE_INIT;
 const SERVER_PATH: &str = "/gtfs_rt";
 
 pub fn make_test_server() -> actix_web::test::TestServer {
-    env_logger::Builder::from_env(env_logger::Env::default()).init();
+    LOGGER_INIT.call_once(|| env_logger::init());
     let begin = NaiveDate::from_ymd(2018, 12, 15);
     let period = transpo_rt::context::Period {
         begin: begin.clone(),
