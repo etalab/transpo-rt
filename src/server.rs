@@ -1,7 +1,8 @@
 use crate::context::{Context, Data, Period};
 use crate::gtfs_rt::{gtfs_rt, gtfs_rt_json};
-use crate::stop_monitoring::stop_monitoring;
-use crate::stoppoints_discovery::stoppoints_discovery;
+use crate::stop_monitoring::stop_monitoring_query;
+use crate::stoppoints_discovery::sp_discovery;
+use actix::{Actor, Addr};
 use actix_web::{middleware, App};
 use std::sync::{Arc, Mutex};
 
@@ -22,13 +23,12 @@ pub fn make_context(gtfs: &str, url: &str, generation_period: &Period) -> Contex
     }
 }
 
-pub fn create_server(context: Context) -> App<Context> {
-    App::with_state(context)
+pub fn create_server(context: Context) -> App<Addr<Context>> {
+    let addr = context.start();
+    App::with_state(addr)
         .middleware(middleware::Logger::default())
         .resource("/gtfs_rt", |r| r.f(gtfs_rt))
         .resource("/gtfs_rt.json", |r| r.f(gtfs_rt_json))
-        .resource("/stoppoints_discovery.json", |r| {
-            r.with(stoppoints_discovery)
-        })
-        .resource("/stop_monitoring.json", |r| r.with(stop_monitoring))
+        .resource("/stoppoints_discovery.json", |r| r.with(sp_discovery))
+        .resource("/stop_monitoring.json", |r| r.with(stop_monitoring_query))
 }

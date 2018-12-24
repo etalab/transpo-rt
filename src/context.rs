@@ -1,10 +1,10 @@
+use actix::Actor;
 use chrono::{DateTime, NaiveDate, NaiveDateTime, Utc};
 use chrono_tz::Tz;
 use log::info;
 use navitia_model::collection::Idx;
 use std::sync::Arc;
 use std::sync::Mutex;
-use actix::Actor;
 
 pub enum Stop {
     StopPoint(Idx<navitia_model::objects::StopPoint>),
@@ -70,7 +70,7 @@ impl Actor for Context {
     type Context = actix::Context<Self>;
 
     fn started(&mut self, _ctx: &mut Self::Context) {
-        println!("Starting the context actor");
+        info!("Starting the context actor");
     }
 }
 

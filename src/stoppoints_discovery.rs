@@ -1,8 +1,10 @@
 use crate::context::Context;
 use crate::siri_model::{AnnotatedStopPoint, Siri, SiriResponse, StopPointsDelivery};
-use actix_web::{Json, Query, Result, State};
+use actix::{Addr, Handler, Message};
+use actix_web::{AsyncResponder, Error, Json, Query, Result, State};
+use futures::future::Future;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone)]
 pub struct Params {
     q: Option<String>,
     #[serde(rename = "BoundingBoxStructure.UpperLeft.Longitude")]
@@ -25,14 +27,9 @@ fn bounding_box_matches(
     coord.lon >= min_lon && coord.lon <= max_lon && coord.lat >= min_lat && coord.lat <= max_lat
 }
 
-pub fn stoppoints_discovery(
-    (state, query): (State<Context>, Query<Params>),
-) -> Result<Json<SiriResponse>> {
-    let arc_data = state.data.clone();
-    let data = arc_data.lock().unwrap();
+pub fn filter(data: &crate::context::Data, request: Params) -> SiriResponse {
     let model = &data.ntm;
 
-    let request = query.into_inner();
     let q = request.q.unwrap_or_default().to_lowercase();
     let min_lon = request.upper_left_longitude.unwrap_or(-180.);
     let max_lon = request.lower_right_longitude.unwrap_or(180.);
@@ -47,7 +44,7 @@ pub fn stoppoints_discovery(
         .map(|(id, _)| AnnotatedStopPoint::from(id, &model))
         .collect();
 
-    Ok(Json(SiriResponse {
+    SiriResponse {
         siri: Siri {
             stop_points_delivery: Some(StopPointsDelivery {
                 version: "2.0".to_string(),
@@ -58,5 +55,29 @@ pub fn stoppoints_discovery(
             }),
             ..Default::default()
         },
-    }))
+    }
+}
+
+pub fn sp_discovery(
+    (actor_addr, query): (State<Addr<Context>>, Query<Params>),
+) -> Box<Future<Item = Json<SiriResponse>, Error = Error>> {
+    actor_addr
+        .send(query.into_inner())
+        .map_err(Error::from)
+        .and_then(|result| result.map(Json))
+        .responder()
+}
+
+impl Message for Params {
+    type Result = Result<SiriResponse>;
+}
+
+impl Handler<Params> for Context {
+    type Result = Result<SiriResponse>;
+
+    fn handle(&mut self, params: Params, _ctx: &mut actix::Context<Self>) -> Self::Result {
+        let arc_data = self.data.clone();
+        let data = arc_data.lock().unwrap();
+        Ok(filter(&data, params))
+    }
 }
