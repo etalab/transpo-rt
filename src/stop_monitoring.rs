@@ -21,6 +21,12 @@ enum DataFreshness {
     Scheduled,
 }
 
+impl Default for DataFreshness {
+    fn default() -> Self {
+        DataFreshness::RealTime
+    }
+}
+
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "PascalCase")]
 pub struct Params {
@@ -32,6 +38,7 @@ pub struct Params {
     start_time: model::DateTime,
     #[serde(skip)] //TODO
     _preview_interval: Option<chrono::Duration>,
+    #[serde(default = "DataFreshness::default")]
     data_freshness: DataFreshness,
 }
 
