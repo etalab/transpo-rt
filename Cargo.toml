@@ -19,6 +19,7 @@ serde = "1.0"
 serde_derive = "1"
 structopt = "0.2"
 navitia_model = { git = "https://github.com/CanalTP/navitia_model.git", rev = "724b1b3d77ce9871cb02ff87c2d78fe64b2b27c0" }
+chrono-tz = "0.5"
 
 [dev-dependencies]
 serde_json = "1.0"
