@@ -1,4 +1,5 @@
 use chrono::{DateTime, NaiveDate, NaiveDateTime, Utc};
+use chrono_tz::Tz;
 use log::info;
 use navitia_model::collection::Idx;
 use std::sync::Arc;
@@ -54,6 +55,7 @@ pub struct Timetable {
 pub struct Data {
     pub ntm: navitia_model::Model,
     pub timetable: Timetable,
+    pub timezone: Tz,
 }
 
 #[derive(Clone)]
@@ -124,9 +126,27 @@ fn create_timetable(ntm: &navitia_model::Model, generation_period: &Period) -> T
 
 impl Data {
     pub fn new(ntm: navitia_model::Model, generation_period: &Period) -> Self {
+        // To correctly handle GTFS-RT stream we need the dataset's timezone,
+        // as all the time in the dataset are in local time and the GTFS-RT gives its time
+        // as UTC.
+        // We consider that there can be at most one Company (gtfs's agency) in the dataset
+        // and we consider that the dataset's timezone is it's agency's timezone
+        let timezone = ntm
+            .networks
+            .values()
+            .next()
+            .and_then(|n| n.timezone.as_ref())
+            .and_then(|t| {
+                t.parse()
+                    .map_err(|e| log::warn!("impossible to parse timezone {} because: {}", t, e))
+                    .ok()
+            })
+            .expect("no timezone found, we will not be able to understand realtime information");
+
         Self {
             timetable: create_timetable(&ntm, generation_period),
             ntm,
+            timezone,
         }
     }
 }

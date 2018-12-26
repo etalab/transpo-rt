@@ -1,8 +1,7 @@
 use crate::context::{Context, DatedVehicleJourney, GtfsRT};
 use crate::transit_realtime;
 use actix_web::Result;
-use chrono::NaiveDateTime;
-use chrono::Utc;
+use chrono::{DateTime, NaiveDateTime, Utc};
 use failure::format_err;
 use failure::Error;
 use failure::ResultExt;
@@ -66,13 +65,14 @@ pub struct ModelUpdate {
 
 fn get_date_time(
     stop_time_event: &Option<transit_realtime::trip_update::StopTimeEvent>,
+    timezone: chrono_tz::Tz,
 ) -> Option<NaiveDateTime> {
     stop_time_event
         .as_ref()
         .and_then(|ste| ste.time)
-        .map(|t| chrono::NaiveDateTime::from_timestamp(t, 0))
-        //TODO change it to the dataset's timezone, for the moment we hard code the shift to winter Europe/Paris
-        .map(|dt| dt + chrono::Duration::hours(1))
+        .map(|t| DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(t, 0), Utc))
+        .map(|utc_dt| utc_dt.with_timezone(&timezone))
+        .map(|local_dt| local_dt.naive_local())
 }
 
 // Create the list of StopTimeUpdates from a gtfs-RT TripUpdate
@@ -82,6 +82,7 @@ fn get_date_time(
 fn create_stop_time_updates(
     trip_update: &transit_realtime::TripUpdate,
     model: &navitia_model::Model,
+    timezone: chrono_tz::Tz,
 ) -> Result<HashMap<u32, StopTimeUpdate>> {
     let mut res = HashMap::default();
     for stop_time_update in &trip_update.stop_time_update {
@@ -98,8 +99,8 @@ fn create_stop_time_updates(
 
         // first draft does not handle holes in the stoptimeupdates
 
-        let updated_departure = get_date_time(&stop_time_update.departure);
-        let updated_arrival = get_date_time(&stop_time_update.arrival);
+        let updated_departure = get_date_time(&stop_time_update.departure, timezone);
+        let updated_arrival = get_date_time(&stop_time_update.arrival, timezone);
 
         res.insert(
             stop_sequence,
@@ -124,6 +125,7 @@ fn create_stop_time_updates(
 pub fn get_model_update(
     model: &navitia_model::Model,
     gtfs_rt: &transit_realtime::FeedMessage,
+    timezone: chrono_tz::Tz,
 ) -> Result<ModelUpdate> {
     debug!("applying a trip update");
     let mut model_update = ModelUpdate {
@@ -165,7 +167,7 @@ pub fn get_model_update(
             model_update.trips.insert(
                 dated_vj,
                 TripUpdate {
-                    stop_time_update_by_sequence: create_stop_time_updates(tu, model)?,
+                    stop_time_update_by_sequence: create_stop_time_updates(tu, model, timezone)?,
                     update_dt: chrono::DateTime::<chrono::Utc>::from_utc(
                         chrono::NaiveDateTime::from_timestamp(tu.timestamp.unwrap_or(0) as i64, 0),
                         chrono::Utc,

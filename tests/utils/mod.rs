@@ -19,6 +19,9 @@ pub fn make_test_server() -> actix_web::test::TestServer {
     actix_web::test::TestServer::with_factory(make_server)
 }
 
+// Note: as each integration test is build as a separate binary,
+// this helper might be seen as dead code for some tests, thus we remove the warning
+#[allow(dead_code)]
 pub fn run_simple_gtfs_rt_server(
     gtfs_rt: transpo_rt::transit_realtime::FeedMessage,
 ) -> mockito::Mock {

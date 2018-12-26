@@ -48,7 +48,7 @@ fn sp_monitoring_integration_test() {
 
 // take a date (formated as YYYY-MM-DDTHH:MM:SS) and convert it to a timestamp
 fn to_timestamp(date: &str) -> i64 {
-    chrono::NaiveDateTime::parse_from_str(date, "%Y-%m-%dT%H:%M:%S")
+    chrono::DateTime::<chrono::FixedOffset>::parse_from_rfc3339(date)
         .expect("impossible to parse datetime")
         .timestamp()
 }
@@ -95,10 +95,8 @@ fn create_mock_feed_message() -> transit_realtime::FeedMessage {
                 stop_time_update: vec![make_stu(
                     "EMSI",
                     5,
-                    // Some("2018-12-15T6:26:30"),
-                    // Some("2018-12-15T6:28:30"),
-                    Some("2018-12-15T5:26:30"), //ugly hack, for the moment the date is set one hour before the right time
-                    Some("2018-12-15T5:28:30"), // this will change after the timezone are correctly handled
+                    Some("2018-12-15T06:26:30-08:00"),
+                    Some("2018-12-15T06:28:30-08:00"),
                 )],
                 ..Default::default()
             }),

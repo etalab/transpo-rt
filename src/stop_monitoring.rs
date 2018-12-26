@@ -102,7 +102,7 @@ fn create_stop_monitoring(
 // Since the connection are sorted by scheduled departure time we don't need to reorder the connections, we can update them in place
 // For each trip update, we only have to find the corresponding connection and update it.
 fn apply_rt_update(data: &mut Data, gtfs_rt: &transit_realtime::FeedMessage) -> Result<()> {
-    let parsed_trip_update = gtfs_rt_utils::get_model_update(&data.ntm, gtfs_rt)?;
+    let parsed_trip_update = gtfs_rt_utils::get_model_update(&data.ntm, gtfs_rt, data.timezone)?;
     let mut nb_changes = 0;
 
     for connection in &mut data.timetable.connections {
