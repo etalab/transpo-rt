@@ -3,7 +3,6 @@ use crate::transit_realtime;
 use actix_web::Result;
 use chrono::{DateTime, NaiveDateTime, Utc};
 use failure::format_err;
-use failure::Error;
 use failure::ResultExt;
 use log::{debug, info, trace, warn};
 use navitia_model::collection::Idx;
@@ -15,11 +14,12 @@ use std::sync::MutexGuard;
 
 const REFRESH_TIMEOUT_S: i64 = 60;
 
-fn fetch_gtfs(url: &str) -> Result<Vec<u8>, Error> {
+fn fetch_gtfs(url: &str) -> Result<Vec<u8>> {
     info!("fetching a gtfs_rt");
-    let pbf = reqwest::get(url)?.error_for_status()?;
-
-    pbf.bytes()
+    reqwest::get(url)
+        .and_then(|resp| resp.error_for_status())
+        .map_err(|e| format_err!("Unable to fetch the gtfs RT {}", e))?
+        .bytes()
         .collect::<Result<Vec<u8>, _>>()
         .map_err(|e| e.into())
 }
@@ -32,12 +32,12 @@ fn refresh_needed(previous: &Option<GtfsRT>) -> bool {
         .unwrap_or(true)
 }
 
-pub fn update_gtfs_rt(context: &Context) -> Result<(), Error> {
+pub fn update_gtfs_rt(context: &Context) -> Result<()> {
     let _guard = get_gtfs_rt(context)?;
     Ok(())
 }
 
-pub fn get_gtfs_rt(context: &Context) -> Result<MutexGuard<Option<GtfsRT>>, Error> {
+pub fn get_gtfs_rt(context: &Context) -> Result<MutexGuard<Option<GtfsRT>>> {
     let mut saved_data = context.gtfs_rt.lock().unwrap();
     if refresh_needed(&saved_data) {
         *saved_data = Some(GtfsRT {
