@@ -169,7 +169,7 @@ fn apply_latest_rt_update(context: &Context) -> actix_web::Result<()> {
     apply_rt_update(&mut data, &feed_message)
 }
 
-fn realtime_update(context: &mut Context) -> actix_web::Result<()> {
+fn realtime_update(context: &Context) -> actix_web::Result<()> {
     gtfs_rt_utils::update_gtfs_rt(context).map_err(error::ErrorInternalServerError)?;
 
     apply_latest_rt_update(context)
