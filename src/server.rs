@@ -5,16 +5,13 @@ use crate::stop_monitoring::stop_monitoring_query;
 use crate::stoppoints_discovery::sp_discovery;
 use actix::Addr;
 use actix_web::{middleware, App};
-use std::sync::{Arc, Mutex};
+use std::sync::Mutex;
 
 pub fn make_context(gtfs: &str, url: &str, generation_period: &Period) -> Context {
-    let gtfs_rt_data = Arc::new(Mutex::new(None));
-
     let data = Data::from_path(gtfs, generation_period);
-    let data = Arc::new(Mutex::new(data));
     Context {
-        gtfs_rt: gtfs_rt_data.clone(),
-        data: data.clone(),
+        gtfs_rt: Mutex::new(None),
+        data: Mutex::new(data),
         gtfs_rt_provider_url: url.to_owned(),
         feed_construction_info: FeedConstructionInfo {
             feed_path: gtfs.to_owned(),

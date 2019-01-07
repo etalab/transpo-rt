@@ -4,7 +4,6 @@ use chrono::{DateTime, NaiveDate, NaiveDateTime, Utc};
 use chrono_tz::Tz;
 use log::info;
 use navitia_model::collection::Idx;
-use std::sync::Arc;
 use std::sync::Mutex;
 
 pub enum Stop {
@@ -67,11 +66,10 @@ pub struct FeedConstructionInfo {
     pub generation_period: Period,
 }
 
-#[derive(Clone)]
 pub struct Context {
-    pub gtfs_rt: Arc<Mutex<Option<GtfsRT>>>,
+    pub gtfs_rt: Mutex<Option<GtfsRT>>,
     pub gtfs_rt_provider_url: String,
-    pub data: Arc<Mutex<Data>>,
+    pub data: Mutex<Data>,
     pub feed_construction_info: FeedConstructionInfo,
 }
 

@@ -13,11 +13,11 @@ pub fn make_test_server() -> actix_web::test::TestServer {
         begin: begin.clone(),
         end: begin.succ(),
     };
+
     let gtfs_rt_server = mockito::SERVER_URL.to_string() + SERVER_PATH;
-    let ctx = transpo_rt::server::make_context("fixtures/gtfs.zip", &gtfs_rt_server, &period);
     let make_server = move || {
-        let addr = ctx.clone().start();
-        transpo_rt::server::create_server(addr.clone())
+        let ctx = transpo_rt::server::make_context("fixtures/gtfs.zip", &gtfs_rt_server, &period);
+        transpo_rt::server::create_server(ctx.start())
     };
 
     actix_web::test::TestServer::with_factory(make_server)

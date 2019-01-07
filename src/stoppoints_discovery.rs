@@ -76,8 +76,7 @@ impl Handler<Params> for Context {
     type Result = Result<SiriResponse>;
 
     fn handle(&mut self, params: Params, _ctx: &mut actix::Context<Self>) -> Self::Result {
-        let arc_data = self.data.clone();
-        let data = arc_data.lock().unwrap();
+        let data = self.data.lock().unwrap();
         Ok(filter(&data, params))
     }
 }
