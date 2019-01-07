@@ -1,3 +1,4 @@
+use actix::Actor;
 use chrono::{DateTime, NaiveDate, NaiveDateTime, Utc};
 use chrono_tz::Tz;
 use log::info;
@@ -63,6 +64,14 @@ pub struct Context {
     pub gtfs_rt: Arc<Mutex<Option<GtfsRT>>>,
     pub gtfs_rt_provider_url: String,
     pub data: Arc<Mutex<Data>>,
+}
+
+impl Actor for Context {
+    type Context = actix::Context<Self>;
+
+    fn started(&mut self, _ctx: &mut Self::Context) {
+        info!("Starting the context actor");
+    }
 }
 
 #[derive(Debug)]

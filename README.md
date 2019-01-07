@@ -1,5 +1,5 @@
 # transpo-rt
-Simple API for public transport realtime data 
+Simple API for public transport realtime data
 
 ## Building
 
@@ -26,3 +26,12 @@ You can check the needed cli parameters with the `-h` option:
 ```
 cargo run --release -- -h
 ```
+
+## Developping
+
+You can run all the tests (unit test, integration, clippy and fmt) with:
+```
+make check
+```
+
+It will save you some time for the code review and continous integration ;)

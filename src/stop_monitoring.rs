@@ -2,8 +2,10 @@ use crate::context::{Connection, Context, Data, RealTimeConnection, ScheduleRela
 use crate::gtfs_rt_utils;
 use crate::siri_model as model;
 use crate::transit_realtime;
-use actix_web::{error, Json, Query, Result, State};
+use actix::{Addr, Handler};
+use actix_web::{error, AsyncResponder, Error, Json, Query, Result, State};
 use bytes::IntoBuf;
+use futures::future::Future;
 use log::{info, warn};
 use navitia_model::collection::Idx;
 use navitia_model::objects::StopPoint;
@@ -173,12 +175,9 @@ fn realtime_update(context: &Context) -> actix_web::Result<()> {
     apply_latest_rt_update(context)
 }
 
-pub fn stop_monitoring(
-    (state, query): (State<Context>, Query<Params>),
-) -> Result<Json<model::SiriResponse>> {
-    let request = query.into_inner();
+fn stop_monitoring(request: &Params, state: &mut Context) -> Result<model::SiriResponse> {
     if request.data_freshness == DataFreshness::RealTime {
-        realtime_update(&*state)?;
+        realtime_update(state)?;
     }
     let arc_data = state.data.clone();
     let data = arc_data.lock().unwrap();
@@ -194,7 +193,7 @@ pub fn stop_monitoring(
             ))
         })?;
 
-    Ok(Json(model::SiriResponse {
+    Ok(model::SiriResponse {
         siri: model::Siri {
             service_delivery: Some(model::ServiceDelivery {
                 response_time_stamp: chrono::Local::now().to_rfc3339(),
@@ -206,5 +205,27 @@ pub fn stop_monitoring(
             }),
             ..Default::default()
         },
-    }))
+    })
+}
+
+impl actix::Message for Params {
+    type Result = Result<model::SiriResponse>;
+}
+
+impl Handler<Params> for Context {
+    type Result = Result<model::SiriResponse>;
+
+    fn handle(&mut self, params: Params, _ctx: &mut actix::Context<Self>) -> Self::Result {
+        stop_monitoring(&params, self)
+    }
+}
+
+pub fn stop_monitoring_query(
+    (actor_addr, query): (State<Addr<Context>>, Query<Params>),
+) -> Box<Future<Item = Json<model::SiriResponse>, Error = Error>> {
+    actor_addr
+        .send(query.into_inner())
+        .map_err(Error::from)
+        .and_then(|result| result.map(Json))
+        .responder()
 }
