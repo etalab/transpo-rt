@@ -58,6 +58,7 @@ pub struct Data {
     pub ntm: navitia_model::Model,
     pub timetable: Timetable,
     pub timezone: Tz,
+    pub loaded_at: chrono::DateTime<chrono::Utc>,
 }
 
 #[derive(Clone)]
@@ -175,6 +176,7 @@ impl Data {
             timetable: create_timetable(&ntm, generation_period),
             ntm,
             timezone,
+            loaded_at: chrono::Utc::now(),
         }
     }
 
