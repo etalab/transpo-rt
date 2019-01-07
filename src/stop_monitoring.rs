@@ -179,8 +179,7 @@ fn stop_monitoring(request: &Params, state: &mut Context) -> Result<model::SiriR
     if request.data_freshness == DataFreshness::RealTime {
         realtime_update(state)?;
     }
-    let arc_data = state.data.clone();
-    let data = arc_data.lock().unwrap();
+    let data = state.data.lock().unwrap();
 
     let stop_idx = data
         .ntm
