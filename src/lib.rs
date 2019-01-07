@@ -14,5 +14,6 @@ pub mod gtfs_rt;
 pub(crate) mod gtfs_rt_utils;
 pub mod server;
 pub mod siri_model;
+pub(crate) mod status;
 pub mod stop_monitoring;
 pub mod stoppoints_discovery;

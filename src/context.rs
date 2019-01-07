@@ -1,4 +1,5 @@
 use actix::Actor;
+use actix::AsyncContext;
 use chrono::{DateTime, NaiveDate, NaiveDateTime, Utc};
 use chrono_tz::Tz;
 use log::info;
@@ -57,6 +58,13 @@ pub struct Data {
     pub ntm: navitia_model::Model,
     pub timetable: Timetable,
     pub timezone: Tz,
+    pub loaded_at: chrono::DateTime<chrono::Utc>,
+}
+
+#[derive(Clone)]
+pub struct FeedConstructionInfo {
+    pub feed_path: String,
+    pub generation_period: Period,
 }
 
 #[derive(Clone)]
@@ -64,17 +72,29 @@ pub struct Context {
     pub gtfs_rt: Arc<Mutex<Option<GtfsRT>>>,
     pub gtfs_rt_provider_url: String,
     pub data: Arc<Mutex<Data>>,
+    pub feed_construction_info: FeedConstructionInfo,
 }
 
 impl Actor for Context {
     type Context = actix::Context<Self>;
 
-    fn started(&mut self, _ctx: &mut Self::Context) {
+    fn started(&mut self, ctx: &mut Self::Context) {
         info!("Starting the context actor");
+
+        // we refresh the data every 24h hours
+        ctx.run_interval(std::time::Duration::from_secs(60 * 60 * 24), |act, _ctx| {
+            info!("Updating the gtfs data");
+            let data = Data::from_path(
+                &act.feed_construction_info.feed_path,
+                &act.feed_construction_info.generation_period,
+            );
+            *act.data.lock().unwrap() = data;
+            info!("Data updated");
+        });
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Period {
     pub begin: NaiveDate,
     pub end: NaiveDate,
@@ -156,6 +176,17 @@ impl Data {
             timetable: create_timetable(&ntm, generation_period),
             ntm,
             timezone,
+            loaded_at: chrono::Utc::now(),
         }
+    }
+
+    pub fn from_path(gtfs: &str, generation_period: &Period) -> Self {
+        let nav_data = if gtfs.starts_with("http") {
+            navitia_model::gtfs::read_from_url(gtfs, None::<&str>, None).unwrap()
+        } else {
+            navitia_model::gtfs::read_from_zip(gtfs, None::<&str>, None).unwrap()
+        };
+
+        Self::new(nav_data, &generation_period)
     }
 }
