@@ -1,8 +1,9 @@
-use crate::context::{Connection, Context, Data, RealTimeConnection, ScheduleRelationship};
+use crate::context::{Connection, Data, Dataset, RealTimeConnection, ScheduleRelationship};
+use crate::dataset_handler_actor::{DatasetActor, GetDataset};
 use crate::gtfs_rt_utils;
 use crate::siri_model as model;
 use crate::transit_realtime;
-use actix::{Addr, Handler};
+use actix::Addr;
 use actix_web::{error, AsyncResponder, Error, Json, Query, Result, State};
 use bytes::IntoBuf;
 use futures::future::Future;
@@ -148,7 +149,7 @@ fn apply_rt_update(data: &mut Data, gtfs_rt: &transit_realtime::FeedMessage) -> 
     Ok(())
 }
 
-fn apply_latest_rt_update(context: &Context) -> actix_web::Result<()> {
+fn apply_latest_rt_update(context: &Dataset) -> actix_web::Result<()> {
     let gtfs_rt = context.gtfs_rt.lock().unwrap();
 
     let mut data = context.data.lock().unwrap();
@@ -169,13 +170,13 @@ fn apply_latest_rt_update(context: &Context) -> actix_web::Result<()> {
     apply_rt_update(&mut data, &feed_message)
 }
 
-fn realtime_update(context: &Context) -> actix_web::Result<()> {
+fn realtime_update(context: &Dataset) -> actix_web::Result<()> {
     gtfs_rt_utils::update_gtfs_rt(context).map_err(error::ErrorInternalServerError)?;
 
     apply_latest_rt_update(context)
 }
 
-fn stop_monitoring(request: &Params, state: &mut Context) -> Result<model::SiriResponse> {
+fn stop_monitoring(request: &Params, state: &Dataset) -> Result<model::SiriResponse> {
     if request.data_freshness == DataFreshness::RealTime {
         realtime_update(state)?;
     }
@@ -207,24 +208,16 @@ fn stop_monitoring(request: &Params, state: &mut Context) -> Result<model::SiriR
     })
 }
 
-impl actix::Message for Params {
-    type Result = Result<model::SiriResponse>;
-}
-
-impl Handler<Params> for Context {
-    type Result = Result<model::SiriResponse>;
-
-    fn handle(&mut self, params: Params, _ctx: &mut actix::Context<Self>) -> Self::Result {
-        stop_monitoring(&params, self)
-    }
-}
-
 pub fn stop_monitoring_query(
-    (actor_addr, query): (State<Addr<Context>>, Query<Params>),
+    (actor_addr, query): (State<Addr<DatasetActor>>, Query<Params>),
 ) -> Box<Future<Item = Json<model::SiriResponse>, Error = Error>> {
     actor_addr
-        .send(query.into_inner())
+        .send(GetDataset)
         .map_err(Error::from)
-        .and_then(|result| result.map(Json))
+        .and_then(|dataset| {
+            dataset
+                .and_then(|d| stop_monitoring(&query.into_inner(), &*d))
+                .map(Json)
+        })
         .responder()
 }

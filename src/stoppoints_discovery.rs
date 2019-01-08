@@ -1,7 +1,7 @@
-use crate::context::Context;
+use crate::dataset_handler_actor::{DatasetActor, GetDataset};
 use crate::siri_model::{AnnotatedStopPoint, Siri, SiriResponse, StopPointsDelivery};
-use actix::{Addr, Handler, Message};
-use actix_web::{AsyncResponder, Error, Json, Query, Result, State};
+use actix::Addr;
+use actix_web::{AsyncResponder, Error, Json, Query, State};
 use futures::future::Future;
 
 #[derive(Deserialize, Clone)]
@@ -59,24 +59,18 @@ pub fn filter(data: &crate::context::Data, request: Params) -> SiriResponse {
 }
 
 pub fn sp_discovery(
-    (actor_addr, query): (State<Addr<Context>>, Query<Params>),
+    (actor_addr, query): (State<Addr<DatasetActor>>, Query<Params>),
 ) -> Box<Future<Item = Json<SiriResponse>, Error = Error>> {
     actor_addr
-        .send(query.into_inner())
+        .send(GetDataset)
         .map_err(Error::from)
-        .and_then(|result| result.map(Json))
+        .and_then(|dataset| {
+            dataset.map(|d| {
+                Json(filter(
+                    &*d.data.lock().unwrap(), /*TODO remove lock*/
+                    query.into_inner(),
+                ))
+            })
+        })
         .responder()
-}
-
-impl Message for Params {
-    type Result = Result<SiriResponse>;
-}
-
-impl Handler<Params> for Context {
-    type Result = Result<SiriResponse>;
-
-    fn handle(&mut self, params: Params, _ctx: &mut actix::Context<Self>) -> Self::Result {
-        let data = self.data.lock().unwrap();
-        Ok(filter(&data, params))
-    }
 }
