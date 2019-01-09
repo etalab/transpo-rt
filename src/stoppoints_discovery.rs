@@ -11,7 +11,7 @@ pub struct Params {
     upper_left_longitude: Option<f64>,
     #[serde(rename = "BoundingBoxStructure.UpperLeft.Latitude")]
     upper_left_latitude: Option<f64>,
-    #[serde(rename = "BoundingBoxStructure.LowerRight.Latitude")]
+    #[serde(rename = "BoundingBoxStructure.LowerRight.Longitude")]
     lower_right_longitude: Option<f64>,
     #[serde(rename = "BoundingBoxStructure.LowerRight.Latitude")]
     lower_right_latitude: Option<f64>,
