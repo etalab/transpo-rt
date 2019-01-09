@@ -10,7 +10,6 @@ use log::{info, warn};
 use navitia_model::collection::Idx;
 use navitia_model::objects::StopPoint;
 use prost::Message;
-use serde;
 
 fn current_datetime() -> model::DateTime {
     //TODO better datetime handling (if the server is not in the dataset's timezone it might lead to problems)
