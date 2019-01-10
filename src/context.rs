@@ -1,5 +1,3 @@
-use actix::Actor;
-use actix::AsyncContext;
 use chrono::{DateTime, NaiveDate, NaiveDateTime, Utc};
 use chrono_tz::Tz;
 use log::info;
@@ -66,30 +64,11 @@ pub struct FeedConstructionInfo {
     pub generation_period: Period,
 }
 
-pub struct Context {
+pub struct Dataset {
     pub gtfs_rt: Mutex<Option<GtfsRT>>,
     pub gtfs_rt_provider_url: String,
     pub data: Mutex<Data>,
     pub feed_construction_info: FeedConstructionInfo,
-}
-
-impl Actor for Context {
-    type Context = actix::Context<Self>;
-
-    fn started(&mut self, ctx: &mut Self::Context) {
-        info!("Starting the context actor");
-
-        // we refresh the data every 24h hours
-        ctx.run_interval(std::time::Duration::from_secs(60 * 60 * 24), |act, _ctx| {
-            info!("Updating the gtfs data");
-            let data = Data::from_path(
-                &act.feed_construction_info.feed_path,
-                &act.feed_construction_info.generation_period,
-            );
-            *act.data.lock().unwrap() = data;
-            info!("Data updated");
-        });
-    }
 }
 
 #[derive(Debug, Clone)]

@@ -1,4 +1,4 @@
-use crate::context::{Context, DatedVehicleJourney, GtfsRT};
+use crate::context::{Dataset, DatedVehicleJourney, GtfsRT};
 use crate::transit_realtime;
 use actix_web::Result;
 use chrono::{DateTime, NaiveDateTime, Utc};
@@ -32,12 +32,12 @@ fn refresh_needed(previous: &Option<GtfsRT>) -> bool {
         .unwrap_or(true)
 }
 
-pub fn update_gtfs_rt(context: &Context) -> Result<()> {
+pub fn update_gtfs_rt(context: &Dataset) -> Result<()> {
     let _guard = get_gtfs_rt(context)?;
     Ok(())
 }
 
-pub fn get_gtfs_rt(context: &Context) -> Result<MutexGuard<Option<GtfsRT>>> {
+pub fn get_gtfs_rt(context: &Dataset) -> Result<MutexGuard<Option<GtfsRT>>> {
     let mut saved_data = context.gtfs_rt.lock().unwrap();
     if refresh_needed(&saved_data) {
         *saved_data = Some(GtfsRT {

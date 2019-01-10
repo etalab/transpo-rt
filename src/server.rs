@@ -1,4 +1,5 @@
-use crate::context::{Context, Data, FeedConstructionInfo, Period};
+use crate::context::{Data, Dataset, FeedConstructionInfo, Period};
+use crate::dataset_handler_actor::DatasetActor;
 use crate::gtfs_rt::{gtfs_rt, gtfs_rt_json};
 use crate::status::status_query;
 use crate::stop_monitoring::stop_monitoring_query;
@@ -8,9 +9,30 @@ use actix_web::middleware::cors::Cors;
 use actix_web::{middleware, App};
 use std::sync::Mutex;
 
-pub fn make_context(gtfs: &str, url: &str, generation_period: &Period) -> Context {
+#[derive(Deserialize, Debug)]
+pub struct DatasetToLoad {
+    pub name: String,
+    pub id: String,
+    pub gtfs: String,
+    pub gtfs_rt: String,
+}
+
+impl DatasetToLoad {
+    pub fn new_default(gtfs: &str, gtfs_rt: &str) -> Self {
+        Self {
+            id: "default".into(),
+            name: "default".into(),
+            gtfs: gtfs.to_owned(),
+            gtfs_rt: gtfs_rt.to_owned(),
+        }
+    }
+}
+
+pub fn make_dataset(dataset: &DatasetToLoad, generation_period: &Period) -> Dataset {
+    let gtfs = &dataset.gtfs;
+    let url = &dataset.gtfs_rt;
     let data = Data::from_path(gtfs, generation_period);
-    Context {
+    Dataset {
         gtfs_rt: Mutex::new(None),
         data: Mutex::new(data),
         gtfs_rt_provider_url: url.to_owned(),
@@ -21,7 +43,7 @@ pub fn make_context(gtfs: &str, url: &str, generation_period: &Period) -> Contex
     }
 }
 
-pub fn create_server(addr: Addr<Context>) -> App<Addr<Context>> {
+pub fn create_server(addr: Addr<DatasetActor>) -> App<Addr<DatasetActor>> {
     App::with_state(addr)
         .middleware(middleware::Logger::default())
         .middleware(Cors::build().allowed_methods(vec!["GET"]).finish())
