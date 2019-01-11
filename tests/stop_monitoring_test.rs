@@ -38,10 +38,12 @@ fn sp_monitoring_integration_test() {
         passage.aimed_arrival_time.as_ref().map(|t| t.to_string()),
         Some("2018-12-15T06:26:00".into())
     );
+    assert!(passage.expected_arrival_time.is_none());
     assert_eq!(
         passage.aimed_departure_time.as_ref().map(|t| t.to_string()),
         Some("2018-12-15T06:28:00".into())
     );
+    assert!(passage.expected_departure_time.is_none());
     assert_eq!(passage.order, 5);
     assert_eq!(passage.stop_point_name, "E Main St / S Irving St (Demo)");
 }
@@ -110,10 +112,11 @@ fn create_mock_feed_message() -> transit_realtime::FeedMessage {
 // but we mock a gtfs_rt saying that the bus will be 30s late
 #[test]
 fn sp_monitoring_relatime_integration_test() {
-    let mut srv = utils::make_test_server();
-
     let gtfs_rt = create_mock_feed_message();
     let _server = utils::run_simple_gtfs_rt_server(gtfs_rt);
+
+    let mut srv = utils::make_test_server();
+
     let request = srv
         .client(
             http::Method::GET,

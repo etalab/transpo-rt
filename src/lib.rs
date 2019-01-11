@@ -13,6 +13,7 @@ pub mod context;
 pub mod dataset_handler_actor;
 pub mod gtfs_rt;
 pub(crate) mod gtfs_rt_utils;
+pub mod realtime_update_actors;
 pub mod server;
 pub mod siri_model;
 pub(crate) mod status;

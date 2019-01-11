@@ -19,7 +19,7 @@ pub fn status_query(
             dataset.map(|d| {
                 Json(Status {
                     feed: d.feed_construction_info.feed_path.clone(),
-                    loaded_at: d.data.lock().unwrap().loaded_at,
+                    loaded_at: d.loaded_at,
                 })
             })
         })

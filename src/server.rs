@@ -1,13 +1,15 @@
-use crate::context::{Data, Dataset, FeedConstructionInfo, Period};
+use crate::context::{Dataset, Period};
 use crate::dataset_handler_actor::DatasetActor;
 use crate::gtfs_rt::{gtfs_rt, gtfs_rt_json};
 use crate::status::status_query;
 use crate::stop_monitoring::stop_monitoring_query;
 use crate::stoppoints_discovery::sp_discovery;
+use crate::{context, dataset_handler_actor, realtime_update_actors, update_actors};
+use actix::Actor;
 use actix::Addr;
 use actix_web::middleware::cors::Cors;
 use actix_web::{middleware, App};
-use std::sync::Mutex;
+use std::sync::Arc;
 
 #[derive(Deserialize, Debug)]
 pub struct DatasetToLoad {
@@ -28,19 +30,33 @@ impl DatasetToLoad {
     }
 }
 
-pub fn make_dataset(dataset: &DatasetToLoad, generation_period: &Period) -> Dataset {
-    let gtfs = &dataset.gtfs;
-    let url = &dataset.gtfs_rt;
-    let data = Data::from_path(gtfs, generation_period);
-    Dataset {
-        gtfs_rt: Mutex::new(None),
-        data: Mutex::new(data),
-        gtfs_rt_provider_url: url.to_owned(),
-        feed_construction_info: FeedConstructionInfo {
-            feed_path: gtfs.to_owned(),
+pub fn create_all_actors(
+    dataset_info: &DatasetToLoad,
+    generation_period: &Period,
+) -> Addr<DatasetActor> {
+    let dataset = Dataset::from_path(&dataset_info.gtfs, &generation_period);
+    let arc_dataset = Arc::new(dataset);
+    let rt_dataset = context::RealTimeDataset::new(arc_dataset.clone(), &dataset_info.gtfs_rt);
+    let dataset_actors = dataset_handler_actor::DatasetActor {
+        gtfs: arc_dataset.clone(),
+        realtime: Arc::new(rt_dataset),
+    };
+    let dataset_actors_addr = dataset_actors.start();
+    let base_schedule_reloader = update_actors::BaseScheduleReloader {
+        feed_construction_info: context::FeedConstructionInfo {
+            feed_path: dataset_info.gtfs.clone(),
             generation_period: generation_period.clone(),
         },
-    }
+        dataset_actor: dataset_actors_addr.clone(),
+    };
+    base_schedule_reloader.start();
+    let realtime_reloader = realtime_update_actors::RealTimeReloader {
+        gtfs_rt_url: dataset_info.gtfs_rt.clone(),
+        dataset_actor: dataset_actors_addr.clone(),
+    };
+    realtime_reloader.start();
+
+    dataset_actors_addr
 }
 
 pub fn create_server(addr: Addr<DatasetActor>) -> App<Addr<DatasetActor>> {

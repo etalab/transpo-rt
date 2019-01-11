@@ -1,16 +1,11 @@
-use crate::context::{Connection, Data, Dataset, RealTimeConnection, ScheduleRelationship};
-use crate::dataset_handler_actor::{DatasetActor, GetDataset};
-use crate::gtfs_rt_utils;
+use crate::context::{Connection, Dataset, RealTimeConnection, RealTimeDataset, UpdatedTimetable};
+use crate::dataset_handler_actor::{DatasetActor, GetRealtimeDataset};
 use crate::siri_model as model;
-use crate::transit_realtime;
 use actix::Addr;
 use actix_web::{error, AsyncResponder, Error, Json, Query, Result, State};
-use bytes::IntoBuf;
 use futures::future::Future;
-use log::{info, warn};
 use navitia_model::collection::Idx;
 use navitia_model::objects::StopPoint;
-use prost::Message;
 
 fn current_datetime() -> model::DateTime {
     //TODO better datetime handling (if the server is not in the dataset's timezone it might lead to problems)
@@ -44,10 +39,14 @@ pub struct Params {
     data_freshness: DataFreshness,
 }
 
-fn create_monitored_stop_visit(data: &Data, connection: &Connection) -> model::MonitoredStopVisit {
+fn create_monitored_stop_visit(
+    data: &Dataset,
+    connection: &Connection,
+    updated_connection: Option<&RealTimeConnection>,
+) -> model::MonitoredStopVisit {
     let stop = &data.ntm.stop_points[connection.stop_point_idx];
     let vj = &data.ntm.vehicle_journeys[connection.dated_vj.vj_idx];
-    let update_time = connection.realtime_info.as_ref().map(|c| c.update_time);
+    let update_time = updated_connection.map(|c| c.update_time);
     let call = model::MonitoredCall {
         order: connection.sequence as u16,
         stop_point_name: stop.name.clone(),
@@ -55,14 +54,10 @@ fn create_monitored_stop_visit(data: &Data, connection: &Connection) -> model::M
         destination_display: None,
         aimed_arrival_time: Some(model::DateTime(connection.arr_time)),
         aimed_departure_time: Some(model::DateTime(connection.dep_time)),
-        expected_arrival_time: connection
-            .realtime_info
-            .as_ref()
+        expected_arrival_time: updated_connection
             .and_then(|c| c.arr_time)
             .map(model::DateTime),
-        expected_departure_time: connection
-            .realtime_info
-            .as_ref()
+        expected_departure_time: updated_connection
             .and_then(|c| c.dep_time)
             .map(model::DateTime),
     };
@@ -81,17 +76,28 @@ fn create_monitored_stop_visit(data: &Data, connection: &Connection) -> model::M
 
 fn create_stop_monitoring(
     stop_idx: Idx<StopPoint>,
-    data: &Data,
+    data: &Dataset,
+    updated_timetable: &UpdatedTimetable,
     request: &Params,
 ) -> Vec<model::StopMonitoringDelivery> {
     let stop_visit = data
         .timetable
         .connections
         .iter()
-        .skip_while(|c| c.dep_time < request.start_time.0)
-        .filter(|c| c.stop_point_idx == stop_idx)
+        .enumerate()
+        .skip_while(|(_, c)| c.dep_time < request.start_time.0)
+        .filter(|(_, c)| c.stop_point_idx == stop_idx)
         // .filter() // filter on lines
-        .map(|c| create_monitored_stop_visit(data, c))
+        .map(|(idx, c)| {
+            create_monitored_stop_visit(
+                data,
+                c,
+                match request.data_freshness {
+                    DataFreshness::RealTime => updated_timetable.realtime_connections.get(&idx),
+                    DataFreshness::Scheduled => None,
+                },
+            )
+        })
         .take(2) //TODO make it a param
         .collect();
 
@@ -100,86 +106,9 @@ fn create_stop_monitoring(
     }]
 }
 
-// modify the generated timetable with a given GTFS-RT
-// Since the connection are sorted by scheduled departure time we don't need to reorder the connections, we can update them in place
-// For each trip update, we only have to find the corresponding connection and update it.
-fn apply_rt_update(data: &mut Data, gtfs_rt: &transit_realtime::FeedMessage) -> Result<()> {
-    let parsed_trip_update = gtfs_rt_utils::get_model_update(&data.ntm, gtfs_rt, data.timezone)?;
-    let mut nb_changes = 0;
-
-    for connection in &mut data.timetable.connections {
-        let trip_update = parsed_trip_update.trips.get(&connection.dated_vj);
-        if let Some(trip_update) = trip_update {
-            let stop_time_update = trip_update
-                .stop_time_update_by_sequence
-                .get(&connection.sequence);
-            if let Some(stop_time_update) = stop_time_update {
-                // integrity check
-                if stop_time_update.stop_point_idx != connection.stop_point_idx {
-                    warn!("for trip {}, invalid stop connection, the stop n.{} '{}' does not correspond to the gtfsrt stop '{}'",
-                    &data.ntm.vehicle_journeys[connection.dated_vj.vj_idx].id,
-                    &connection.sequence,
-                    &data.ntm.stop_points[connection.stop_point_idx].id,
-                    &data.ntm.stop_points[stop_time_update.stop_point_idx].id,
-                    );
-                    continue;
-                }
-                connection.realtime_info = Some(RealTimeConnection {
-                    dep_time: stop_time_update.updated_departure,
-                    arr_time: stop_time_update.updated_arrival,
-                    schedule_relationship: ScheduleRelationship::Scheduled,
-                    update_time: trip_update.update_dt,
-                });
-                nb_changes += 1;
-            } else {
-                continue;
-            }
-        } else {
-            // no trip update for this vehicle journey, we can skip
-            continue;
-        }
-    }
-
-    info!(
-        "{} connections have been updated with trip updates",
-        nb_changes
-    );
-
-    Ok(())
-}
-
-fn apply_latest_rt_update(context: &Dataset) -> actix_web::Result<()> {
-    let gtfs_rt = context.gtfs_rt.lock().unwrap();
-
-    let mut data = context.data.lock().unwrap();
-
-    info!("applying realtime data on the scheduled data");
-    let feed_message = gtfs_rt
-        .as_ref()
-        .map(|d| {
-            transit_realtime::FeedMessage::decode((&d.data).into_buf()).map_err(|e| {
-                error::ErrorInternalServerError(format!(
-                    "impossible to decode protobuf message: {}",
-                    e
-                ))
-            })
-        })
-        .ok_or_else(|| error::ErrorInternalServerError("impossible to access stored data"))??;
-
-    apply_rt_update(&mut data, &feed_message)
-}
-
-fn realtime_update(context: &Dataset) -> actix_web::Result<()> {
-    gtfs_rt_utils::update_gtfs_rt(context).map_err(error::ErrorInternalServerError)?;
-
-    apply_latest_rt_update(context)
-}
-
-fn stop_monitoring(request: &Params, state: &Dataset) -> Result<model::SiriResponse> {
-    if request.data_freshness == DataFreshness::RealTime {
-        realtime_update(state)?;
-    }
-    let data = state.data.lock().unwrap();
+fn stop_monitoring(request: &Params, rt_data: &RealTimeDataset) -> Result<model::SiriResponse> {
+    let data = &rt_data.base_schedule_dataset;
+    let updated_timetable = &rt_data.updated_timetable;
 
     let stop_idx = data
         .ntm
@@ -200,7 +129,12 @@ fn stop_monitoring(request: &Params, state: &Dataset) -> Result<model::SiriRespo
                 address: "".into(),
                 response_message_identifier: "".into(),
                 request_message_ref: "".into(),
-                stop_monitoring_delivery: create_stop_monitoring(stop_idx, &data, &request),
+                stop_monitoring_delivery: create_stop_monitoring(
+                    stop_idx,
+                    data,
+                    updated_timetable,
+                    &request,
+                ),
             }),
             ..Default::default()
         },
@@ -211,7 +145,7 @@ pub fn stop_monitoring_query(
     (actor_addr, query): (State<Addr<DatasetActor>>, Query<Params>),
 ) -> Box<Future<Item = Json<model::SiriResponse>, Error = Error>> {
     actor_addr
-        .send(GetDataset)
+        .send(GetRealtimeDataset)
         .map_err(Error::from)
         .and_then(|dataset| {
             dataset

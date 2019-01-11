@@ -1,8 +1,8 @@
-use crate::context::{Data, Dataset, FeedConstructionInfo};
+use crate::context::{Dataset, FeedConstructionInfo};
 use crate::dataset_handler_actor::DatasetActor;
 use actix::AsyncContext;
 use log::info;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 /// Actor that once in a while reload the BaseSchedule data (GTFS)
 /// and send them to the DatasetActor
@@ -17,17 +17,11 @@ pub struct BaseScheduleReloader {
 
 impl BaseScheduleReloader {
     fn update_data(&self) {
-        let new_data = Data::from_path(
+        let new_dataset = Dataset::from_path(
             &self.feed_construction_info.feed_path,
             &self.feed_construction_info.generation_period,
         );
 
-        let new_dataset = Dataset {
-            gtfs_rt: Mutex::new(None),
-            data: Mutex::new(new_data),
-            gtfs_rt_provider_url: "TODO".to_owned(),
-            feed_construction_info: self.feed_construction_info.clone(),
-        };
         // we send those data as a BaseScheduleReloader message, for the DatasetActor to load those new data
         self.dataset_actor
             .do_send(UpdateBaseSchedule(Arc::new(new_dataset)));
