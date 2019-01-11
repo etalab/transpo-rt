@@ -3,7 +3,6 @@ use crate::transit_realtime;
 use actix_web::Result;
 use chrono::{DateTime, NaiveDateTime, Utc};
 use failure::format_err;
-use failure::ResultExt;
 use log::{debug, info, trace, warn};
 use navitia_model::collection::Idx;
 use navitia_model::objects::StopPoint;
@@ -120,6 +119,48 @@ fn create_stop_time_updates(
     Ok(res)
 }
 
+fn default_date(timezone: chrono_tz::Tz) -> chrono::NaiveDate {
+    chrono::Utc::now()
+        .with_timezone(&timezone)
+        .date()
+        .naive_local()
+}
+
+fn get_date(
+    trip: &transit_realtime::TripDescriptor,
+    timezone: chrono_tz::Tz,
+) -> Result<chrono::NaiveDate, failure::Error> {
+    trip.start_date.as_ref().map_or_else(
+        || Ok(default_date(timezone)),
+        |s| {
+            chrono::NaiveDate::parse_from_str(s, "%Y%m%d")
+                .map_err(|e| format_err!("Impossible to parse date: {}", e))
+        },
+    )
+}
+
+fn get_dated_vj(
+    model: &navitia_model::Model,
+    trip: &transit_realtime::TripDescriptor,
+    entity_id: &str,
+    timezone: chrono_tz::Tz,
+) -> Result<DatedVehicleJourney> {
+    let vj_idx = model
+        .vehicle_journeys
+        .get_idx(trip.trip_id())
+        .ok_or_else(|| {
+            format_err!(
+                "impossible to find trip {} for entity {}",
+                &trip.trip_id(),
+                &entity_id
+            )
+        })?;
+
+    let date = get_date(trip, timezone)?;
+
+    Ok(DatedVehicleJourney { vj_idx, date })
+}
+
 /// read a gtfs-rt FeedMessage to create a ModelUpdate,
 /// a temporary structure used to
 pub fn get_model_update(
@@ -135,35 +176,7 @@ pub fn get_model_update(
     for entity in &gtfs_rt.entity {
         let entity_id = &entity.id;
         if let Some(tu) = &entity.trip_update {
-            let trip_id = tu.trip.trip_id();
-            let date = skip_fail!(tu
-                .trip
-                .start_date
-                .as_ref()
-                .ok_or_else(|| format_err!(
-                    "The date is a mandatory field to apply a trip update, cannot apply entity {}",
-                    &entity_id
-                ))
-                .and_then(
-                    |date_str| Ok(
-                        chrono::NaiveDate::parse_from_str(&date_str, "%Y%m%d").context(format!(
-                            "impossible to read date from entity {}",
-                            &entity_id
-                        ))?
-                    )
-                ));
-
-            let vj_idx =
-                skip_fail!(model
-                    .vehicle_journeys
-                    .get_idx(trip_id)
-                    .ok_or_else(|| format_err!(
-                        "impossible to find trip {} for entity {}",
-                        &trip_id,
-                        &entity_id
-                    )));
-
-            let dated_vj = DatedVehicleJourney { vj_idx, date };
+            let dated_vj = skip_fail!(get_dated_vj(&model, &tu.trip, entity_id, timezone));
             model_update.trips.insert(
                 dated_vj,
                 TripUpdate {
