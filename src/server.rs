@@ -1,10 +1,7 @@
 use crate::actors::{BaseScheduleReloader, DatasetActor, RealTimeReloader};
 use crate::context;
 use crate::context::{Dataset, Period};
-use crate::gtfs_rt::{gtfs_rt, gtfs_rt_json};
-use crate::status::status_query;
-use crate::stop_monitoring::stop_monitoring_query;
-use crate::stoppoints_discovery::sp_discovery;
+use crate::routes::{gtfs_rt, gtfs_rt_json, sp_discovery, status_query, stop_monitoring_query};
 use actix::Actor;
 use actix::Addr;
 use actix_web::middleware::cors::Cors;

@@ -9,12 +9,9 @@ pub mod transit_realtime {
 #[macro_use]
 pub(crate) mod utils;
 
+pub mod actors;
 pub mod context;
-pub mod gtfs_rt;
 pub(crate) mod gtfs_rt_utils;
+pub(crate) mod routes;
 pub mod server;
 pub mod siri_model;
-pub(crate) mod status;
-pub mod stop_monitoring;
-pub mod stoppoints_discovery;
-pub mod actors;
