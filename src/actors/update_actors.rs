@@ -1,5 +1,5 @@
+use crate::actors::DatasetActor;
 use crate::context::{Dataset, FeedConstructionInfo};
-use crate::dataset_handler_actor::DatasetActor;
 use actix::AsyncContext;
 use log::info;
 use std::sync::Arc;

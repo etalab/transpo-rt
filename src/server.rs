@@ -1,10 +1,10 @@
+use crate::actors::{BaseScheduleReloader, DatasetActor, RealTimeReloader};
+use crate::context;
 use crate::context::{Dataset, Period};
-use crate::dataset_handler_actor::DatasetActor;
 use crate::gtfs_rt::{gtfs_rt, gtfs_rt_json};
 use crate::status::status_query;
 use crate::stop_monitoring::stop_monitoring_query;
 use crate::stoppoints_discovery::sp_discovery;
-use crate::{context, dataset_handler_actor, realtime_update_actors, update_actors};
 use actix::Actor;
 use actix::Addr;
 use actix_web::middleware::cors::Cors;
@@ -37,12 +37,12 @@ pub fn create_all_actors(
     let dataset = Dataset::from_path(&dataset_info.gtfs, &generation_period);
     let arc_dataset = Arc::new(dataset);
     let rt_dataset = context::RealTimeDataset::new(arc_dataset.clone(), &dataset_info.gtfs_rt);
-    let dataset_actors = dataset_handler_actor::DatasetActor {
+    let dataset_actors = DatasetActor {
         gtfs: arc_dataset.clone(),
         realtime: Arc::new(rt_dataset),
     };
     let dataset_actors_addr = dataset_actors.start();
-    let base_schedule_reloader = update_actors::BaseScheduleReloader {
+    let base_schedule_reloader = BaseScheduleReloader {
         feed_construction_info: context::FeedConstructionInfo {
             feed_path: dataset_info.gtfs.clone(),
             generation_period: generation_period.clone(),
@@ -50,7 +50,7 @@ pub fn create_all_actors(
         dataset_actor: dataset_actors_addr.clone(),
     };
     base_schedule_reloader.start();
-    let realtime_reloader = realtime_update_actors::RealTimeReloader {
+    let realtime_reloader = RealTimeReloader {
         gtfs_rt_url: dataset_info.gtfs_rt.clone(),
         dataset_actor: dataset_actors_addr.clone(),
     };
