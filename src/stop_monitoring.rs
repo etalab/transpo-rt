@@ -7,11 +7,6 @@ use futures::future::Future;
 use navitia_model::collection::Idx;
 use navitia_model::objects::StopPoint;
 
-fn current_datetime() -> model::DateTime {
-    //TODO better datetime handling (if the server is not in the dataset's timezone it might lead to problems)
-    model::DateTime(chrono::Local::now().naive_local())
-}
-
 #[derive(Debug, Deserialize, PartialEq, Eq)]
 enum DataFreshness {
     RealTime,
@@ -28,13 +23,16 @@ impl Default for DataFreshness {
 #[serde(rename_all = "PascalCase")]
 pub struct Params {
     _requestor_ref: Option<String>,
+    /// Id of the stop_point on which we want the next departures
     monitoring_ref: String,
     _line_ref: Option<String>,
     _destination_ref: Option<String>,
-    #[serde(default = "current_datetime")]
-    start_time: model::DateTime,
+    /// start_time is the datetime from which we want the next departures
+    /// The default is the current time of the query
+    start_time: Option<model::DateTime>,
     #[serde(skip)] //TODO
     _preview_interval: Option<chrono::Duration>,
+    /// the data_freshness is used to control whether we want realtime data or only base schedule data
     #[serde(default = "DataFreshness::default")]
     data_freshness: DataFreshness,
 }
@@ -80,12 +78,18 @@ fn create_stop_monitoring(
     updated_timetable: &UpdatedTimetable,
     request: &Params,
 ) -> Vec<model::StopMonitoringDelivery> {
+    // if we want to datetime in the query, we get the current_time (in the timezone of the dataset)
+    let requested_start_time = request.start_time.as_ref().map(|d| d.0).unwrap_or_else(|| {
+        chrono::Utc::now()
+            .with_timezone(&data.timezone)
+            .naive_local()
+    });
     let stop_visit = data
         .timetable
         .connections
         .iter()
         .enumerate()
-        .skip_while(|(_, c)| c.dep_time < request.start_time.0)
+        .skip_while(|(_, c)| c.dep_time < requested_start_time)
         .filter(|(_, c)| c.stop_point_idx == stop_idx)
         // .filter() // filter on lines
         .map(|(idx, c)| {
