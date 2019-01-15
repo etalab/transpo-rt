@@ -1,4 +1,4 @@
-use crate::dataset_handler_actor::{DatasetActor, GetDataset};
+use crate::actors::{DatasetActor, GetDataset};
 use actix::Addr;
 use actix_web::{AsyncResponder, Error, HttpRequest, Json};
 use futures::future::Future;

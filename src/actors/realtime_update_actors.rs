@@ -1,7 +1,7 @@
+use crate::actors::{DatasetActor, GetDataset};
 use crate::context::{
     Dataset, GtfsRT, RealTimeConnection, RealTimeDataset, ScheduleRelationship, UpdatedTimetable,
 };
-use crate::dataset_handler_actor::{DatasetActor, GetDataset};
 use crate::gtfs_rt_utils;
 use crate::transit_realtime;
 use actix::fut::ActorFuture;

@@ -1,4 +1,4 @@
-use crate::dataset_handler_actor::{DatasetActor, GetDataset};
+use crate::actors::{DatasetActor, GetDataset};
 use crate::siri_model::{AnnotatedStopPoint, Siri, SiriResponse, StopPointsDelivery};
 use actix::Addr;
 use actix_web::{AsyncResponder, Error, Json, Query, State};

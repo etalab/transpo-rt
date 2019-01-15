@@ -1,4 +1,4 @@
-use crate::dataset_handler_actor::{DatasetActor, GetRealtimeDataset};
+use crate::actors::{DatasetActor, GetRealtimeDataset};
 use crate::transit_realtime;
 use actix::Addr;
 use actix_web::http::ContentEncoding;
