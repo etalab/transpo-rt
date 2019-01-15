@@ -1,51 +1,13 @@
-use crate::context::{Dataset, DatedVehicleJourney, GtfsRT};
+use crate::context::DatedVehicleJourney;
 use crate::transit_realtime;
-use actix_web::Result;
 use chrono::{DateTime, NaiveDateTime, Utc};
 use failure::format_err;
-use log::{debug, info, trace, warn};
+use failure::Error;
+use log::{debug, trace, warn};
 use navitia_model::collection::Idx;
 use navitia_model::objects::StopPoint;
 use reqwest;
 use std::collections::HashMap;
-use std::io::Read;
-use std::sync::MutexGuard;
-
-const REFRESH_TIMEOUT_S: i64 = 60;
-
-fn fetch_gtfs(url: &str) -> Result<Vec<u8>> {
-    info!("fetching a gtfs_rt");
-    reqwest::get(url)
-        .and_then(|resp| resp.error_for_status())
-        .map_err(|e| format_err!("Unable to fetch the gtfs RT {}", e))?
-        .bytes()
-        .collect::<Result<Vec<u8>, _>>()
-        .map_err(|e| e.into())
-}
-
-fn refresh_needed(previous: &Option<GtfsRT>) -> bool {
-    previous
-        .as_ref()
-        .map(|g| g.datetime)
-        .map(|dt| (chrono::Utc::now() - dt).num_seconds().abs() > REFRESH_TIMEOUT_S)
-        .unwrap_or(true)
-}
-
-pub fn update_gtfs_rt(context: &Dataset) -> Result<()> {
-    let _guard = get_gtfs_rt(context)?;
-    Ok(())
-}
-
-pub fn get_gtfs_rt(context: &Dataset) -> Result<MutexGuard<Option<GtfsRT>>> {
-    let mut saved_data = context.gtfs_rt.lock().unwrap();
-    if refresh_needed(&saved_data) {
-        *saved_data = Some(GtfsRT {
-            data: fetch_gtfs(&context.gtfs_rt_provider_url)?,
-            datetime: Utc::now(),
-        });
-    }
-    Ok(saved_data)
-}
 
 pub struct StopTimeUpdate {
     pub stop_point_idx: Idx<StopPoint>,
@@ -82,7 +44,7 @@ fn create_stop_time_updates(
     trip_update: &transit_realtime::TripUpdate,
     model: &navitia_model::Model,
     timezone: chrono_tz::Tz,
-) -> Result<HashMap<u32, StopTimeUpdate>> {
+) -> Result<HashMap<u32, StopTimeUpdate>, Error> {
     let mut res = HashMap::default();
     for stop_time_update in &trip_update.stop_time_update {
         let stop_sequence = stop_time_update.stop_sequence();
@@ -144,7 +106,7 @@ fn get_dated_vj(
     trip: &transit_realtime::TripDescriptor,
     entity_id: &str,
     timezone: chrono_tz::Tz,
-) -> Result<DatedVehicleJourney> {
+) -> Result<DatedVehicleJourney, failure::Error> {
     let vj_idx = model
         .vehicle_journeys
         .get_idx(trip.trip_id())
@@ -167,7 +129,7 @@ pub fn get_model_update(
     model: &navitia_model::Model,
     gtfs_rt: &transit_realtime::FeedMessage,
     timezone: chrono_tz::Tz,
-) -> Result<ModelUpdate> {
+) -> Result<ModelUpdate, Error> {
     debug!("applying a trip update");
     let mut model_update = ModelUpdate {
         trips: HashMap::new(),

@@ -1,11 +1,6 @@
-use actix::Actor;
 use actix_web::server;
 use env_logger::{Builder, Env};
-use std::sync::Arc;
 use structopt::StructOpt;
-use transpo_rt::context;
-use transpo_rt::dataset_handler_actor;
-use transpo_rt::update_actors;
 
 #[derive(StructOpt, Debug, Clone)]
 #[structopt(name = "transpo-rt")]
@@ -56,20 +51,9 @@ fn main() {
         // todo better dataset to load construction
         let dataset_infos =
             transpo_rt::server::DatasetToLoad::new_default(&params.gtfs, &params.url);
-        let dataset = transpo_rt::server::make_dataset(&dataset_infos, &period);
-        let dataset_actors = dataset_handler_actor::DatasetActor {
-            gtfs: Arc::new(dataset),
-        };
-        let dataset_actors_addr = dataset_actors.start();
-        let base_schedule_reloader = update_actors::BaseScheduleReloader {
-            feed_construction_info: context::FeedConstructionInfo {
-                feed_path: dataset_infos.gtfs.clone(),
-                generation_period: period.clone(),
-            },
-            dataset_actor: dataset_actors_addr.clone(),
-        };
-        base_schedule_reloader.start();
-        server::new(move || transpo_rt::server::create_server(dataset_actors_addr.clone()))
+
+        let dataset_actor_addr = transpo_rt::server::create_all_actors(&dataset_infos, &period);
+        server::new(move || transpo_rt::server::create_server(dataset_actor_addr.clone()))
             .bind(bind)
             .unwrap()
             .start();

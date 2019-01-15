@@ -2,7 +2,8 @@ use chrono::{DateTime, NaiveDate, NaiveDateTime, Utc};
 use chrono_tz::Tz;
 use log::info;
 use navitia_model::collection::Idx;
-use std::sync::Mutex;
+use std::collections::HashMap;
+use std::sync::Arc;
 
 pub enum Stop {
     StopPoint(Idx<navitia_model::objects::StopPoint>),
@@ -44,18 +45,17 @@ pub struct Connection {
     pub dep_time: NaiveDateTime,
     pub arr_time: NaiveDateTime,
     pub sequence: u32,
-    pub realtime_info: Option<RealTimeConnection>,
 }
 
 pub struct Timetable {
     pub connections: Vec<Connection>,
 }
 
-pub struct Data {
-    pub ntm: navitia_model::Model,
-    pub timetable: Timetable,
-    pub timezone: Tz,
-    pub loaded_at: chrono::DateTime<chrono::Utc>,
+#[derive(Default)]
+pub struct UpdatedTimetable {
+    /// the key is the index in the BaseSchedule connections Vector
+    /// TODO: could we stronger type this index ?
+    pub realtime_connections: HashMap<usize, RealTimeConnection>,
 }
 
 #[derive(Clone)]
@@ -65,10 +65,30 @@ pub struct FeedConstructionInfo {
 }
 
 pub struct Dataset {
-    pub gtfs_rt: Mutex<Option<GtfsRT>>,
-    pub gtfs_rt_provider_url: String,
-    pub data: Mutex<Data>,
+    pub ntm: navitia_model::Model,
+    pub timetable: Timetable,
+    pub timezone: Tz,
+    pub loaded_at: chrono::DateTime<chrono::Utc>,
     pub feed_construction_info: FeedConstructionInfo,
+}
+
+pub struct RealTimeDataset {
+    /// shared ptr to the base schedule dataset
+    pub base_schedule_dataset: Arc<Dataset>,
+    pub gtfs_rt: Option<GtfsRT>,
+    pub gtfs_rt_provider_url: String,
+    pub updated_timetable: UpdatedTimetable,
+}
+
+impl RealTimeDataset {
+    pub fn new(base: Arc<Dataset>, url: &str) -> Self {
+        RealTimeDataset {
+            base_schedule_dataset: base,
+            gtfs_rt: None,
+            gtfs_rt_provider_url: url.to_owned(),
+            updated_timetable: UpdatedTimetable::default(),
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -114,7 +134,6 @@ fn create_timetable(ntm: &navitia_model::Model, generation_period: &Period) -> T
                     dep_time: create_dt(*date, st.departure_time),
                     arr_time: create_dt(*date, st.arrival_time),
                     sequence: st.sequence,
-                    realtime_info: None,
                 });
             }
         }
@@ -130,8 +149,8 @@ fn create_timetable(ntm: &navitia_model::Model, generation_period: &Period) -> T
     timetable
 }
 
-impl Data {
-    pub fn new(ntm: navitia_model::Model, generation_period: &Period) -> Self {
+impl Dataset {
+    pub fn new(ntm: navitia_model::Model, gtfs_path: &str, generation_period: &Period) -> Self {
         // To correctly handle GTFS-RT stream we need the dataset's timezone,
         // as all the time in the dataset are in local time and the GTFS-RT gives its time
         // as UTC.
@@ -154,6 +173,10 @@ impl Data {
             ntm,
             timezone,
             loaded_at: chrono::Utc::now(),
+            feed_construction_info: FeedConstructionInfo {
+                feed_path: gtfs_path.to_owned(),
+                generation_period: generation_period.clone(),
+            },
         }
     }
 
@@ -164,6 +187,6 @@ impl Data {
             navitia_model::gtfs::read_from_zip(gtfs, None::<&str>, None).unwrap()
         };
 
-        Self::new(nav_data, &generation_period)
+        Self::new(nav_data, gtfs, &generation_period)
     }
 }

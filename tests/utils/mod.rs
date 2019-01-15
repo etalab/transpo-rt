@@ -1,8 +1,6 @@
-use actix::Actor;
 use chrono::NaiveDate;
 use prost::Message;
 use std::sync::{Once, ONCE_INIT};
-use transpo_rt::dataset_handler_actor::DatasetActor;
 
 static LOGGER_INIT: Once = ONCE_INIT;
 const SERVER_PATH: &str = "/gtfs_rt";
@@ -20,11 +18,7 @@ pub fn make_test_server() -> actix_web::test::TestServer {
             "fixtures/gtfs.zip",
             &(mockito::SERVER_URL.to_string() + SERVER_PATH),
         );
-        let dataset = transpo_rt::server::make_dataset(&dataset_infos, &period);
-        let dataset_actors = DatasetActor {
-            gtfs: std::sync::Arc::new(dataset),
-        };
-        let dataset_actors_addr = dataset_actors.start();
+        let dataset_actors_addr = transpo_rt::server::create_all_actors(&dataset_infos, &period);
         transpo_rt::server::create_server(dataset_actors_addr)
     };
 
