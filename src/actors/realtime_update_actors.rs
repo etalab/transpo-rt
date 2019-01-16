@@ -124,7 +124,6 @@ impl RealTimeReloader {
 
     fn apply_rt(&self, dataset: Arc<Dataset>) -> Result<(), Error> {
         //TODO: make this async
-        info!("fetching a gtfs_rt");
         let gtfs_rt = fetch_gtfs_rt(&self.gtfs_rt_url)?;
 
         // we compute the new timetable
