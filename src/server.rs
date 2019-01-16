@@ -63,6 +63,10 @@ pub fn create_server(addr: Addr<DatasetActor>) -> App<Addr<DatasetActor>> {
         .resource("/status", |r| r.f(status_query))
         .resource("/gtfs_rt", |r| r.f(gtfs_rt))
         .resource("/gtfs_rt.json", |r| r.f(gtfs_rt_json))
-        .resource("/stoppoints_discovery.json", |r| r.with(sp_discovery))
-        .resource("/stop_monitoring.json", |r| r.with(stop_monitoring_query))
+        .resource("/siri-lite/stoppoints_discovery.json", |r| {
+            r.with(sp_discovery)
+        })
+        .resource("/siri-lite/stop_monitoring.json", |r| {
+            r.with(stop_monitoring_query)
+        })
 }
