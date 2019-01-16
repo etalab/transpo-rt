@@ -68,9 +68,12 @@ pub struct MonitoredCall {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "PascalCase")]
 pub struct MonitoredVehicleJourney {
+    /// Id of the line
     pub line_ref: String,
+    /// Id of the operator
     #[serde(skip_serializing_if = "Option::is_none")]
     pub operator_ref: Option<String>,
+    /// Id of the journey pattern
     #[serde(skip_serializing_if = "Option::is_none")]
     pub journey_pattern_ref: Option<String>,
     pub monitored_call: Option<MonitoredCall>,
@@ -79,16 +82,27 @@ pub struct MonitoredVehicleJourney {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "PascalCase")]
 pub struct MonitoredStopVisit {
+    /// Id of the stop point
     pub monitoring_ref: String,
-    pub monitoring_vehicle_journey: MonitoredVehicleJourney,
-    pub recorded_at_time: Option<chrono::DateTime<chrono::Utc>>, // TODO make it a mandatory field
+    /// Datetime of the information update
+    pub recorded_at_time: chrono::DateTime<chrono::Utc>,
     /// Id of the couple Stop / VehicleJourney
     pub item_identifier: String,
+    pub monitoring_vehicle_journey: MonitoredVehicleJourney,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "PascalCase")]
 pub struct StopMonitoringDelivery {
+    /// Version of the siri's response
+    pub version: String,
+    /// Datetime of the response's production
+    pub response_time_stamp: String,
+    /// Id of the query
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub request_message_ref: Option<String>, // Note: this is mandatory for idf profil
+    /// Status of the response, true if the response has been correctly treated, false otherwise
+    pub status: bool,
     pub monitored_stop_visits: Vec<MonitoredStopVisit>,
 }
 
@@ -96,10 +110,18 @@ pub struct StopMonitoringDelivery {
 #[serde(rename_all = "PascalCase")]
 pub struct ServiceDelivery {
     pub response_time_stamp: String,
-    pub producer_ref: String,
-    pub address: String,
-    pub response_message_identifier: String,
-    pub request_message_ref: String,
+    /// Id of the producer
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub producer_ref: Option<String>,
+    /// Address of the service
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub address: Option<String>,
+    /// Id of the response
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub response_message_identifier: Option<String>, // Note: this is mandatory for idf profil
+    /// Id of the query
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub request_message_ref: Option<String>, // Note: this is mandatory for idf profil
     pub stop_monitoring_delivery: Vec<StopMonitoringDelivery>,
 }
 

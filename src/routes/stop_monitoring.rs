@@ -44,7 +44,11 @@ fn create_monitored_stop_visit(
 ) -> model::MonitoredStopVisit {
     let stop = &data.ntm.stop_points[connection.stop_point_idx];
     let vj = &data.ntm.vehicle_journeys[connection.dated_vj.vj_idx];
-    let update_time = updated_connection.map(|c| c.update_time);
+    let update_time = updated_connection
+        .map(|c| c.update_time)
+        // if we have no realtime data, we consider the update time to be the time of the base schedule loading
+        // (it's not that great, but we don't have something better)
+        .unwrap_or_else(|| data.loaded_at);
     let call = model::MonitoredCall {
         order: connection.sequence as u16,
         stop_point_name: stop.name.clone(),
@@ -68,7 +72,7 @@ fn create_monitored_stop_visit(
             monitored_call: Some(call),
         },
         recorded_at_time: update_time,
-        item_identifier: "".into(),
+        item_identifier: format!("{}:{}", &stop.id, &vj.id),
     }
 }
 
@@ -106,6 +110,10 @@ fn create_stop_monitoring(
         .collect();
 
     vec![model::StopMonitoringDelivery {
+        version: "2.0".to_owned(),
+        response_time_stamp: chrono::Local::now().to_rfc3339(),
+        request_message_ref: None,
+        status: true,
         monitored_stop_visits: stop_visit,
     }]
 }
@@ -129,10 +137,10 @@ fn stop_monitoring(request: &Params, rt_data: &RealTimeDataset) -> Result<model:
         siri: model::Siri {
             service_delivery: Some(model::ServiceDelivery {
                 response_time_stamp: chrono::Local::now().to_rfc3339(),
-                producer_ref: "".into(),
-                address: "".into(),
-                response_message_identifier: "".into(),
-                request_message_ref: "".into(),
+                producer_ref: None, // TODO take the id of the dataset ?
+                address: None,
+                response_message_identifier: None,
+                request_message_ref: None, // TODO if a request ref is given in the query, return it
                 stop_monitoring_delivery: create_stop_monitoring(
                     stop_idx,
                     data,
