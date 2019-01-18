@@ -6,7 +6,6 @@ use failure::Error;
 use log::{debug, trace, warn};
 use navitia_model::collection::Idx;
 use navitia_model::objects::StopPoint;
-use reqwest;
 use std::collections::HashMap;
 
 pub struct StopTimeUpdate {
