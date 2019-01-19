@@ -10,7 +10,10 @@ fn sp_discovery_integration_test() {
     let mut srv = utils::make_test_server();
 
     let request = srv
-        .client(http::Method::GET, "/stoppoints_discovery.json?q=mai")
+        .client(
+            http::Method::GET,
+            "/siri-lite/stoppoints_discovery.json?q=mai",
+        )
         .finish()
         .unwrap();
     let response = srv.execute(request.send()).unwrap();
