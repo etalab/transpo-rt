@@ -7,7 +7,7 @@ mod utils;
 fn list_datasets_integration_test() {
     let mut srv = utils::make_test_server();
 
-    let request = srv.client(http::Method::GET, "/datasets").finish().unwrap();
+    let request = srv.client(http::Method::GET, "/").finish().unwrap();
     let response = srv.execute(request.send()).unwrap();
 
     assert!(response.status().is_success());

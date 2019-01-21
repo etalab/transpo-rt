@@ -59,10 +59,10 @@ pub fn create_datasets_servers(
         .iter()
         .map(|(id, a)| {
             App::with_state(a.clone())
-                .prefix(format!("/datasets/{id}", id = &id))
+                .prefix(format!("/{id}", id = &id))
                 .middleware(middleware::Logger::default())
                 .middleware(Cors::build().allowed_methods(vec!["GET"]).finish())
-                .resource("/status", |r| r.f(status_query))
+                .resource("/", |r| r.f(status_query))
                 .resource("/gtfs_rt", |r| r.f(gtfs_rt))
                 .resource("/gtfs_rt.json", |r| r.f(gtfs_rt_json))
                 .resource("/siri-lite/stoppoints_discovery.json", |r| {
@@ -86,7 +86,7 @@ pub fn create_server(
             App::with_state(datasets.clone())
                 .middleware(middleware::Logger::default())
                 .middleware(Cors::build().allowed_methods(vec!["GET"]).finish())
-                .resource("/datasets", |r| r.f(list_datasets))
+                .resource("/", |r| r.f(list_datasets))
                 .boxed(),
         ))
         .collect()
