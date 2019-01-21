@@ -11,7 +11,7 @@ fn sp_monitoring_integration_test() {
     let request = srv
         .client(
             http::Method::GET,
-            "/datasets/default/siri-lite/stop_monitoring.json?MonitoringRef=EMSI&StartTime=2018-12-15T05:22:00&DataFreshness=Scheduled",
+            "/default/siri-lite/stop_monitoring.json?MonitoringRef=EMSI&StartTime=2018-12-15T05:22:00&DataFreshness=Scheduled",
         )
         .finish()
         .unwrap();
@@ -120,7 +120,7 @@ fn sp_monitoring_relatime_integration_test() {
     let request = srv
         .client(
             http::Method::GET,
-            "/datasets/default/siri-lite/stop_monitoring.json?MonitoringRef=EMSI&StartTime=2018-12-15T05:22:00",
+            "/default/siri-lite/stop_monitoring.json?MonitoringRef=EMSI&StartTime=2018-12-15T05:22:00",
         )
         .finish()
         .unwrap();

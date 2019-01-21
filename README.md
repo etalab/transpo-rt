@@ -11,11 +11,11 @@ A [hosted version](https://app-be8e53a7-9b77-4f95-bea0-681b97077017.cleverapps.i
 The API provides several routes:
 
 * `GET` `/datasets`: list the available datasets - [example call](https://app-be8e53a7-9b77-4f95-bea0-681b97077017.cleverapps.io/datasets)
-* `GET` `/datasets/{id}/gtfs_rt`: get the gtfs-rt as binary - [example call](https://app-be8e53a7-9b77-4f95-bea0-681b97077017.cleverapps.io/datasets/metromobilite/gtfs_rt)
-* `GET` `/datasets/{id}/gtfs_rt.json`: get the gtfs-rt as json - [example call](https://app-be8e53a7-9b77-4f95-bea0-681b97077017.cleverapps.io/datasets/metromobilite/gtfs_rt.json)
-* `GET` `/datasets/{id}/siri-lite/stop_monitoring.json`: get a siri-lite stop monitoring response - [example call](https://app-be8e53a7-9b77-4f95-bea0-681b97077017.cleverapps.io/datasets/metromobilite/siri-lite/stoppoints_discovery.json?q=mairie)
-* `GET` `/datasets/{id}/siri-lite/stoppoints_discovery.json`: get a siri-lite stoppoint discovery response - [example call](https://app-be8e53a7-9b77-4f95-bea0-681b97077017.cleverapps.io/datasets/metromobilite/siri-lite/stop_monitoring.json?MonitoringRef=4235)
-* `GET` `/datasets/{id}/status`: simple status on the dataset - [example call](https://app-be8e53a7-9b77-4f95-bea0-681b97077017.cleverapps.io//datasets/metromobilite/status)
+* `GET` `/{id}/gtfs_rt`: get the gtfs-rt as binary - [example call](https://app-be8e53a7-9b77-4f95-bea0-681b97077017.cleverapps.io/metromobilite/gtfs_rt)
+* `GET` `/{id}/gtfs_rt.json`: get the gtfs-rt as json - [example call](https://app-be8e53a7-9b77-4f95-bea0-681b97077017.cleverapps.io/metromobilite/gtfs_rt.json)
+* `GET` `/{id}/siri-lite/stop_monitoring.json`: get a siri-lite stop monitoring response - [example call](https://app-be8e53a7-9b77-4f95-bea0-681b97077017.cleverapps.io/metromobilite/siri-lite/stoppoints_discovery.json?q=mairie)
+* `GET` `/{id}/siri-lite/stoppoints_discovery.json`: get a siri-lite stoppoint discovery response - [example call](https://app-be8e53a7-9b77-4f95-bea0-681b97077017.cleverapps.io/metromobilite/siri-lite/stop_monitoring.json?MonitoringRef=4235)
+* `GET` `/{id}/status`: simple status on the dataset - [example call](https://app-be8e53a7-9b77-4f95-bea0-681b97077017.cleverapps.io//metromobilite/status)
 
 #### API details
 

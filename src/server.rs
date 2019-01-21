@@ -59,7 +59,7 @@ pub fn create_datasets_servers(
         .iter()
         .map(|(id, a)| {
             App::with_state(a.clone())
-                .prefix(format!("/datasets/{id}", id = &id))
+                .prefix(format!("/{id}", id = &id))
                 .middleware(middleware::Logger::default())
                 .middleware(Cors::build().allowed_methods(vec!["GET"]).finish())
                 .resource("/status", |r| r.f(status_query))
