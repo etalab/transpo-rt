@@ -94,13 +94,7 @@ impl RealTimeDataset {
 #[derive(Debug, Clone)]
 pub struct Period {
     pub begin: NaiveDate,
-    pub end: NaiveDate,
-}
-
-impl Period {
-    pub fn contains(&self, date: NaiveDate) -> bool {
-        self.begin <= date && date < self.end
-    }
+    pub horizon: chrono::Duration,
 }
 
 // create a dt from a Date and a StopTime's time
@@ -117,13 +111,17 @@ fn create_timetable(ntm: &navitia_model::Model, generation_period: &Period) -> T
     let mut timetable = Timetable {
         connections: vec![],
     };
+    let begin = generation_period.begin;
+    let end = begin + generation_period.horizon;
+
     for (vj_idx, vj) in ntm.vehicle_journeys.iter() {
         let service = ntm.calendars.get(&vj.service_id).unwrap();
         for st in &vj.stop_times {
             for date in service
                 .dates
                 .iter()
-                .filter(|date| generation_period.contains(**date))
+                .filter(|date| **date >= begin)
+                .filter(|date| **date < end)
             {
                 timetable.connections.push(Connection {
                     dated_vj: DatedVehicleJourney {
