@@ -46,7 +46,7 @@ fn main() {
         let today = chrono::Local::today(); //TODO use the timezone's dataset ?
         let period = transpo_rt::context::Period {
             begin: today.naive_local(),
-            end: today.succ().succ().naive_local(),
+            horizon: chrono::Duration::days(2),
         };
         // todo better dataset to load construction
         let dataset_infos =

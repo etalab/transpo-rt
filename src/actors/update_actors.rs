@@ -19,7 +19,10 @@ impl BaseScheduleReloader {
     fn update_data(&self) {
         let new_dataset = Dataset::from_path(
             &self.feed_construction_info.feed_path,
-            &self.feed_construction_info.generation_period,
+            &crate::context::Period {
+                begin: chrono::Local::today().naive_local(),
+                horizon: self.feed_construction_info.generation_period.horizon,
+            },
         );
 
         // we send those data as a BaseScheduleReloader message, for the DatasetActor to load those new data
