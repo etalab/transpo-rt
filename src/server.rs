@@ -1,34 +1,19 @@
 use crate::actors::{BaseScheduleReloader, DatasetActor, RealTimeReloader};
 use crate::context;
-use crate::context::{Dataset, Period};
-use crate::routes::{gtfs_rt, gtfs_rt_json, sp_discovery, status_query, stop_monitoring_query};
+use crate::context::{Dataset, DatasetInfo, Datasets, Period};
+use crate::routes::{
+    gtfs_rt, gtfs_rt_json, list_datasets, sp_discovery, status_query, stop_monitoring_query,
+};
 use actix::Actor;
 use actix::Addr;
 use actix_web::middleware::cors::Cors;
+use actix_web::server::{HttpHandler, HttpHandlerTask};
 use actix_web::{middleware, App};
+use std::collections::BTreeMap;
 use std::sync::Arc;
 
-#[derive(Deserialize, Debug)]
-pub struct DatasetToLoad {
-    pub name: String,
-    pub id: String,
-    pub gtfs: String,
-    pub gtfs_rt: String,
-}
-
-impl DatasetToLoad {
-    pub fn new_default(gtfs: &str, gtfs_rt: &str) -> Self {
-        Self {
-            id: "default".into(),
-            name: "default".into(),
-            gtfs: gtfs.to_owned(),
-            gtfs_rt: gtfs_rt.to_owned(),
-        }
-    }
-}
-
-pub fn create_all_actors(
-    dataset_info: &DatasetToLoad,
+pub fn create_dataset_actors(
+    dataset_info: &DatasetInfo,
     generation_period: &Period,
 ) -> Addr<DatasetActor> {
     let dataset = Dataset::from_path(&dataset_info.gtfs, &generation_period);
@@ -56,17 +41,53 @@ pub fn create_all_actors(
     dataset_actors_addr
 }
 
-pub fn create_server(addr: Addr<DatasetActor>) -> App<Addr<DatasetActor>> {
-    App::with_state(addr)
-        .middleware(middleware::Logger::default())
-        .middleware(Cors::build().allowed_methods(vec!["GET"]).finish())
-        .resource("/status", |r| r.f(status_query))
-        .resource("/gtfs_rt", |r| r.f(gtfs_rt))
-        .resource("/gtfs_rt.json", |r| r.f(gtfs_rt_json))
-        .resource("/siri-lite/stoppoints_discovery.json", |r| {
-            r.with(sp_discovery)
+pub fn create_all_actors(
+    datasets: &Datasets,
+    generation_period: &Period,
+) -> BTreeMap<String, Addr<DatasetActor>> {
+    datasets
+        .datasets
+        .iter()
+        .map(|d| (d.id.clone(), create_dataset_actors(&d, generation_period)))
+        .collect()
+}
+
+pub fn create_datasets_servers(
+    datasets_actors: &BTreeMap<String, Addr<DatasetActor>>,
+) -> Vec<App<Addr<DatasetActor>>> {
+    datasets_actors
+        .iter()
+        .map(|(id, a)| {
+            App::with_state(a.clone())
+                .prefix(format!("/{id}", id = &id))
+                .middleware(middleware::Logger::default())
+                .middleware(Cors::build().allowed_methods(vec!["GET"]).finish())
+                .resource("/", |r| r.f(status_query))
+                .resource("/gtfs_rt", |r| r.f(gtfs_rt))
+                .resource("/gtfs_rt.json", |r| r.f(gtfs_rt_json))
+                .resource("/siri-lite/stoppoints_discovery.json", |r| {
+                    r.with(sp_discovery)
+                })
+                .resource("/siri-lite/stop_monitoring.json", |r| {
+                    r.with(stop_monitoring_query)
+                })
         })
-        .resource("/siri-lite/stop_monitoring.json", |r| {
-            r.with(stop_monitoring_query)
-        })
+        .collect()
+}
+
+pub fn create_server(
+    datasets_actors: &BTreeMap<String, Addr<DatasetActor>>,
+    datasets: &Datasets,
+) -> Vec<Box<dyn HttpHandler<Task = Box<dyn HttpHandlerTask>>>> {
+    create_datasets_servers(datasets_actors)
+        .into_iter()
+        .map(|s| s.boxed())
+        .chain(std::iter::once(
+            App::with_state(datasets.clone())
+                .middleware(middleware::Logger::default())
+                .middleware(Cors::build().allowed_methods(vec!["GET"]).finish())
+                .resource("/", |r| r.f(list_datasets))
+                .boxed(),
+        ))
+        .collect()
 }

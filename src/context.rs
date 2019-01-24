@@ -97,6 +97,31 @@ pub struct Period {
     pub horizon: chrono::Duration,
 }
 
+#[derive(Deserialize, Clone)]
+pub struct Datasets {
+    pub datasets: Vec<DatasetInfo>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "kebab-case")]
+pub struct DatasetInfo {
+    pub name: String,
+    pub id: String,
+    pub gtfs: String,
+    pub gtfs_rt: String,
+}
+
+impl DatasetInfo {
+    pub fn new_default(gtfs: &str, gtfs_rt: &str) -> Self {
+        Self {
+            id: "default".into(),
+            name: "default name".into(),
+            gtfs: gtfs.to_owned(),
+            gtfs_rt: gtfs_rt.to_owned(),
+        }
+    }
+}
+
 // create a dt from a Date and a StopTime's time
 // Note: the time might be on the next day, for example "26:00:00"
 // is the next day at 2 in the morning

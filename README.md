@@ -6,15 +6,16 @@ This API reads a public transport base schedule (a [GTFS](http://gtfs.org/)) and
 
 ### Using
 
-A [hosted version](https://app-be8e53a7-9b77-4f95-bea0-681b97077017.cleverapps.io/) of this API, with a dataset on [grenoble](https://fr.wikipedia.org/wiki/Grenoble), a french city (base chedule taken from [here](https://www.metromobilite.fr/data/Horaires/SEM-GTFS.zip), gtfs_rt taken from [here](https://data.metromobilite.fr/api/gtfs-rt/GAM/trip-update)).
+A [hosted version](https://app-be8e53a7-9b77-4f95-bea0-681b97077017.cleverapps.io/) of this API, with some french datasets can be freely used.
 
 The API provides several routes:
 
-* `GET` `/gtfs_rt`: get the gtfs-rt as binary - [example call](https://app-be8e53a7-9b77-4f95-bea0-681b97077017.cleverapps.io/gtfs_rt)
-* `GET` `/gtfs_rt.json`: get the gtfs-rt as json - [example call](https://app-be8e53a7-9b77-4f95-bea0-681b97077017.cleverapps.io/gtfs_rt.json)
-* `GET` `/siri-lite/stop_monitoring.json`: get a siri-lite stop monitoring response - [example call](https://app-be8e53a7-9b77-4f95-bea0-681b97077017.cleverapps.io/siri-lite/stoppoints_discovery.json?q=mairie)
-* `GET` `/siri-lite/stoppoints_discovery.json`: get a siri-lite stoppoint discovery response - [example call](https://app-be8e53a7-9b77-4f95-bea0-681b97077017.cleverapps.io/siri-lite/stop_monitoring.json?MonitoringRef=4235)
-* `GET` `/status`: simple status on the api - [example call](https://app-be8e53a7-9b77-4f95-bea0-681b97077017.cleverapps.io/status)
+* `GET` `/`: list the available datasets - [example call](https://app-be8e53a7-9b77-4f95-bea0-681b97077017.cleverapps.io/)
+* `GET` `/{id}/gtfs_rt`: get the gtfs-rt as binary - [example call](https://app-be8e53a7-9b77-4f95-bea0-681b97077017.cleverapps.io/metromobilite/gtfs_rt)
+* `GET` `/{id}/gtfs_rt.json`: get the gtfs-rt as json - [example call](https://app-be8e53a7-9b77-4f95-bea0-681b97077017.cleverapps.io/metromobilite/gtfs_rt.json)
+* `GET` `/{id}/siri-lite/stop_monitoring.json`: get a siri-lite stop monitoring response - [example call](https://app-be8e53a7-9b77-4f95-bea0-681b97077017.cleverapps.io/metromobilite/siri-lite/stoppoints_discovery.json?q=mairie)
+* `GET` `/{id}/siri-lite/stoppoints_discovery.json`: get a siri-lite stoppoint discovery response - [example call](https://app-be8e53a7-9b77-4f95-bea0-681b97077017.cleverapps.io/metromobilite/siri-lite/stop_monitoring.json?MonitoringRef=4235)
+* `GET` `/{id}/`: simple status on the dataset - [example call](https://app-be8e53a7-9b77-4f95-bea0-681b97077017.cleverapps.io/metromobilite/)
 
 #### API details
 

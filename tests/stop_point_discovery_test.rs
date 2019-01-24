@@ -12,7 +12,7 @@ fn sp_discovery_integration_test() {
     let request = srv
         .client(
             http::Method::GET,
-            "/siri-lite/stoppoints_discovery.json?q=mai",
+            "/default/siri-lite/stoppoints_discovery.json?q=mai",
         )
         .finish()
         .unwrap();
