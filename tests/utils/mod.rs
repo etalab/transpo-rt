@@ -16,7 +16,7 @@ pub fn make_test_server() -> actix_web::test::TestServer {
         let dataset_infos = Datasets {
             datasets: vec![DatasetInfo::new_default(
                 "fixtures/gtfs.zip",
-                &(mockito::SERVER_URL.to_string() + SERVER_PATH),
+                &[mockito::SERVER_URL.to_string() + SERVER_PATH],
             )],
         };
         let dataset_actors_addr = transpo_rt::server::create_all_actors(&dataset_infos, &period);

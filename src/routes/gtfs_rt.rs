@@ -12,7 +12,9 @@ pub fn gtfs_rt(
         .send(GetRealtimeDataset)
         .map_err(Error::from)
         .and_then(|rt_data| {
+            log::info!("Unwrapping rt_data");
             let rt_data = rt_data.unwrap();
+            log::info!("rt_data unwrapped");
             match &rt_data.gtfs_rt {
                 Some(gtfs_rt) => Ok(HttpResponse::Ok()
                     .content_type("application/x-protobuf")

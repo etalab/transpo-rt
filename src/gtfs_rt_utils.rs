@@ -126,32 +126,37 @@ fn get_dated_vj(
 /// a temporary structure used to
 pub fn get_model_update(
     model: &navitia_model::Model,
-    gtfs_rt: &transit_realtime::FeedMessage,
+    gtfs_rts: &[transit_realtime::FeedMessage],
     timezone: chrono_tz::Tz,
 ) -> Result<ModelUpdate, Error> {
     debug!("applying a trip update");
     let mut model_update = ModelUpdate {
         trips: HashMap::new(),
     };
-
-    for entity in &gtfs_rt.entity {
-        let entity_id = &entity.id;
-        if let Some(tu) = &entity.trip_update {
-            let dated_vj = skip_fail!(get_dated_vj(&model, &tu.trip, entity_id, timezone));
-            model_update.trips.insert(
-                dated_vj,
-                TripUpdate {
-                    stop_time_update_by_sequence: create_stop_time_updates(tu, model, timezone)?,
-                    update_dt: chrono::DateTime::<chrono::Utc>::from_utc(
-                        chrono::NaiveDateTime::from_timestamp(tu.timestamp.unwrap_or(0) as i64, 0),
-                        chrono::Utc,
-                    ),
-                },
-            );
-        } else if let Some(alert) = &entity.alert {
-            dbg!(alert);
-        } else {
-            debug!("unhandled feed entity: {}", &entity_id);
+    let mut unhandled_entities = 0;
+    for gtfs_rt in gtfs_rts {
+        for entity in &gtfs_rt.entity {
+            let entity_id = &entity.id;
+            if let Some(tu) = &entity.trip_update {
+                let dated_vj = skip_fail!(get_dated_vj(&model, &tu.trip, entity_id, timezone));
+                model_update.trips.insert(
+                    dated_vj,
+                    TripUpdate {
+                        stop_time_update_by_sequence: create_stop_time_updates(
+                            tu, model, timezone,
+                        )?,
+                        update_dt: chrono::DateTime::<chrono::Utc>::from_utc(
+                            chrono::NaiveDateTime::from_timestamp(
+                                tu.timestamp.unwrap_or(0) as i64,
+                                0,
+                            ),
+                            chrono::Utc,
+                        ),
+                    },
+                );
+            } else {
+                unhandled_entities += 1;
+            }
         }
     }
 
@@ -159,5 +164,6 @@ pub fn get_model_update(
         "trip update applyed. {} trip updates",
         model_update.trips.len()
     );
+    debug!("{} unhandled entites", unhandled_entities);
     Ok(model_update)
 }

@@ -87,7 +87,6 @@ fn main() {
             begin: today.naive_local(),
             horizon: chrono::Duration::days(2),
         };
-
         let datasets_infos = get_datasets(&params).unwrap();
 
         let datasets_actors_addr = transpo_rt::server::create_all_actors(&datasets_infos, &period);

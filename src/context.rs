@@ -5,6 +5,8 @@ use navitia_model::collection::Idx;
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use crate::transit_realtime;
+
 pub enum Stop {
     StopPoint(Idx<navitia_model::objects::StopPoint>),
     StopArea(Idx<navitia_model::objects::StopArea>),
@@ -81,7 +83,7 @@ pub struct RealTimeDataset {
 }
 
 impl RealTimeDataset {
-    pub fn new(base: Arc<Dataset>, urls: &Vec<String>) -> Self {
+    pub fn new(base: Arc<Dataset>, urls: &[String]) -> Self {
         RealTimeDataset {
             base_schedule_dataset: base,
             gtfs_rt: None,
@@ -172,6 +174,16 @@ fn create_timetable(ntm: &navitia_model::Model, generation_period: &Period) -> T
     timetable
 }
 
+impl GtfsRT {
+    pub fn decode_feed_message(&self) -> Option<transit_realtime::FeedMessage> {
+        use bytes::IntoBuf;
+        use prost::Message;
+        transit_realtime::FeedMessage::decode(self.data.clone().into_buf())
+            .map_err(|e| log::warn!("Unable to decode feed message, {}", e))
+            .ok()
+    }
+}
+
 impl Dataset {
     pub fn new(ntm: navitia_model::Model, gtfs_path: &str, generation_period: &Period) -> Self {
         // To correctly handle GTFS-RT stream we need the dataset's timezone,
@@ -204,12 +216,13 @@ impl Dataset {
     }
 
     pub fn from_path(gtfs: &str, generation_period: &Period) -> Self {
+        log::info!("reading from path");
         let nav_data = if gtfs.starts_with("http") {
             navitia_model::gtfs::read_from_url(gtfs, None::<&str>, None).unwrap()
         } else {
             navitia_model::gtfs::read_from_zip(gtfs, None::<&str>, None).unwrap()
         };
-
+        log::info!("gtfs red");
         Self::new(nav_data, gtfs, &generation_period)
     }
 }

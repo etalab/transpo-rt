@@ -22,5 +22,5 @@ fn list_datasets_integration_test() {
     assert_eq!(dataset.id, "default");
     assert_eq!(dataset.name, "default name");
     assert_eq!(dataset.gtfs, "fixtures/gtfs.zip");
-    assert!(!dataset.gtfs_rt.is_empty());
+    assert!(!dataset.gtfs_rt_urls.is_empty());
 }
