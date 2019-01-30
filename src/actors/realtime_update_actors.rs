@@ -19,7 +19,7 @@ use std::sync::Arc;
 /// Actor that once in a while reload the BaseSchedule data (GTFS)
 /// and send them to the DatasetActor
 pub struct RealTimeReloader {
-    pub gtfs_rt_url: String,
+    pub gtfs_rt_urls: Vec<String>,
 
     // Address of the DatasetActor to notify for the data reloading
     // NOte: for the moment it's a single Actor,
@@ -124,15 +124,19 @@ impl RealTimeReloader {
 
     fn apply_rt(&self, dataset: Arc<Dataset>) -> Result<(), Error> {
         //TODO: make this async
-        let gtfs_rt = fetch_gtfs_rt(&self.gtfs_rt_url)?;
+        if let Some(url) = self.gtfs_rt_urls.first() {
+            let gtfs_rt = fetch_gtfs_rt(url)?;
 
-        // we compute the new timetable
-        let rt_dataset = self.make_rt_dataset(dataset, gtfs_rt)?;
+            // we compute the new timetable
+            let rt_dataset = self.make_rt_dataset(dataset, gtfs_rt)?;
 
-        // we send those data as a BaseScheduleReloader message, for the DatasetActor to load those new data
-        self.dataset_actor
-            .do_send(UpdateRealtime(Arc::new(rt_dataset)));
-        Ok(())
+            // we send those data as a BaseScheduleReloader message, for the DatasetActor to load those new data
+            self.dataset_actor
+                .do_send(UpdateRealtime(Arc::new(rt_dataset)));
+            Ok(())
+        } else {
+            Err(format_err!("No url!"))
+        }
     }
 
     fn make_rt_dataset(
@@ -154,7 +158,7 @@ impl RealTimeReloader {
         Ok(RealTimeDataset {
             base_schedule_dataset: dataset,
             gtfs_rt: Some(gtfs_rt),
-            gtfs_rt_provider_url: self.gtfs_rt_url.clone(),
+            gtfs_rt_provider_urls: self.gtfs_rt_urls.clone(),
             updated_timetable,
         })
     }

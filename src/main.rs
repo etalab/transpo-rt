@@ -67,7 +67,7 @@ fn get_datasets(params: &Params) -> Result<Datasets, failure::Error> {
         Ok(yaml.with_context(|e| format!("impossible to parse config file because: {}", e))?)
     } else if let (Some(gtfs), Some(url)) = (&params.gtfs, &params.url) {
         Ok(Datasets {
-            datasets: vec![DatasetInfo::new_default(gtfs, url)],
+            datasets: vec![DatasetInfo::new_default(gtfs, &[url.clone()])],
         })
     } else {
         Err(format_err!(

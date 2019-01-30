@@ -18,7 +18,7 @@ pub fn create_dataset_actors(
 ) -> Addr<DatasetActor> {
     let dataset = Dataset::from_path(&dataset_info.gtfs, &generation_period);
     let arc_dataset = Arc::new(dataset);
-    let rt_dataset = context::RealTimeDataset::new(arc_dataset.clone(), &dataset_info.gtfs_rt);
+    let rt_dataset = context::RealTimeDataset::new(arc_dataset.clone(), &dataset_info.gtfs_rt_urls);
     let dataset_actors = DatasetActor {
         gtfs: arc_dataset.clone(),
         realtime: Arc::new(rt_dataset),
@@ -33,7 +33,7 @@ pub fn create_dataset_actors(
     };
     base_schedule_reloader.start();
     let realtime_reloader = RealTimeReloader {
-        gtfs_rt_url: dataset_info.gtfs_rt.clone(),
+        gtfs_rt_urls: dataset_info.gtfs_rt_urls.clone(),
         dataset_actor: dataset_actors_addr.clone(),
     };
     realtime_reloader.start();

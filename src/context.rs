@@ -76,16 +76,16 @@ pub struct RealTimeDataset {
     /// shared ptr to the base schedule dataset
     pub base_schedule_dataset: Arc<Dataset>,
     pub gtfs_rt: Option<GtfsRT>,
-    pub gtfs_rt_provider_url: String,
+    pub gtfs_rt_provider_urls: Vec<String>,
     pub updated_timetable: UpdatedTimetable,
 }
 
 impl RealTimeDataset {
-    pub fn new(base: Arc<Dataset>, url: &str) -> Self {
+    pub fn new(base: Arc<Dataset>, urls: &Vec<String>) -> Self {
         RealTimeDataset {
             base_schedule_dataset: base,
             gtfs_rt: None,
-            gtfs_rt_provider_url: url.to_owned(),
+            gtfs_rt_provider_urls: urls.to_owned(),
             updated_timetable: UpdatedTimetable::default(),
         }
     }
@@ -108,16 +108,16 @@ pub struct DatasetInfo {
     pub name: String,
     pub id: String,
     pub gtfs: String,
-    pub gtfs_rt: String,
+    pub gtfs_rt_urls: Vec<String>,
 }
 
 impl DatasetInfo {
-    pub fn new_default(gtfs: &str, gtfs_rt: &str) -> Self {
+    pub fn new_default(gtfs: &str, gtfs_rt_urls: &[String]) -> Self {
         Self {
             id: "default".into(),
             name: "default name".into(),
             gtfs: gtfs.to_owned(),
-            gtfs_rt: gtfs_rt.to_owned(),
+            gtfs_rt_urls: gtfs_rt_urls.to_vec(),
         }
     }
 }

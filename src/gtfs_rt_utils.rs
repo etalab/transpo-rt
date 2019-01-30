@@ -148,6 +148,8 @@ pub fn get_model_update(
                     ),
                 },
             );
+        } else if let Some(alert) = &entity.alert {
+            dbg!(alert);
         } else {
             debug!("unhandled feed entity: {}", &entity_id);
         }
