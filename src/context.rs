@@ -184,15 +184,13 @@ impl GtfsRT {
     }
 }
 
-impl Dataset {
-    pub fn new(ntm: navitia_model::Model, gtfs_path: &str, generation_period: &Period) -> Self {
-        // To correctly handle GTFS-RT stream we need the dataset's timezone,
-        // as all the time in the dataset are in local time and the GTFS-RT gives its time
-        // as UTC.
-        // We consider that there can be at most one Company (gtfs's agency) in the dataset
-        // and we consider that the dataset's timezone is it's agency's timezone
-        let timezone = ntm
-            .networks
+pub trait HasTimezone {
+    fn timezone(&self) -> Option<chrono_tz::Tz>;
+}
+
+impl HasTimezone for navitia_model::Model {
+    fn timezone(&self) -> Option<chrono_tz::Tz> {
+        self.networks
             .values()
             .next()
             .and_then(|n| n.timezone.as_ref())
@@ -201,6 +199,18 @@ impl Dataset {
                     .map_err(|e| log::warn!("impossible to parse timezone {} because: {}", t, e))
                     .ok()
             })
+    }
+}
+
+impl Dataset {
+    pub fn new(ntm: navitia_model::Model, gtfs_path: &str, generation_period: &Period) -> Self {
+        // To correctly handle GTFS-RT stream we need the dataset's timezone,
+        // as all the time in the dataset are in local time and the GTFS-RT gives its time
+        // as UTC.
+        // We consider that there can be at most one Company (gtfs's agency) in the dataset
+        // and we consider that the dataset's timezone is it's agency's timezone
+        let timezone = ntm
+            .timezone()
             .expect("no timezone found, we will not be able to understand realtime information");
 
         Self {
