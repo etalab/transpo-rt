@@ -17,4 +17,4 @@ pub mod server;
 pub mod siri_model;
 
 #[cfg(test)]
-mod test_utils;
+mod tests;
