@@ -164,6 +164,6 @@ pub fn get_model_update(
         "trip update applyed. {} trip updates",
         model_update.trips.len()
     );
-    debug!("{} unhandled entites", unhandled_entities);
+    debug!("{} unhandled entities", unhandled_entities);
     Ok(model_update)
 }

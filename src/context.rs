@@ -222,7 +222,7 @@ impl Dataset {
         } else {
             navitia_model::gtfs::read_from_zip(gtfs, None::<&str>, None).unwrap()
         };
-        log::info!("gtfs red");
+        log::info!("gtfs read");
         Self::new(nav_data, gtfs, &generation_period)
     }
 }
