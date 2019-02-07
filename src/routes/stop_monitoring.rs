@@ -45,7 +45,9 @@ fn create_monitored_stop_visit(
     let stop = &data.ntm.stop_points[connection.stop_point_idx];
     let vj = &data.ntm.vehicle_journeys[connection.dated_vj.vj_idx];
     let route = &data.ntm.routes.get(&vj.route_id);
-    let line_ref = route.map(|r| r.line_id.clone()).unwrap_or("".to_owned());
+    let line_ref = route
+        .map(|r| r.line_id.clone())
+        .unwrap_or_else(|| "".to_owned());
     let update_time = updated_connection
         .map(|c| c.update_time)
         // if we have no realtime data, we consider the update time to be the time of the base schedule loading
@@ -69,7 +71,7 @@ fn create_monitored_stop_visit(
     model::MonitoredStopVisit {
         monitoring_ref: stop.id.clone(),
         monitoring_vehicle_journey: model::MonitoredVehicleJourney {
-            line_ref: line_ref,
+            line_ref,
             operator_ref: None,
             journey_pattern_ref: None,
             monitored_call: Some(call),
@@ -79,11 +81,9 @@ fn create_monitored_stop_visit(
     }
 }
 
-fn get_line_ref<'a>(cnx: &Connection, model: &'a navitia_model::Model) -> &'a str {
+fn get_line_ref<'a>(cnx: &Connection, model: &'a navitia_model::Model) -> Option<&'a str> {
     let vj = &model.vehicle_journeys[cnx.dated_vj.vj_idx];
-    let route = model.routes.get(&vj.route_id).unwrap(); // should we have this unwrap ? do we consider that we can't have bad data ?
-
-    &route.line_id
+    model.routes.get(&vj.route_id).map(|r| r.line_id.as_str())
 }
 
 fn create_stop_monitoring(
@@ -98,6 +98,7 @@ fn create_stop_monitoring(
             .with_timezone(&data.timezone)
             .naive_local()
     });
+    let requested_line_ref = request.line_ref.as_ref().map(String::as_str);
     let stop_visit = data
         .timetable
         .connections
@@ -107,11 +108,7 @@ fn create_stop_monitoring(
         .filter(|(_, c)| c.stop_point_idx == stop_idx)
         // filter on requested lines
         .filter(|(_, c)| {
-            if let Some(requested_line_ref) = &request.line_ref {
-                get_line_ref(&c, &data.ntm) == requested_line_ref
-            } else {
-                true
-            }
+            requested_line_ref.is_none() || requested_line_ref == get_line_ref(&c, &data.ntm)
         })
         .map(|(idx, c)| {
             create_monitored_stop_visit(
