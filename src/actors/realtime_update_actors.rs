@@ -19,7 +19,7 @@ use std::sync::Arc;
 /// Actor that once in a while reload the BaseSchedule data (GTFS)
 /// and send them to the DatasetActor
 pub struct RealTimeReloader {
-    pub gtfs_rt_url: String,
+    pub gtfs_rt_urls: Vec<String>,
 
     // Address of the DatasetActor to notify for the data reloading
     // NOte: for the moment it's a single Actor,
@@ -32,11 +32,41 @@ fn fetch_gtfs_rt(url: &str) -> Result<GtfsRT, Error> {
     info!("fetching a gtfs_rt");
     let gtfs_rt = reqwest::get(url)
         .and_then(|resp| resp.error_for_status())
-        .map_err(|e| format_err!("Unable to fetch the gtfs RT {}", e))?
-        .bytes()
-        .collect::<Result<Vec<u8>, _>>()?;
+        .map_err(|e| format_err!("Unable to fetch GTFS: {}", e))
+        .and_then(|resp| {
+            resp.bytes()
+                .collect::<Result<Vec<u8>, _>>()
+                .map_err(|e| format_err!("Unable to decode protobuf {}", e))
+        });
+
+    match gtfs_rt {
+        Ok(gtfs_rt) => Ok(GtfsRT {
+            data: gtfs_rt,
+            datetime: chrono::Utc::now(),
+        }),
+        Err(e) => Err(format_err!("Unable to fetch GTFS-RT: {}", e)),
+    }
+}
+
+fn aggregate_rts(feed_messages: &[transit_realtime::FeedMessage]) -> Result<GtfsRT, Error> {
+    //We may loose a timestamp, other fields are ok
+    let first = feed_messages
+        .first()
+        .ok_or_else(|| format_err!("No feed message!"))?;
+    let entity = feed_messages
+        .iter()
+        .map(|fm| fm.entity.clone())
+        .flatten()
+        .collect();
+    let res = transit_realtime::FeedMessage {
+        header: first.header.clone(),
+        entity,
+    };
+    let mut data = Vec::new();
+    res.encode(&mut data)
+        .map_err(|err| format_err!("Unable to encode protobuf: {}", err))?;
     Ok(GtfsRT {
-        data: gtfs_rt,
+        data,
         datetime: chrono::Utc::now(),
     })
 }
@@ -46,11 +76,11 @@ fn fetch_gtfs_rt(url: &str) -> Result<GtfsRT, Error> {
 // For each trip update, we only have to find the corresponding connection and update it.
 fn apply_rt_update(
     data: &Dataset,
-    gtfs_rt: &transit_realtime::FeedMessage,
+    gtfs_rts: &[transit_realtime::FeedMessage],
 ) -> Result<UpdatedTimetable, Error> {
     let mut updated_timetable = UpdatedTimetable::default();
 
-    let parsed_trip_update = gtfs_rt_utils::get_model_update(&data.ntm, gtfs_rt, data.timezone)?;
+    let parsed_trip_update = gtfs_rt_utils::get_model_update(&data.ntm, gtfs_rts, data.timezone)?;
     let mut nb_changes = 0;
 
     for (idx, connection) in &mut data.timetable.connections.iter().enumerate() {
@@ -124,11 +154,13 @@ impl RealTimeReloader {
 
     fn apply_rt(&self, dataset: Arc<Dataset>) -> Result<(), Error> {
         //TODO: make this async
-        let gtfs_rt = fetch_gtfs_rt(&self.gtfs_rt_url)?;
+        let gtfs_rts = self
+            .gtfs_rt_urls
+            .iter()
+            .filter_map(|url| fetch_gtfs_rt(&url).map_err(|e| log::warn!("{}", e)).ok())
+            .collect();
 
-        // we compute the new timetable
-        let rt_dataset = self.make_rt_dataset(dataset, gtfs_rt)?;
-
+        let rt_dataset = self.make_rt_dataset(dataset, gtfs_rts)?;
         // we send those data as a BaseScheduleReloader message, for the DatasetActor to load those new data
         self.dataset_actor
             .do_send(UpdateRealtime(Arc::new(rt_dataset)));
@@ -138,23 +170,20 @@ impl RealTimeReloader {
     fn make_rt_dataset(
         &self,
         dataset: Arc<Dataset>,
-        gtfs_rt: GtfsRT,
+        gtfs_rts: Vec<GtfsRT>,
     ) -> Result<RealTimeDataset, Error> {
-        use bytes::IntoBuf;
-        let feed_message = transit_realtime::FeedMessage::decode(
-            gtfs_rt
-                .data
-                .clone() // we need to clone the gtfs_rt because we want to keep it for proxy use, and still to decode it
-                .into_buf(),
-        )
-        .map_err(|e| format_err!("impossible to decode protobuf message: {}", e))?;
+        let feed_messages: Vec<transit_realtime::FeedMessage> = gtfs_rts
+            .iter()
+            .filter_map(|gtfs_rt| gtfs_rt.decode_feed_message())
+            .collect();
 
-        let updated_timetable = apply_rt_update(&dataset, &feed_message)?;
+        let gtfs_rt = aggregate_rts(&feed_messages)?;
+        let updated_timetable = apply_rt_update(&dataset, &feed_messages)?;
 
         Ok(RealTimeDataset {
             base_schedule_dataset: dataset,
             gtfs_rt: Some(gtfs_rt),
-            gtfs_rt_provider_url: self.gtfs_rt_url.clone(),
+            gtfs_rt_provider_urls: self.gtfs_rt_urls.clone(),
             updated_timetable,
         })
     }

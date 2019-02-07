@@ -67,7 +67,7 @@ fn get_datasets(params: &Params) -> Result<Datasets, failure::Error> {
         Ok(yaml.with_context(|e| format!("impossible to parse config file because: {}", e))?)
     } else if let (Some(gtfs), Some(url)) = (&params.gtfs, &params.url) {
         Ok(Datasets {
-            datasets: vec![DatasetInfo::new_default(gtfs, url)],
+            datasets: vec![DatasetInfo::new_default(gtfs, &[url.clone()])],
         })
     } else {
         Err(format_err!(
@@ -87,7 +87,6 @@ fn main() {
             begin: today.naive_local(),
             horizon: chrono::Duration::days(2),
         };
-
         let datasets_infos = get_datasets(&params).unwrap();
 
         let datasets_actors_addr = transpo_rt::server::create_all_actors(&datasets_infos, &period);

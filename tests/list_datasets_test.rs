@@ -5,7 +5,7 @@ mod utils;
 
 #[test]
 fn list_datasets_integration_test() {
-    let mut srv = utils::make_test_server();
+    let mut srv = utils::make_simple_test_server();
 
     let request = srv.client(http::Method::GET, "/").finish().unwrap();
     let response = srv.execute(request.send()).unwrap();
@@ -22,5 +22,5 @@ fn list_datasets_integration_test() {
     assert_eq!(dataset.id, "default");
     assert_eq!(dataset.name, "default name");
     assert_eq!(dataset.gtfs, "fixtures/gtfs.zip");
-    assert!(!dataset.gtfs_rt.is_empty());
+    assert!(!dataset.gtfs_rt_urls.is_empty());
 }

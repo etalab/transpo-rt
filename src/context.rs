@@ -5,6 +5,8 @@ use navitia_model::collection::Idx;
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use crate::transit_realtime;
+
 pub enum Stop {
     StopPoint(Idx<navitia_model::objects::StopPoint>),
     StopArea(Idx<navitia_model::objects::StopArea>),
@@ -76,16 +78,16 @@ pub struct RealTimeDataset {
     /// shared ptr to the base schedule dataset
     pub base_schedule_dataset: Arc<Dataset>,
     pub gtfs_rt: Option<GtfsRT>,
-    pub gtfs_rt_provider_url: String,
+    pub gtfs_rt_provider_urls: Vec<String>,
     pub updated_timetable: UpdatedTimetable,
 }
 
 impl RealTimeDataset {
-    pub fn new(base: Arc<Dataset>, url: &str) -> Self {
+    pub fn new(base: Arc<Dataset>, urls: &[String]) -> Self {
         RealTimeDataset {
             base_schedule_dataset: base,
             gtfs_rt: None,
-            gtfs_rt_provider_url: url.to_owned(),
+            gtfs_rt_provider_urls: urls.to_owned(),
             updated_timetable: UpdatedTimetable::default(),
         }
     }
@@ -108,16 +110,16 @@ pub struct DatasetInfo {
     pub name: String,
     pub id: String,
     pub gtfs: String,
-    pub gtfs_rt: String,
+    pub gtfs_rt_urls: Vec<String>,
 }
 
 impl DatasetInfo {
-    pub fn new_default(gtfs: &str, gtfs_rt: &str) -> Self {
+    pub fn new_default(gtfs: &str, gtfs_rt_urls: &[String]) -> Self {
         Self {
             id: "default".into(),
             name: "default name".into(),
             gtfs: gtfs.to_owned(),
-            gtfs_rt: gtfs_rt.to_owned(),
+            gtfs_rt_urls: gtfs_rt_urls.to_vec(),
         }
     }
 }
@@ -172,6 +174,16 @@ fn create_timetable(ntm: &navitia_model::Model, generation_period: &Period) -> T
     timetable
 }
 
+impl GtfsRT {
+    pub fn decode_feed_message(&self) -> Option<transit_realtime::FeedMessage> {
+        use bytes::IntoBuf;
+        use prost::Message;
+        transit_realtime::FeedMessage::decode(self.data.clone().into_buf())
+            .map_err(|e| log::warn!("Unable to decode feed message, {}", e))
+            .ok()
+    }
+}
+
 impl Dataset {
     pub fn new(ntm: navitia_model::Model, gtfs_path: &str, generation_period: &Period) -> Self {
         // To correctly handle GTFS-RT stream we need the dataset's timezone,
@@ -204,12 +216,13 @@ impl Dataset {
     }
 
     pub fn from_path(gtfs: &str, generation_period: &Period) -> Self {
+        log::info!("reading from path");
         let nav_data = if gtfs.starts_with("http") {
             navitia_model::gtfs::read_from_url(gtfs, None::<&str>, None).unwrap()
         } else {
             navitia_model::gtfs::read_from_zip(gtfs, None::<&str>, None).unwrap()
         };
-
+        log::info!("gtfs read");
         Self::new(nav_data, gtfs, &generation_period)
     }
 }

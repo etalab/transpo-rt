@@ -6,7 +6,7 @@ mod utils;
 
 #[test]
 fn sp_monitoring_integration_test() {
-    let mut srv = utils::make_test_server();
+    let mut srv = utils::make_simple_test_server();
 
     let request = srv
         .client(
@@ -48,36 +48,6 @@ fn sp_monitoring_integration_test() {
     assert_eq!(passage.stop_point_name, "E Main St / S Irving St (Demo)");
 }
 
-// take a date (formated as YYYY-MM-DDTHH:MM:SS) and convert it to a timestamp
-fn to_timestamp(date: &str) -> i64 {
-    chrono::DateTime::<chrono::FixedOffset>::parse_from_rfc3339(date)
-        .expect("impossible to parse datetime")
-        .timestamp()
-}
-
-fn make_stu(
-    stop_name: &str,
-    stop_sequence: u32,
-    arrival: Option<&str>,
-    departure: Option<&str>,
-) -> transpo_rt::transit_realtime::trip_update::StopTimeUpdate {
-    use transpo_rt::transit_realtime::*;
-
-    trip_update::StopTimeUpdate {
-        stop_sequence: Some(stop_sequence),
-        stop_id: Some(stop_name.to_string()),
-        arrival: Some(trip_update::StopTimeEvent {
-            time: arrival.map(to_timestamp),
-            ..Default::default()
-        }),
-        departure: Some(trip_update::StopTimeEvent {
-            time: departure.map(to_timestamp),
-            ..Default::default()
-        }),
-        schedule_relationship: None,
-    }
-}
-
 fn create_mock_feed_message() -> transit_realtime::FeedMessage {
     use transpo_rt::transit_realtime::*;
     FeedMessage {
@@ -94,7 +64,7 @@ fn create_mock_feed_message() -> transit_realtime::FeedMessage {
                     start_date: Some("20181215".into()),
                     ..Default::default()
                 },
-                stop_time_update: vec![make_stu(
+                stop_time_update: vec![utils::make_stu(
                     "EMSI",
                     5,
                     Some("2018-12-15T06:26:30-08:00"),
@@ -115,7 +85,7 @@ fn sp_monitoring_relatime_integration_test() {
     let gtfs_rt = create_mock_feed_message();
     let _server = utils::run_simple_gtfs_rt_server(gtfs_rt);
 
-    let mut srv = utils::make_test_server();
+    let mut srv = utils::make_simple_test_server();
 
     let request = srv
         .client(

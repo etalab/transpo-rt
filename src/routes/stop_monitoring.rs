@@ -63,6 +63,7 @@ fn create_monitored_stop_visit(
             .and_then(|c| c.dep_time)
             .map(model::DateTime),
     };
+
     model::MonitoredStopVisit {
         monitoring_ref: stop.id.clone(),
         monitoring_vehicle_journey: model::MonitoredVehicleJourney {
