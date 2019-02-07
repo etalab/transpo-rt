@@ -25,7 +25,7 @@ pub struct Params {
     _requestor_ref: Option<String>,
     /// Id of the stop_point on which we want the next departures
     monitoring_ref: String,
-    _line_ref: Option<String>,
+    line_ref: Option<String>,
     _destination_ref: Option<String>,
     /// start_time is the datetime from which we want the next departures
     /// The default is the current time of the query
@@ -44,6 +44,10 @@ fn create_monitored_stop_visit(
 ) -> model::MonitoredStopVisit {
     let stop = &data.ntm.stop_points[connection.stop_point_idx];
     let vj = &data.ntm.vehicle_journeys[connection.dated_vj.vj_idx];
+    let route = &data.ntm.routes.get(&vj.route_id);
+    let line_ref = route
+        .map(|r| r.line_id.clone())
+        .unwrap_or_else(|| "".to_owned());
     let update_time = updated_connection
         .map(|c| c.update_time)
         // if we have no realtime data, we consider the update time to be the time of the base schedule loading
@@ -67,7 +71,7 @@ fn create_monitored_stop_visit(
     model::MonitoredStopVisit {
         monitoring_ref: stop.id.clone(),
         monitoring_vehicle_journey: model::MonitoredVehicleJourney {
-            line_ref: vj.route_id.clone(),
+            line_ref,
             operator_ref: None,
             journey_pattern_ref: None,
             monitored_call: Some(call),
@@ -75,6 +79,11 @@ fn create_monitored_stop_visit(
         recorded_at_time: update_time,
         item_identifier: format!("{}:{}", &stop.id, &vj.id),
     }
+}
+
+fn get_line_ref<'a>(cnx: &Connection, model: &'a navitia_model::Model) -> Option<&'a str> {
+    let vj = &model.vehicle_journeys[cnx.dated_vj.vj_idx];
+    model.routes.get(&vj.route_id).map(|r| r.line_id.as_str())
 }
 
 fn create_stop_monitoring(
@@ -89,6 +98,7 @@ fn create_stop_monitoring(
             .with_timezone(&data.timezone)
             .naive_local()
     });
+    let requested_line_ref = request.line_ref.as_ref().map(String::as_str);
     let stop_visit = data
         .timetable
         .connections
@@ -96,7 +106,10 @@ fn create_stop_monitoring(
         .enumerate()
         .skip_while(|(_, c)| c.dep_time < requested_start_time)
         .filter(|(_, c)| c.stop_point_idx == stop_idx)
-        // .filter() // filter on lines
+        // filter on requested lines
+        .filter(|(_, c)| {
+            requested_line_ref.is_none() || requested_line_ref == get_line_ref(&c, &data.ntm)
+        })
         .map(|(idx, c)| {
             create_monitored_stop_visit(
                 data,
