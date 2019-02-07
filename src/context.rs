@@ -40,7 +40,7 @@ pub struct DatedVehicleJourney {
     pub date: chrono::NaiveDate,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Connection {
     pub dated_vj: DatedVehicleJourney,
     pub stop_point_idx: Idx<navitia_model::objects::StopPoint>,
@@ -234,5 +234,111 @@ impl Dataset {
         };
         log::info!("gtfs read");
         Self::new(nav_data, gtfs, &generation_period)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::context::{Connection, DatedVehicleJourney, Period};
+    use model_builder::ModelBuilder;
+
+    #[test]
+    fn test_timetable_creation() {
+        let model = ModelBuilder::default()
+            .calendar("c", |c| {
+                c.dates.insert(chrono::NaiveDate::from_ymd(2019, 2, 6));
+            })
+            .vj("vj1", |vj_builder| {
+                vj_builder
+                    .calendar("c")
+                    .st("A", "10:00:00", "10:01:00")
+                    .st("B", "11:00:00", "11:01:00")
+                    .st("C", "12:00:00", "12:01:00");
+            })
+            .vj("vj2", |vj_builder| {
+                vj_builder
+                    .calendar("c")
+                    .st("B", "11:30:00", "11:31:00")
+                    .st("D", "15:00:00", "15:01:00");
+            })
+            .build();
+
+        let date = chrono::NaiveDate::from_ymd(2019, 2, 6);
+        let period = Period {
+            begin: date,
+            horizon: chrono::Duration::days(1),
+        };
+        let timetable = super::create_timetable(&model, &period);
+        assert_eq!(timetable.connections.len(), 5);
+
+        assert_eq!(
+            &timetable.connections[0],
+            &Connection {
+                dated_vj: DatedVehicleJourney {
+                    vj_idx: model.vehicle_journeys.get_idx("vj1").unwrap(),
+                    date: date,
+                },
+                stop_point_idx: model.stop_points.get_idx("A").unwrap(),
+                dep_time: date.and_hms(10, 01, 00),
+                arr_time: date.and_hms(10, 00, 00),
+                sequence: 0,
+            }
+        );
+
+        assert_eq!(
+            &timetable.connections[1],
+            &Connection {
+                dated_vj: DatedVehicleJourney {
+                    vj_idx: model.vehicle_journeys.get_idx("vj1").unwrap(),
+                    date: date,
+                },
+                stop_point_idx: model.stop_points.get_idx("B").unwrap(),
+                dep_time: date.and_hms(11, 01, 00),
+                arr_time: date.and_hms(11, 00, 00),
+                sequence: 1,
+            }
+        );
+
+        assert_eq!(
+            &timetable.connections[2],
+            &Connection {
+                dated_vj: DatedVehicleJourney {
+                    vj_idx: model.vehicle_journeys.get_idx("vj2").unwrap(),
+                    date: date,
+                },
+                stop_point_idx: model.stop_points.get_idx("B").unwrap(),
+                dep_time: date.and_hms(11, 31, 00),
+                arr_time: date.and_hms(11, 30, 00),
+                sequence: 0,
+            }
+        );
+
+        assert_eq!(
+            &timetable.connections[3],
+            &Connection {
+                dated_vj: DatedVehicleJourney {
+                    vj_idx: model.vehicle_journeys.get_idx("vj1").unwrap(),
+                    date: date,
+                },
+                stop_point_idx: model.stop_points.get_idx("C").unwrap(),
+                dep_time: date.and_hms(12, 01, 00),
+                arr_time: date.and_hms(12, 00, 00),
+                sequence: 2,
+            }
+        );
+
+        assert_eq!(
+            &timetable.connections[4],
+            &Connection {
+                dated_vj: DatedVehicleJourney {
+                    vj_idx: model.vehicle_journeys.get_idx("vj2").unwrap(),
+                    date: date,
+                },
+                stop_point_idx: model.stop_points.get_idx("D").unwrap(),
+                dep_time: date.and_hms(15, 01, 00),
+                arr_time: date.and_hms(15, 00, 00),
+                sequence: 1,
+            }
+        );
     }
 }
