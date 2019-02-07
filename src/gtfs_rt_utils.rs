@@ -8,6 +8,7 @@ use navitia_model::collection::Idx;
 use navitia_model::objects::StopPoint;
 use std::collections::HashMap;
 
+#[derive(Debug, PartialEq, Eq)]
 pub struct StopTimeUpdate {
     pub stop_point_idx: Idx<StopPoint>,
     pub updated_departure: Option<NaiveDateTime>,

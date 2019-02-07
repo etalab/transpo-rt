@@ -15,3 +15,6 @@ pub(crate) mod gtfs_rt_utils;
 pub(crate) mod routes;
 pub mod server;
 pub mod siri_model;
+
+#[cfg(test)]
+mod tests;
