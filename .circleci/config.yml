@@ -12,7 +12,7 @@ jobs:
       - restore_cache:
           key: project-cache
       - run:
-          command: cargo test
+          command: cargo test -j3
       - save_cache:
           key: project-cache
           paths:
