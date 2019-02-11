@@ -1,6 +1,6 @@
 use actix_web::http;
 use actix_web::HttpMessage;
-use transpo_rt::context::DatasetInfo;
+use transpo_rt::datasets::DatasetInfo;
 mod utils;
 
 #[test]

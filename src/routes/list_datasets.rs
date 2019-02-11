@@ -1,4 +1,4 @@
-use crate::context::{DatasetInfo, Datasets};
+use crate::datasets::{DatasetInfo, Datasets};
 use actix_web::{HttpRequest, Json};
 
 /// Api to list all the hosted datasets

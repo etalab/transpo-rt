@@ -3,7 +3,7 @@ use env_logger::{Builder, Env};
 use failure::format_err;
 use failure::ResultExt;
 use structopt::StructOpt;
-use transpo_rt::context::{DatasetInfo, Datasets};
+use transpo_rt::datasets::{DatasetInfo, Datasets};
 
 #[derive(StructOpt, Debug, Clone)]
 #[structopt(name = "transpo-rt")]
@@ -83,7 +83,7 @@ fn main() {
         let bind = format!("{}:{}", &params.bind, &params.port);
 
         let today = chrono::Local::today(); //TODO use the timezone's dataset ?
-        let period = transpo_rt::context::Period {
+        let period = transpo_rt::datasets::Period {
             begin: today.naive_local(),
             horizon: chrono::Duration::days(2),
         };

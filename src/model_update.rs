@@ -1,4 +1,4 @@
-use crate::context::DatedVehicleJourney;
+use crate::datasets::DatedVehicleJourney;
 use crate::transit_realtime;
 use chrono::{DateTime, NaiveDateTime, Utc};
 use failure::format_err;

@@ -59,7 +59,7 @@ fn read_simple_gtfs_rt() {
 
     assert_eq!(model_update.trips.len(), 1);
 
-    let dated_vj = crate::context::DatedVehicleJourney {
+    let dated_vj = crate::datasets::DatedVehicleJourney {
         vj_idx: model.vehicle_journeys.get_idx("vj1").unwrap(),
         date: chrono::NaiveDate::from_ymd(2018, 12, 15),
     };
@@ -148,7 +148,7 @@ fn feed_on_unknown_stop_and_trip() {
     // we should have only 1 trip_update on the 2 from the feed, because one of them is invalid (on an invalid vj)
     assert_eq!(model_update.trips.len(), 1);
 
-    let dated_vj = crate::context::DatedVehicleJourney {
+    let dated_vj = crate::datasets::DatedVehicleJourney {
         vj_idx: model.vehicle_journeys.get_idx("vj1").unwrap(),
         date: chrono::NaiveDate::from_ymd(2018, 12, 15),
     };
