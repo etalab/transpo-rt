@@ -239,7 +239,7 @@ impl Dataset {
 
 #[cfg(test)]
 mod tests {
-    use crate::context::{Connection, DatedVehicleJourney, Period};
+    use crate::datasets::{Connection, DatedVehicleJourney, Period};
     use model_builder::ModelBuilder;
 
     #[test]

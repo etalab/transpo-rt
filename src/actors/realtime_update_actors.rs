@@ -1,8 +1,8 @@
 use crate::actors::{DatasetActor, GetDataset};
-use crate::context::{
+use crate::datasets::{
     Dataset, GtfsRT, RealTimeConnection, RealTimeDataset, ScheduleRelationship, UpdatedTimetable,
 };
-use crate::gtfs_rt_utils;
+use crate::model_update;
 use crate::transit_realtime;
 use actix::fut::ActorFuture;
 use actix::fut::WrapFuture;
@@ -80,7 +80,7 @@ fn apply_rt_update(
 ) -> Result<UpdatedTimetable, Error> {
     let mut updated_timetable = UpdatedTimetable::default();
 
-    let parsed_trip_update = gtfs_rt_utils::get_model_update(&data.ntm, gtfs_rts, data.timezone)?;
+    let parsed_trip_update = model_update::get_model_update(&data.ntm, gtfs_rts, data.timezone)?;
     let mut nb_changes = 0;
 
     for (idx, connection) in &mut data.timetable.connections.iter().enumerate() {

@@ -1,5 +1,5 @@
 use crate::actors::DatasetActor;
-use crate::context::{Dataset, FeedConstructionInfo};
+use crate::datasets::{Dataset, FeedConstructionInfo};
 use actix::AsyncContext;
 use log::info;
 use std::sync::Arc;
@@ -19,7 +19,7 @@ impl BaseScheduleReloader {
     fn update_data(&self) {
         let new_dataset = Dataset::from_path(
             &self.feed_construction_info.feed_path,
-            &crate::context::Period {
+            &crate::datasets::Period {
                 begin: chrono::Local::today().naive_local(),
                 horizon: self.feed_construction_info.generation_period.horizon,
             },

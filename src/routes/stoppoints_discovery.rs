@@ -27,7 +27,7 @@ fn bounding_box_matches(
     coord.lon >= min_lon && coord.lon <= max_lon && coord.lat >= min_lat && coord.lat <= max_lat
 }
 
-pub fn filter(data: &crate::context::Dataset, request: Params) -> SiriResponse {
+pub fn filter(data: &crate::datasets::Dataset, request: Params) -> SiriResponse {
     let model = &data.ntm;
 
     let q = request.q.unwrap_or_default().to_lowercase();

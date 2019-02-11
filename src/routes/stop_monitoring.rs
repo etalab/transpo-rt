@@ -1,5 +1,5 @@
 use crate::actors::{DatasetActor, GetRealtimeDataset};
-use crate::context::{Connection, Dataset, RealTimeConnection, RealTimeDataset, UpdatedTimetable};
+use crate::datasets::{Connection, Dataset, RealTimeConnection, RealTimeDataset, UpdatedTimetable};
 use crate::siri_model as model;
 use actix::Addr;
 use actix_web::{error, AsyncResponder, Error, Json, Query, Result, State};

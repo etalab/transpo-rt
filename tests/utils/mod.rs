@@ -1,6 +1,6 @@
 use prost::Message;
 use std::sync::{Once, ONCE_INIT};
-use transpo_rt::context::{DatasetInfo, Datasets};
+use transpo_rt::datasets::{DatasetInfo, Datasets};
 
 static LOGGER_INIT: Once = ONCE_INIT;
 const SERVER_PATH: &str = "/gtfs_rt";
@@ -13,13 +13,13 @@ pub fn init_logger() {
 pub fn make_simple_test_server() -> actix_web::test::TestServer {
     make_test_server(vec![DatasetInfo::new_default(
         "fixtures/gtfs.zip",
-        &[mockito::SERVER_URL.to_string() + SERVER_PATH],
+        &[mockito::server_url().to_string() + SERVER_PATH],
     )])
 }
 
 pub fn make_test_server(datasets_info: Vec<DatasetInfo>) -> actix_web::test::TestServer {
     init_logger();
-    let period = transpo_rt::context::Period {
+    let period = transpo_rt::datasets::Period {
         begin: chrono::NaiveDate::from_ymd(2018, 12, 15),
         horizon: chrono::Duration::days(1),
     };

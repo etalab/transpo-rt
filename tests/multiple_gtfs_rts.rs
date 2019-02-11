@@ -1,6 +1,6 @@
 use actix_web::http;
 use actix_web::HttpMessage;
-use transpo_rt::context::DatasetInfo;
+use transpo_rt::datasets::DatasetInfo;
 use transpo_rt::siri_model::{DateTime, SiriResponse};
 use transpo_rt::transit_realtime;
 mod utils;
@@ -82,8 +82,8 @@ fn multiple_gtfs_rt_integration_test() {
     let mut srv = utils::make_test_server(vec![DatasetInfo::new_default(
         "fixtures/gtfs.zip",
         &[
-            mockito::SERVER_URL.to_string() + "/gtfs_rt_1",
-            mockito::SERVER_URL.to_string() + "/gtfs_rt_2",
+            mockito::server_url().to_string() + "/gtfs_rt_1",
+            mockito::server_url().to_string() + "/gtfs_rt_2",
         ],
     )]);
 
