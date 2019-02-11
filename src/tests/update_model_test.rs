@@ -1,4 +1,4 @@
-use crate::gtfs_rt_utils;
+use crate::model_update;
 use crate::tests::test_utils::{create_feed_message, make_stu, trip_update};
 use crate::transit_realtime as tr;
 use chrono::NaiveDateTime;
@@ -55,7 +55,7 @@ fn read_simple_gtfs_rt() {
     let model = simple_dataset();
     let gtfs_rt = create_simple_gtfs_rt();
 
-    let model_update = gtfs_rt_utils::get_model_update(&model, &[gtfs_rt], chrono_tz::UTC).unwrap();
+    let model_update = model_update::get_model_update(&model, &[gtfs_rt], chrono_tz::UTC).unwrap();
 
     assert_eq!(model_update.trips.len(), 1);
 
@@ -73,7 +73,7 @@ fn read_simple_gtfs_rt() {
     // assert_eq!(stu.len(), 4);
     assert_eq!(
         stu[&2],
-        gtfs_rt_utils::StopTimeUpdate {
+        model_update::StopTimeUpdate {
             stop_point_idx: model.stop_points.get_idx("B").unwrap(),
             updated_arrival: Some(ndt("2018-12-15T11:00:30")),
             updated_departure: Some(ndt("2018-12-15T11:01:30")),
@@ -81,7 +81,7 @@ fn read_simple_gtfs_rt() {
     );
     assert_eq!(
         stu[&4],
-        gtfs_rt_utils::StopTimeUpdate {
+        model_update::StopTimeUpdate {
             stop_point_idx: model.stop_points.get_idx("D").unwrap(),
             updated_arrival: Some(ndt("2018-12-15T13:00:30")),
             updated_departure: Some(ndt("2018-12-15T13:01:30")),
@@ -143,7 +143,7 @@ fn feed_on_unknown_stop_and_trip() {
         ),
     ]);
 
-    let model_update = gtfs_rt_utils::get_model_update(&model, &[gtfs_rt], chrono_tz::UTC).unwrap();
+    let model_update = model_update::get_model_update(&model, &[gtfs_rt], chrono_tz::UTC).unwrap();
 
     // we should have only 1 trip_update on the 2 from the feed, because one of them is invalid (on an invalid vj)
     assert_eq!(model_update.trips.len(), 1);
@@ -160,7 +160,7 @@ fn feed_on_unknown_stop_and_trip() {
     assert_eq!(stu.len(), 2);
     assert_eq!(
         stu[&2],
-        gtfs_rt_utils::StopTimeUpdate {
+        model_update::StopTimeUpdate {
             stop_point_idx: model.stop_points.get_idx("B").unwrap(),
             updated_arrival: Some(ndt("2018-12-15T11:00:30")),
             updated_departure: Some(ndt("2018-12-15T11:01:30")),
@@ -168,7 +168,7 @@ fn feed_on_unknown_stop_and_trip() {
     );
     assert_eq!(
         stu[&4],
-        gtfs_rt_utils::StopTimeUpdate {
+        model_update::StopTimeUpdate {
             stop_point_idx: model.stop_points.get_idx("D").unwrap(),
             updated_arrival: Some(ndt("2018-12-15T14:00:30")),
             updated_departure: None,
