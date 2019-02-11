@@ -45,6 +45,13 @@ fn create_monitored_stop_visit(
     let stop = &data.ntm.stop_points[connection.stop_point_idx];
     let vj = &data.ntm.vehicle_journeys[connection.dated_vj.vj_idx];
     let route = &data.ntm.routes.get(&vj.route_id);
+    // we consider that the siri's operator in transmodel's company
+    let operator_ref = data
+        .ntm
+        .get_corresponding_from_idx(connection.dated_vj.vj_idx)
+        .into_iter()
+        .next()
+        .map(|idx| data.ntm.companies[idx].id.clone());
     let line_ref = route
         .map(|r| r.line_id.clone())
         .unwrap_or_else(|| "".to_owned());
@@ -72,7 +79,7 @@ fn create_monitored_stop_visit(
         monitoring_ref: stop.id.clone(),
         monitoring_vehicle_journey: model::MonitoredVehicleJourney {
             line_ref,
-            operator_ref: None,
+            service_info: model::ServiceInfoGroup { operator_ref },
             journey_pattern_ref: None,
             monitored_call: Some(call),
         },

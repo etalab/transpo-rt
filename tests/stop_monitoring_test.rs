@@ -37,6 +37,7 @@ fn sp_monitoring_integration_test() {
     assert_eq!(first_passage.monitoring_ref, "EMSI");
     let vj = &first_passage.monitoring_vehicle_journey;
     assert_eq!(vj.line_ref, "CITY");
+    assert_eq!(vj.service_info.operator_ref, Some("DTA".to_owned()));
     let passage = &vj.monitored_call.as_ref().unwrap();
     assert_eq!(
         string(&passage.aimed_arrival_time),
