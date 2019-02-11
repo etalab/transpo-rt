@@ -15,7 +15,7 @@ fn sp_monitoring_integration_test() {
     let request = srv
         .client(
             http::Method::GET,
-            "/default/siri-lite/stop_monitoring.json?MonitoringRef=EMSI&StartTime=2018-12-15T05:22:00&DataFreshness=Scheduled",
+            "/default/siri/2.0/stop-monitoring.json?MonitoringRef=EMSI&StartTime=2018-12-15T05:22:00&DataFreshness=Scheduled",
         )
         .finish()
         .unwrap();
@@ -62,7 +62,7 @@ fn test_beatty_stop_call(srv: &mut actix_web::test::TestServer) {
     let request = srv
         .client(
             http::Method::GET,
-            "/default/siri-lite/stop_monitoring.json?MonitoringRef=BEATTY_AIRPORT&StartTime=2018-12-15T05:22:00&DataFreshness=Scheduled",
+            "/default/siri/2.0/stop-monitoring.json?MonitoringRef=BEATTY_AIRPORT&StartTime=2018-12-15T05:22:00&DataFreshness=Scheduled",
         )
         .finish()
         .unwrap();
@@ -125,7 +125,7 @@ fn test_beatty_stop_call(srv: &mut actix_web::test::TestServer) {
     let request = srv
         .client(
             http::Method::GET,
-            "/default/siri-lite/stop_monitoring.json?MonitoringRef=BEATTY_AIRPORT&StartTime=2018-12-15T05:22:00&DataFreshness=Scheduled&LineRef=AB",
+            "/default/siri/2.0/stop-monitoring.json?MonitoringRef=BEATTY_AIRPORT&StartTime=2018-12-15T05:22:00&DataFreshness=Scheduled&LineRef=AB",
         )
         .finish()
         .unwrap();
@@ -221,7 +221,7 @@ fn sp_monitoring_relatime_integration_test() {
     let request = srv
         .client(
             http::Method::GET,
-            "/default/siri-lite/stop_monitoring.json?MonitoringRef=EMSI&StartTime=2018-12-15T05:22:00",
+            "/default/siri/2.0/stop-monitoring.json?MonitoringRef=EMSI&StartTime=2018-12-15T05:22:00",
         )
         .finish()
         .unwrap();

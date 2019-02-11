@@ -95,7 +95,7 @@ fn test_stop_monitoring(srv: &mut actix_web::test::TestServer) {
     let request = srv
         .client(
             http::Method::GET,
-            "/default/siri-lite/stop_monitoring.json?MonitoringRef=BEATTY_AIRPORT&StartTime=2018-12-15T05:22:00",
+            "/default/siri/2.0/stop-monitoring.json?MonitoringRef=BEATTY_AIRPORT&StartTime=2018-12-15T05:22:00",
         )
         .finish()
         .unwrap();
@@ -165,7 +165,7 @@ fn test_stop_monitoring(srv: &mut actix_web::test::TestServer) {
 
 fn test_gtfs_rt(srv: &mut actix_web::test::TestServer) {
     let request = srv
-        .client(http::Method::GET, "/default/gtfs_rt.json")
+        .client(http::Method::GET, "/default/gtfs-rt.json")
         .finish()
         .unwrap();
     let response = srv.execute(request.send()).unwrap();

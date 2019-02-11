@@ -63,13 +63,12 @@ pub fn create_datasets_servers(
                 .middleware(middleware::Logger::default())
                 .middleware(Cors::build().allowed_methods(vec!["GET"]).finish())
                 .resource("/", |r| r.f(status_query))
-                .resource("/gtfs_rt", |r| r.f(gtfs_rt))
-                .resource("/gtfs_rt.json", |r| r.f(gtfs_rt_json))
-                .resource("/siri-lite/stoppoints_discovery.json", |r| {
-                    r.with(sp_discovery)
-                })
-                .resource("/siri-lite/stop_monitoring.json", |r| {
-                    r.with(stop_monitoring_query)
+                .resource("/gtfs-rt", |r| r.f(gtfs_rt))
+                .resource("/gtfs-rt.json", |r| r.f(gtfs_rt_json))
+                .scope("/siri/2.0/", |scope| {
+                    scope
+                        .resource("/stoppoints-discovery.json", |r| r.with(sp_discovery))
+                        .resource("/stop-monitoring.json", |r| r.with(stop_monitoring_query))
                 })
         })
         .collect()
