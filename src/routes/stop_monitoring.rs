@@ -19,12 +19,17 @@ impl Default for DataFreshness {
     }
 }
 
+fn default_stop_visits() -> u8 {
+    2
+}
+
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "PascalCase")]
 pub struct Params {
     _requestor_ref: Option<String>,
     /// Id of the stop_point on which we want the next departures
     monitoring_ref: String,
+    /// Filter the departures of the given line's id
     line_ref: Option<String>,
     _destination_ref: Option<String>,
     /// start_time is the datetime from which we want the next departures
@@ -35,6 +40,11 @@ pub struct Params {
     /// the data_freshness is used to control whether we want realtime data or only base schedule data
     #[serde(default = "DataFreshness::default")]
     data_freshness: DataFreshness,
+    /// Maximum number of departures to display
+    /// Maximum value is arbitrary 20
+    /// Default is arbitrary 2 (contrary to the spec, but we don't want it to be unlimited by default)
+    #[serde(default = "default_stop_visits")]
+    maximum_stop_visits: u8,
 }
 
 fn create_monitored_stop_visit(
@@ -127,7 +137,7 @@ fn create_stop_monitoring(
                 },
             )
         })
-        .take(2) //TODO make it a param
+        .take(request.maximum_stop_visits as usize)
         .collect();
 
     vec![model::StopMonitoringDelivery {
@@ -139,9 +149,17 @@ fn create_stop_monitoring(
     }]
 }
 
-fn stop_monitoring(request: &Params, rt_data: &RealTimeDataset) -> Result<model::SiriResponse> {
+fn validate_params(request: &mut Params) -> Result<()> {
+    // we silently bound the maximum stop visits to 20
+    request.maximum_stop_visits = std::cmp::min(request.maximum_stop_visits, 20);
+    Ok(())
+}
+
+fn stop_monitoring(mut request: Params, rt_data: &RealTimeDataset) -> Result<model::SiriResponse> {
     let data = &rt_data.base_schedule_dataset;
     let updated_timetable = &rt_data.updated_timetable;
+
+    validate_params(&mut request)?;
 
     let stop_idx = data
         .ntm
@@ -182,7 +200,7 @@ pub fn stop_monitoring_query(
         .map_err(Error::from)
         .and_then(|dataset| {
             dataset
-                .and_then(|d| stop_monitoring(&query.into_inner(), &*d))
+                .and_then(|d| stop_monitoring(query.into_inner(), &*d))
                 .map(Json)
         })
         .responder()

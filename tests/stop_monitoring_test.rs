@@ -15,7 +15,11 @@ fn sp_monitoring_integration_test() {
     let request = srv
         .client(
             http::Method::GET,
-            "/default/siri/2.0/stop-monitoring.json?MonitoringRef=EMSI&StartTime=2018-12-15T05:22:00&DataFreshness=Scheduled",
+            r#"/default/siri/2.0/stop-monitoring.json?
+MonitoringRef=EMSI&
+StartTime=2018-12-15T05:22:00&
+DataFreshness=Scheduled&
+MaximumStopVisits=3"#,
         )
         .finish()
         .unwrap();
@@ -30,7 +34,7 @@ fn sp_monitoring_integration_test() {
     let spd = resp.siri.service_delivery.unwrap();
     let sm = spd.stop_monitoring_delivery.iter().next().unwrap();
 
-    assert_eq!(sm.monitored_stop_visits.len(), 2);
+    assert_eq!(sm.monitored_stop_visits.len(), 3);
 
     let first_passage = &sm.monitored_stop_visits[0];
 
