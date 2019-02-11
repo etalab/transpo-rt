@@ -1011,7 +1011,7 @@ dependencies = [
 
 [[package]]
 name = "mockito"
-version = "0.14.1"
+version = "0.15.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "colored 1.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2086,7 +2086,7 @@ dependencies = [
  "futures 0.1.25 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "maplit 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "mockito 0.14.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "mockito 0.15.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "model-builder 0.1.0 (git+https://github.com/antoine-de/navitia_model.git?rev=a28c1dc19cbc1fa137c90c169a14b9285cfbbf6a)",
  "navitia_model 0.2.0 (git+https://github.com/antoine-de/navitia_model.git?rev=a28c1dc19cbc1fa137c90c169a14b9285cfbbf6a)",
  "prost 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2557,7 +2557,7 @@ dependencies = [
 "checksum mio 0.6.16 (registry+https://github.com/rust-lang/crates.io-index)" = "71646331f2619b1026cc302f87a2b8b648d5c6dd6937846a16cc8ce0f347f432"
 "checksum mio-uds 0.6.7 (registry+https://github.com/rust-lang/crates.io-index)" = "966257a94e196b11bb43aca423754d87429960a768de9414f3691d6957abf125"
 "checksum miow 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "8c1f2f3b1cf331de6896aabf6e9d55dca90356cc9960cca7eaaf408a355ae919"
-"checksum mockito 0.14.1 (registry+https://github.com/rust-lang/crates.io-index)" = "466ec7bc68f7188b587bdf1b0857eca98de58ce63efa6adcd0e98be3ba297570"
+"checksum mockito 0.15.1 (registry+https://github.com/rust-lang/crates.io-index)" = "595c924555f318dfe293485684ea31707e0ed20ec23634ffd83d695725fb0f57"
 "checksum model-builder 0.1.0 (git+https://github.com/antoine-de/navitia_model.git?rev=a28c1dc19cbc1fa137c90c169a14b9285cfbbf6a)" = "<none>"
 "checksum msdos_time 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)" = "aad9dfe950c057b1bfe9c1f2aa51583a8468ef2a5baba2ebbe06d775efeb7729"
 "checksum multimap 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "2eb04b9f127583ed176e163fb9ec6f3e793b87e21deedd5734a69386a18a0151"
