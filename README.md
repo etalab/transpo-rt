@@ -58,6 +58,8 @@ You can check the needed cli parameters with the `-h` option:
 cargo run --release -- -h
 ```
 
+Note: an example configuration file can be seen [here](example_configuration_file.yml).
+
 ### Testing
 
 You can run all the tests (unit test, integration, clippy and fmt) with:

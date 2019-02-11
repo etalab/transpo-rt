@@ -1,0 +1,6 @@
+datasets:
+  - id: metromobilite
+    name: Grenoble
+    gtfs: https://www.metromobilite.fr/data/Horaires/SEM-GTFS.zip
+    gtfs-rt-urls: 
+      - https://data.metromobilite.fr/api/gtfs-rt/GAM/trip-update
