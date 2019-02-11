@@ -11,21 +11,21 @@ A [hosted version](https://app-be8e53a7-9b77-4f95-bea0-681b97077017.cleverapps.i
 The API provides several routes:
 
 * `GET` `/`: list the available datasets - [example call](https://app-be8e53a7-9b77-4f95-bea0-681b97077017.cleverapps.io/)
-* `GET` `/{id}/gtfs_rt`: get the gtfs-rt as binary - [example call](https://app-be8e53a7-9b77-4f95-bea0-681b97077017.cleverapps.io/metromobilite/gtfs_rt)
-* `GET` `/{id}/gtfs_rt.json`: get the gtfs-rt as json - [example call](https://app-be8e53a7-9b77-4f95-bea0-681b97077017.cleverapps.io/metromobilite/gtfs_rt.json)
-* `GET` `/{id}/siri-lite/stop_monitoring.json`: get a siri-lite stop monitoring response - [example call](https://app-be8e53a7-9b77-4f95-bea0-681b97077017.cleverapps.io/metromobilite/siri-lite/stoppoints_discovery.json?q=mairie)
-* `GET` `/{id}/siri-lite/stoppoints_discovery.json`: get a siri-lite stoppoint discovery response - [example call](https://app-be8e53a7-9b77-4f95-bea0-681b97077017.cleverapps.io/metromobilite/siri-lite/stop_monitoring.json?MonitoringRef=4235)
+* `GET` `/{id}/gtfs-rt`: get the gtfs-rt as binary - [example call](https://app-be8e53a7-9b77-4f95-bea0-681b97077017.cleverapps.io/metromobilite/gtfs-rt)
+* `GET` `/{id}/gtfs-rt.json`: get the gtfs-rt as json - [example call](https://app-be8e53a7-9b77-4f95-bea0-681b97077017.cleverapps.io/metromobilite/gtfs-rt.json)
+* `GET` `/{id}/siri/2.0/stop-monitoring.json`: get a siri-lite stop monitoring response - [example call](https://app-be8e53a7-9b77-4f95-bea0-681b97077017.cleverapps.io/metromobilite/siri/2.0/stoppoints-discovery.json?q=mairie)
+* `GET` `/{id}/siri/2.0/stoppoints-discovery.json`: get a siri-lite stoppoint discovery response - [example call](https://app-be8e53a7-9b77-4f95-bea0-681b97077017.cleverapps.io/metromobilite/siri/2.0/stop-monitoring.json?MonitoringRef=4235)
 * `GET` `/{id}/`: simple status on the dataset - [example call](https://app-be8e53a7-9b77-4f95-bea0-681b97077017.cleverapps.io/metromobilite/)
 
 #### API details
 
-##### /siri/stop_monitoring.json
+##### /siri/2.0/stop-monitoring.json
 
 The API follow the [Siri-lite specification](http://www.chouette.mobi/irys/wp-content/uploads/20151023-Siri-Lite-Sp%C3%A9cification-Interfaces-V1.4.pdf) (documentation in french).
 
 TODO document supported parameters
 
-##### /siri/stoppoints_discovery.json
+##### /siri/2.0/stoppoints-discovery.json
 
 The API follow the [Siri-lite specification](http://www.chouette.mobi/irys/wp-content/uploads/20151023-Siri-Lite-Sp%C3%A9cification-Interfaces-V1.4.pdf) (documentation in french).
 TODO document supported parameters
