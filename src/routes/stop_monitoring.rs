@@ -1,6 +1,7 @@
 use crate::actors::{DatasetActor, GetRealtimeDataset};
 use crate::datasets::{Connection, Dataset, RealTimeConnection, RealTimeDataset, UpdatedTimetable};
 use crate::siri_model as model;
+use crate::utils;
 use actix::Addr;
 use actix_web::{error, AsyncResponder, Error, Json, Query, Result, State};
 use futures::future::Future;
@@ -35,8 +36,11 @@ pub struct Params {
     /// start_time is the datetime from which we want the next departures
     /// The default is the current time of the query
     start_time: Option<model::DateTime>,
-    #[serde(skip)] //TODO
-    _preview_interval: Option<chrono::Duration>,
+
+    /// ISO 8601 duration used to filter the departures/arrivals
+    /// within the period [start_time, start_time + duration]
+    /// example format: 'PT10H' for a 10h duration
+    preview_interval: Option<utils::Duration>,
     /// the data_freshness is used to control whether we want realtime data or only base schedule data
     #[serde(default = "DataFreshness::default")]
     data_freshness: DataFreshness,
@@ -103,6 +107,20 @@ fn get_line_ref<'a>(cnx: &Connection, model: &'a navitia_model::Model) -> Option
     model.routes.get(&vj.route_id).map(|r| r.line_id.as_str())
 }
 
+fn is_in_interval(
+    cnx: &Connection,
+    start_time: chrono::NaiveDateTime,
+    duration: &Option<utils::Duration>,
+) -> bool {
+    duration
+        .as_ref()
+        .map(|duration| {
+            let limit = start_time + **duration;
+            cnx.dep_time <= limit || cnx.arr_time <= limit
+        })
+        .unwrap_or(true)
+}
+
 fn create_stop_monitoring(
     stop_idx: Idx<StopPoint>,
     data: &Dataset,
@@ -127,6 +145,7 @@ fn create_stop_monitoring(
         .filter(|(_, c)| {
             requested_line_ref.is_none() || requested_line_ref == get_line_ref(&c, &data.ntm)
         })
+        .filter(|(_, c)| is_in_interval(&c, requested_start_time, &request.preview_interval))
         .map(|(idx, c)| {
             create_monitored_stop_visit(
                 data,
