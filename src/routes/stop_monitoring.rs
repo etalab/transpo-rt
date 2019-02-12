@@ -79,6 +79,7 @@ fn create_monitored_stop_visit(
         stop_point_name: stop.name.clone(),
         vehicle_at_stop: None,
         destination_display: None,
+        arrival_status: None,
         aimed_arrival_time: Some(model::DateTime(connection.arr_time)),
         aimed_departure_time: Some(model::DateTime(connection.dep_time)),
         expected_arrival_time: updated_connection
