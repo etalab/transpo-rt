@@ -41,6 +41,19 @@ pub struct StopPointsDelivery {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum ArrivalStatus {
+    OnTime,
+    Early,
+    Delayed,
+    Cancelled,
+    Missed,
+    Arrived,
+    NotExpected,
+    NoReport,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "PascalCase")]
 pub struct MonitoredCall {
     pub order: u16,
@@ -48,7 +61,7 @@ pub struct MonitoredCall {
     /// true if the vehicle is at the stop
     #[serde(skip_serializing_if = "Option::is_none")]
     pub vehicle_at_stop: Option<bool>,
-    /// headsign of the vehicle
+    /// Destination on the headsign of the vehicle
     #[serde(skip_serializing_if = "Option::is_none")]
     pub destination_display: Option<String>,
     /// Scheduled arrival time
@@ -63,6 +76,22 @@ pub struct MonitoredCall {
     /// Estimated departure time
     #[serde(skip_serializing_if = "Option::is_none")]
     pub expected_departure_time: Option<DateTime>,
+    /// Status on the arrival at the stop
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub arrival_status: Option<ArrivalStatus>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "PascalCase")]
+pub struct ServiceInfoGroup {
+    /// Id of the operator
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub operator_ref: Option<String>,
+    /* TODO find the right documentation for the type of this
+    /// Specific features available in the vehicle
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub vehicle_feature_ref: Vec<String>,
+    */
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -70,13 +99,13 @@ pub struct MonitoredCall {
 pub struct MonitoredVehicleJourney {
     /// Id of the line
     pub line_ref: String,
-    /// Id of the operator
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub operator_ref: Option<String>,
+    #[serde(flatten)]
+    pub service_info: ServiceInfoGroup,
     /// Id of the journey pattern
     #[serde(skip_serializing_if = "Option::is_none")]
     pub journey_pattern_ref: Option<String>,
     pub monitored_call: Option<MonitoredCall>,
+    // pub onward_calls: Option<OnwardCall>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

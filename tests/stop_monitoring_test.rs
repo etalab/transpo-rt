@@ -15,7 +15,11 @@ fn sp_monitoring_integration_test() {
     let request = srv
         .client(
             http::Method::GET,
-            "/default/siri/2.0/stop-monitoring.json?MonitoringRef=EMSI&StartTime=2018-12-15T05:22:00&DataFreshness=Scheduled",
+            r#"/default/siri/2.0/stop-monitoring.json?
+MonitoringRef=EMSI&
+StartTime=2018-12-15T05:22:00&
+DataFreshness=Scheduled&
+MaximumStopVisits=3"#,
         )
         .finish()
         .unwrap();
@@ -30,13 +34,14 @@ fn sp_monitoring_integration_test() {
     let spd = resp.siri.service_delivery.unwrap();
     let sm = spd.stop_monitoring_delivery.iter().next().unwrap();
 
-    assert_eq!(sm.monitored_stop_visits.len(), 2);
+    assert_eq!(sm.monitored_stop_visits.len(), 3);
 
     let first_passage = &sm.monitored_stop_visits[0];
 
     assert_eq!(first_passage.monitoring_ref, "EMSI");
     let vj = &first_passage.monitoring_vehicle_journey;
     assert_eq!(vj.line_ref, "CITY");
+    assert_eq!(vj.service_info.operator_ref, Some("DTA".to_owned()));
     let passage = &vj.monitored_call.as_ref().unwrap();
     assert_eq!(
         string(&passage.aimed_arrival_time),
@@ -53,6 +58,7 @@ fn sp_monitoring_integration_test() {
 
     // Note: to reduce the number of time the dataset is loaded (thus the integration tests running time)
     // we chain some different tests
+    test_interval_filtering(&mut srv);
     test_beatty_stop_call(&mut srv);
 }
 
@@ -177,6 +183,34 @@ fn test_beatty_stop_call(srv: &mut actix_web::test::TestServer) {
     assert!(second_passage.expected_arrival_time.is_none());
     assert!(second_passage.expected_departure_time.is_none());
     assert_eq!(second_passage.order, 2);
+}
+
+// we filter the departure/arrival within the hour, we should have only 1 departure
+// Note: since it is not specified in the spec, we filter on the scheduled departure/arrival time
+fn test_interval_filtering(srv: &mut actix_web::test::TestServer) {
+    let request = srv
+        .client(
+            http::Method::GET,
+            r#"/default/siri/2.0/stop-monitoring.json?
+MonitoringRef=BEATTY_AIRPORT&
+StartTime=2018-12-15T05:22:00&
+DataFreshness=Scheduled
+&PreviewInterval=PT1H"#,
+        )
+        .finish()
+        .unwrap();
+    let response = srv.execute(request.send()).unwrap();
+
+    assert!(response.status().is_success());
+
+    let bytes = srv.execute(response.body()).unwrap();
+    let body = std::str::from_utf8(&bytes).unwrap();
+
+    let resp: SiriResponse = serde_json::from_str(body).unwrap();
+    let spd = resp.siri.service_delivery.unwrap();
+    let sm = spd.stop_monitoring_delivery.iter().next().unwrap();
+
+    assert_eq!(sm.monitored_stop_visits.len(), 1);
 }
 
 fn create_mock_feed_message() -> transit_realtime::FeedMessage {

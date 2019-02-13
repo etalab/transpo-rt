@@ -1,6 +1,7 @@
 use crate::actors::{DatasetActor, GetRealtimeDataset};
 use crate::datasets::{Connection, Dataset, RealTimeConnection, RealTimeDataset, UpdatedTimetable};
 use crate::siri_model as model;
+use crate::utils;
 use actix::Addr;
 use actix_web::{error, AsyncResponder, Error, Json, Query, Result, State};
 use futures::future::Future;
@@ -19,22 +20,35 @@ impl Default for DataFreshness {
     }
 }
 
+fn default_stop_visits() -> u8 {
+    2
+}
+
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "PascalCase")]
 pub struct Params {
     _requestor_ref: Option<String>,
     /// Id of the stop_point on which we want the next departures
     monitoring_ref: String,
+    /// Filter the departures of the given line's id
     line_ref: Option<String>,
     _destination_ref: Option<String>,
     /// start_time is the datetime from which we want the next departures
     /// The default is the current time of the query
     start_time: Option<model::DateTime>,
-    #[serde(skip)] //TODO
-    _preview_interval: Option<chrono::Duration>,
+
+    /// ISO 8601 duration used to filter the departures/arrivals
+    /// within the period [start_time, start_time + duration]
+    /// example format: 'PT10H' for a 10h duration
+    preview_interval: Option<utils::Duration>,
     /// the data_freshness is used to control whether we want realtime data or only base schedule data
     #[serde(default = "DataFreshness::default")]
     data_freshness: DataFreshness,
+    /// Maximum number of departures to display
+    /// Maximum value is arbitrary 20
+    /// Default is arbitrary 2 (contrary to the spec, but we don't want it to be unlimited by default)
+    #[serde(default = "default_stop_visits")]
+    maximum_stop_visits: u8,
 }
 
 fn create_monitored_stop_visit(
@@ -45,6 +59,13 @@ fn create_monitored_stop_visit(
     let stop = &data.ntm.stop_points[connection.stop_point_idx];
     let vj = &data.ntm.vehicle_journeys[connection.dated_vj.vj_idx];
     let route = &data.ntm.routes.get(&vj.route_id);
+    // we consider that the siri's operator in transmodel's company
+    let operator_ref = data
+        .ntm
+        .get_corresponding_from_idx(connection.dated_vj.vj_idx)
+        .into_iter()
+        .next()
+        .map(|idx| data.ntm.companies[idx].id.clone());
     let line_ref = route
         .map(|r| r.line_id.clone())
         .unwrap_or_else(|| "".to_owned());
@@ -58,6 +79,7 @@ fn create_monitored_stop_visit(
         stop_point_name: stop.name.clone(),
         vehicle_at_stop: None,
         destination_display: None,
+        arrival_status: None,
         aimed_arrival_time: Some(model::DateTime(connection.arr_time)),
         aimed_departure_time: Some(model::DateTime(connection.dep_time)),
         expected_arrival_time: updated_connection
@@ -72,7 +94,7 @@ fn create_monitored_stop_visit(
         monitoring_ref: stop.id.clone(),
         monitoring_vehicle_journey: model::MonitoredVehicleJourney {
             line_ref,
-            operator_ref: None,
+            service_info: model::ServiceInfoGroup { operator_ref },
             journey_pattern_ref: None,
             monitored_call: Some(call),
         },
@@ -84,6 +106,20 @@ fn create_monitored_stop_visit(
 fn get_line_ref<'a>(cnx: &Connection, model: &'a navitia_model::Model) -> Option<&'a str> {
     let vj = &model.vehicle_journeys[cnx.dated_vj.vj_idx];
     model.routes.get(&vj.route_id).map(|r| r.line_id.as_str())
+}
+
+fn is_in_interval(
+    cnx: &Connection,
+    start_time: chrono::NaiveDateTime,
+    duration: &Option<utils::Duration>,
+) -> bool {
+    duration
+        .as_ref()
+        .map(|duration| {
+            let limit = start_time + **duration;
+            cnx.dep_time <= limit || cnx.arr_time <= limit
+        })
+        .unwrap_or(true)
 }
 
 fn create_stop_monitoring(
@@ -110,6 +146,7 @@ fn create_stop_monitoring(
         .filter(|(_, c)| {
             requested_line_ref.is_none() || requested_line_ref == get_line_ref(&c, &data.ntm)
         })
+        .filter(|(_, c)| is_in_interval(&c, requested_start_time, &request.preview_interval))
         .map(|(idx, c)| {
             create_monitored_stop_visit(
                 data,
@@ -120,7 +157,7 @@ fn create_stop_monitoring(
                 },
             )
         })
-        .take(2) //TODO make it a param
+        .take(request.maximum_stop_visits as usize)
         .collect();
 
     vec![model::StopMonitoringDelivery {
@@ -132,9 +169,17 @@ fn create_stop_monitoring(
     }]
 }
 
-fn stop_monitoring(request: &Params, rt_data: &RealTimeDataset) -> Result<model::SiriResponse> {
+fn validate_params(request: &mut Params) -> Result<()> {
+    // we silently bound the maximum stop visits to 20
+    request.maximum_stop_visits = std::cmp::min(request.maximum_stop_visits, 20);
+    Ok(())
+}
+
+fn stop_monitoring(mut request: Params, rt_data: &RealTimeDataset) -> Result<model::SiriResponse> {
     let data = &rt_data.base_schedule_dataset;
     let updated_timetable = &rt_data.updated_timetable;
+
+    validate_params(&mut request)?;
 
     let stop_idx = data
         .ntm
@@ -175,7 +220,7 @@ pub fn stop_monitoring_query(
         .map_err(Error::from)
         .and_then(|dataset| {
             dataset
-                .and_then(|d| stop_monitoring(&query.into_inner(), &*d))
+                .and_then(|d| stop_monitoring(query.into_inner(), &*d))
                 .map(Json)
         })
         .responder()
