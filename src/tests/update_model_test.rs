@@ -74,7 +74,7 @@ fn read_simple_gtfs_rt() {
     assert_eq!(
         stu[&2],
         model_update::StopTimeUpdate {
-            stop_point_idx: model.stop_points.get_idx("B").unwrap(),
+            stop_point_idx: model.stop_points.get_idx("B"),
             updated_arrival: Some(ndt("2018-12-15T11:00:30")),
             updated_departure: Some(ndt("2018-12-15T11:01:30")),
         }
@@ -82,7 +82,7 @@ fn read_simple_gtfs_rt() {
     assert_eq!(
         stu[&4],
         model_update::StopTimeUpdate {
-            stop_point_idx: model.stop_points.get_idx("D").unwrap(),
+            stop_point_idx: model.stop_points.get_idx("D"),
             updated_arrival: Some(ndt("2018-12-15T13:00:30")),
             updated_departure: Some(ndt("2018-12-15T13:01:30")),
         }
@@ -161,7 +161,7 @@ fn feed_on_unknown_stop_and_trip() {
     assert_eq!(
         stu[&2],
         model_update::StopTimeUpdate {
-            stop_point_idx: model.stop_points.get_idx("B").unwrap(),
+            stop_point_idx: model.stop_points.get_idx("B"),
             updated_arrival: Some(ndt("2018-12-15T11:00:30")),
             updated_departure: Some(ndt("2018-12-15T11:01:30")),
         }
@@ -169,7 +169,7 @@ fn feed_on_unknown_stop_and_trip() {
     assert_eq!(
         stu[&4],
         model_update::StopTimeUpdate {
-            stop_point_idx: model.stop_points.get_idx("D").unwrap(),
+            stop_point_idx: model.stop_points.get_idx("D"),
             updated_arrival: Some(ndt("2018-12-15T14:00:30")),
             updated_departure: None,
         }

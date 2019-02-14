@@ -91,14 +91,16 @@ fn apply_rt_update(
                 .get(&connection.sequence);
             if let Some(stop_time_update) = stop_time_update {
                 // integrity check
-                if stop_time_update.stop_point_idx != connection.stop_point_idx {
-                    log::warn!("for trip {}, invalid stop connection, the stop n.{} '{}' does not correspond to the gtfsrt stop '{}'",
+                if let Some(stop_idx) = stop_time_update.stop_point_idx {
+                    if stop_idx != connection.stop_point_idx {
+                        log::warn!("for trip {}, invalid stop connection, the stop n.{} '{}' does not correspond to the gtfsrt stop '{}'",
                     &data.ntm.vehicle_journeys[connection.dated_vj.vj_idx].id,
                     &connection.sequence,
                     &data.ntm.stop_points[connection.stop_point_idx].id,
-                    &data.ntm.stop_points[stop_time_update.stop_point_idx].id,
+                    &data.ntm.stop_points[stop_idx].id,
                     );
-                    continue;
+                        continue;
+                    }
                 }
                 updated_timetable.realtime_connections.insert(
                     idx,
