@@ -45,6 +45,8 @@ struct Params {
         default_value = "0.0.0.0"
     )]
     bind: String,
+    #[structopt(long = "sentry", help = "sentry dsn", env = "TRANSPO_RT_SENTRY")]
+    sentry: Option<String>,
 }
 
 /// Load datasets from the configuration
@@ -78,8 +80,16 @@ fn get_datasets(params: &Params) -> Result<Datasets, failure::Error> {
 
 fn main() {
     Builder::from_env(Env::default().default_filter_or("info")).init();
-    let code = actix::System::run(|| {
-        let params = Params::from_args();
+
+    let params = Params::from_args();
+    let sentry = sentry::init(params.sentry.clone().unwrap_or_else(|| "".to_owned()));
+    if sentry.is_enabled() {
+        log::info!("sentry activated");
+        std::env::set_var("RUST_BACKTRACE", "1");
+        sentry::integrations::panic::register_panic_handler();
+    }
+
+    let code = actix::System::run(move || {
         let bind = format!("{}:{}", &params.bind, &params.port);
 
         let today = chrono::Local::today(); //TODO use the timezone's dataset ?

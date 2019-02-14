@@ -62,6 +62,7 @@ pub struct UpdatedTimetable {
 
 #[derive(Clone)]
 pub struct FeedConstructionInfo {
+    pub id: String,
     pub feed_path: String,
     pub generation_period: Period,
 }
@@ -203,7 +204,12 @@ impl HasTimezone for navitia_model::Model {
 }
 
 impl Dataset {
-    pub fn new(ntm: navitia_model::Model, gtfs_path: &str, generation_period: &Period) -> Self {
+    pub fn new(
+        id: &str,
+        ntm: navitia_model::Model,
+        gtfs_path: &str,
+        generation_period: &Period,
+    ) -> Self {
         // To correctly handle GTFS-RT stream we need the dataset's timezone,
         // as all the time in the dataset are in local time and the GTFS-RT gives its time
         // as UTC.
@@ -221,11 +227,12 @@ impl Dataset {
             feed_construction_info: FeedConstructionInfo {
                 feed_path: gtfs_path.to_owned(),
                 generation_period: generation_period.clone(),
+                id: id.to_owned(),
             },
         }
     }
 
-    pub fn from_path(gtfs: &str, generation_period: &Period) -> Self {
+    pub fn from_path(id: &str, gtfs: &str, generation_period: &Period) -> Self {
         log::info!("reading from path");
         let nav_data = if gtfs.starts_with("http") {
             navitia_model::gtfs::read_from_url(gtfs, None::<&str>, None).unwrap()
@@ -233,7 +240,7 @@ impl Dataset {
             navitia_model::gtfs::read_from_zip(gtfs, None::<&str>, None).unwrap()
         };
         log::info!("gtfs read");
-        Self::new(nav_data, gtfs, &generation_period)
+        Self::new(id, nav_data, gtfs, &generation_period)
     }
 }
 
