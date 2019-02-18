@@ -13,6 +13,7 @@ use failure::Error;
 use futures::future::Future;
 use log::info;
 use prost::Message;
+use sentry::integrations::failure::capture_error;
 use std::io::Read;
 use std::sync::Arc;
 
@@ -20,6 +21,7 @@ use std::sync::Arc;
 /// and send them to the DatasetActor
 pub struct RealTimeReloader {
     pub gtfs_rt_urls: Vec<String>,
+    pub dataset_id: String,
 
     // Address of the DatasetActor to notify for the data reloading
     // NOte: for the moment it's a single Actor,
@@ -82,6 +84,7 @@ fn apply_rt_update(
 
     let parsed_trip_update = model_update::get_model_update(&data.ntm, gtfs_rts, data.timezone)?;
     let mut nb_changes = 0;
+    let mut cpt_incoherent_stops_id = 0;
 
     for (idx, connection) in &mut data.timetable.connections.iter().enumerate() {
         let trip_update = parsed_trip_update.trips.get(&connection.dated_vj);
@@ -99,6 +102,7 @@ fn apply_rt_update(
                     &data.ntm.stop_points[connection.stop_point_idx].id,
                     &data.ntm.stop_points[stop_idx].id,
                     );
+                        cpt_incoherent_stops_id += 1;
                         continue;
                     }
                 }
@@ -120,6 +124,12 @@ fn apply_rt_update(
             continue;
         }
     }
+    if cpt_incoherent_stops_id != 0 {
+        sentry::capture_message(
+            "stop id incoherent with base schedule",
+            sentry::Level::Warning,
+        );
+    }
 
     info!(
         "{} connections have been updated with trip updates",
@@ -132,11 +142,15 @@ fn apply_rt_update(
 impl RealTimeReloader {
     fn update_realtime_data(&self, ctx: &mut actix::Context<Self>) {
         // we fetch the latest baseschedule data
+        let dataset_id = self.dataset_id.clone();
         self.dataset_actor
             .send(GetDataset)
             .map_err(|e| format!("impossible to fetch baseschedule data: {}", e))
             .into_actor(self)
             .then(|res, act, _| {
+                sentry::Hub::current().configure_scope(|scope| {
+                    scope.set_tag("dataset", dataset_id);
+                });
                 match res
                     .map_err(|e| format_err!("maibox error: {}", e))
                     .and_then(|dataset| act.apply_rt(dataset.unwrap()))
@@ -146,6 +160,7 @@ impl RealTimeReloader {
                     }
                     Err(e) => {
                         log::error!("unable to apply realtime update due to: {}", e);
+                        capture_error(&e);
                     }
                 }
                 // Note: this return value is not very useful as the `wait(ctx)` function below does not handle the return value

@@ -18,6 +18,7 @@ pub struct BaseScheduleReloader {
 impl BaseScheduleReloader {
     fn update_data(&self) {
         let new_dataset = Dataset::from_path(
+            &self.feed_construction_info.id,
             &self.feed_construction_info.feed_path,
             &crate::datasets::Period {
                 begin: chrono::Local::today().naive_local(),
