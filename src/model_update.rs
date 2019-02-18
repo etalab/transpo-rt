@@ -10,7 +10,7 @@ use std::collections::HashMap;
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct StopTimeUpdate {
-    pub stop_point_idx: Idx<StopPoint>,
+    pub stop_point_idx: Option<Idx<StopPoint>>,
     pub updated_departure: Option<NaiveDateTime>,
     pub updated_arrival: Option<NaiveDateTime>,
 }
@@ -47,16 +47,26 @@ fn create_stop_time_updates(
 ) -> Result<HashMap<u32, StopTimeUpdate>, Error> {
     let mut res = HashMap::default();
     for stop_time_update in &trip_update.stop_time_update {
-        let stop_sequence = stop_time_update.stop_sequence();
-        let stop_id = stop_time_update.stop_id();
-        let stop_idx = skip_fail!(model
-            .stop_points
-            .get_idx(&stop_id)
-            .ok_or_else(|| format_err!(
-                "impossible to find stop {} for vj {}",
-                &stop_id,
-                &trip_update.trip.trip_id()
-            )));
+        let stop_sequence = skip_fail!(stop_time_update.stop_sequence.ok_or_else(|| format_err!(
+            "no stop_sequence provided, for the moment we don't handle this case"
+        )));
+        let stop_id = &stop_time_update.stop_id;
+
+        let stop_idx = match stop_id
+            .as_ref()
+            .map(|stop_id| model.stop_points.get_idx(&stop_id))
+        {
+            Some(None) => {
+                warn!(
+                    "impossible to find stop {:?} for vj {}",
+                    &stop_id,
+                    &trip_update.trip.trip_id()
+                );
+                continue;
+            }
+            Some(Some(v)) => Some(v),
+            None => None,
+        };
 
         // first draft does not handle holes in the stoptimeupdates
 
