@@ -1,7 +1,7 @@
 use actix_web::http;
 use actix_web::HttpMessage;
 use std::collections::BTreeSet;
-use transpo_rt::siri_model::SiriResponse;
+use transpo_rt::siri_lite::SiriResponse;
 
 mod utils;
 

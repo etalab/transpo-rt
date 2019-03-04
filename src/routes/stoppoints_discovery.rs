@@ -1,5 +1,6 @@
 use crate::actors::{DatasetActor, GetDataset};
-use crate::siri_model::{AnnotatedStopPoint, Siri, SiriResponse, StopPointsDelivery};
+use crate::siri_lite::stop_points_delivery::{AnnotatedStopPoint, StopPointsDelivery};
+use crate::siri_lite::{Siri, SiriResponse};
 use actix::Addr;
 use actix_web::{AsyncResponder, Error, Json, Query, State};
 use futures::future::Future;

@@ -14,7 +14,7 @@ pub mod datasets;
 pub(crate) mod model_update;
 pub(crate) mod routes;
 pub mod server;
-pub mod siri_model;
+pub mod siri_lite;
 
 #[cfg(test)]
 mod tests;

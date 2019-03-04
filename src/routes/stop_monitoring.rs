@@ -1,6 +1,7 @@
 use crate::actors::{DatasetActor, GetRealtimeDataset};
 use crate::datasets::{Connection, Dataset, RealTimeConnection, RealTimeDataset, UpdatedTimetable};
-use crate::siri_model as model;
+use crate::siri_lite;
+use crate::siri_lite::service_delivery as model;
 use crate::utils;
 use actix::Addr;
 use actix_web::{error, AsyncResponder, Error, Json, Query, Result, State};
@@ -35,7 +36,7 @@ pub struct Params {
     _destination_ref: Option<String>,
     /// start_time is the datetime from which we want the next departures
     /// The default is the current time of the query
-    start_time: Option<model::DateTime>,
+    start_time: Option<siri_lite::DateTime>,
 
     /// ISO 8601 duration used to filter the departures/arrivals
     /// within the period [start_time, start_time + duration]
@@ -55,7 +56,7 @@ fn create_monitored_stop_visit(
     data: &Dataset,
     connection: &Connection,
     updated_connection: Option<&RealTimeConnection>,
-) -> model::MonitoredStopVisit {
+) -> siri_lite::service_delivery::MonitoredStopVisit {
     let stop = &data.ntm.stop_points[connection.stop_point_idx];
     let vj = &data.ntm.vehicle_journeys[connection.dated_vj.vj_idx];
     let route = &data.ntm.routes.get(&vj.route_id);
@@ -80,14 +81,14 @@ fn create_monitored_stop_visit(
         vehicle_at_stop: None,
         destination_display: None,
         arrival_status: None,
-        aimed_arrival_time: Some(model::DateTime(connection.arr_time)),
-        aimed_departure_time: Some(model::DateTime(connection.dep_time)),
+        aimed_arrival_time: Some(siri_lite::DateTime(connection.arr_time)),
+        aimed_departure_time: Some(siri_lite::DateTime(connection.dep_time)),
         expected_arrival_time: updated_connection
             .and_then(|c| c.arr_time)
-            .map(model::DateTime),
+            .map(siri_lite::DateTime),
         expected_departure_time: updated_connection
             .and_then(|c| c.dep_time)
-            .map(model::DateTime),
+            .map(siri_lite::DateTime),
     };
 
     model::MonitoredStopVisit {
@@ -175,7 +176,10 @@ fn validate_params(request: &mut Params) -> Result<()> {
     Ok(())
 }
 
-fn stop_monitoring(mut request: Params, rt_data: &RealTimeDataset) -> Result<model::SiriResponse> {
+fn stop_monitoring(
+    mut request: Params,
+    rt_data: &RealTimeDataset,
+) -> Result<siri_lite::SiriResponse> {
     let data = &rt_data.base_schedule_dataset;
     let updated_timetable = &rt_data.updated_timetable;
 
@@ -192,8 +196,8 @@ fn stop_monitoring(mut request: Params, rt_data: &RealTimeDataset) -> Result<mod
             ))
         })?;
 
-    Ok(model::SiriResponse {
-        siri: model::Siri {
+    Ok(siri_lite::SiriResponse {
+        siri: siri_lite::Siri {
             service_delivery: Some(model::ServiceDelivery {
                 response_time_stamp: chrono::Local::now().to_rfc3339(),
                 producer_ref: None, // TODO take the id of the dataset ?
@@ -214,7 +218,7 @@ fn stop_monitoring(mut request: Params, rt_data: &RealTimeDataset) -> Result<mod
 
 pub fn stop_monitoring_query(
     (actor_addr, query): (State<Addr<DatasetActor>>, Query<Params>),
-) -> Box<Future<Item = Json<model::SiriResponse>, Error = Error>> {
+) -> Box<Future<Item = Json<siri_lite::SiriResponse>, Error = Error>> {
     actor_addr
         .send(GetRealtimeDataset)
         .map_err(Error::from)

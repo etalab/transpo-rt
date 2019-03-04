@@ -1,7 +1,7 @@
 use actix_web::http;
 use actix_web::HttpMessage;
 use transpo_rt::datasets::DatasetInfo;
-use transpo_rt::siri_model::{DateTime, SiriResponse};
+use transpo_rt::siri_lite::{DateTime, SiriResponse};
 use transpo_rt::transit_realtime;
 mod utils;
 
