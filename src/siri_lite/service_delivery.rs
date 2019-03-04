@@ -98,7 +98,8 @@ pub struct StopMonitoringDelivery {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "PascalCase")]
 pub struct ServiceDelivery {
-    pub response_time_stamp: String,
+    #[serde(flatten)]
+    pub common: crate::siri_lite::shared::CommonDelivery,
     /// Id of the producer
     #[serde(skip_serializing_if = "Option::is_none")]
     pub producer_ref: Option<String>,
@@ -108,8 +109,5 @@ pub struct ServiceDelivery {
     /// Id of the response
     #[serde(skip_serializing_if = "Option::is_none")]
     pub response_message_identifier: Option<String>, // Note: this is mandatory for idf profil
-    /// Id of the query
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub request_message_ref: Option<String>, // Note: this is mandatory for idf profil
     pub stop_monitoring_delivery: Vec<StopMonitoringDelivery>,
 }

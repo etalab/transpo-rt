@@ -2,6 +2,7 @@ use crate::actors::{DatasetActor, GetRealtimeDataset};
 use crate::datasets::{Connection, Dataset, RealTimeConnection, RealTimeDataset, UpdatedTimetable};
 use crate::siri_lite;
 use crate::siri_lite::service_delivery as model;
+use crate::siri_lite::shared::CommonDelivery;
 use crate::utils;
 use actix::Addr;
 use actix_web::{error, AsyncResponder, Error, Json, Query, Result, State};
@@ -199,11 +200,10 @@ fn stop_monitoring(
     Ok(siri_lite::SiriResponse {
         siri: siri_lite::Siri {
             service_delivery: Some(model::ServiceDelivery {
-                response_time_stamp: chrono::Local::now().to_rfc3339(),
+                common: CommonDelivery::default(),
                 producer_ref: None, // TODO take the id of the dataset ?
                 address: None,
                 response_message_identifier: None,
-                request_message_ref: None, // TODO if a request ref is given in the query, return it
                 stop_monitoring_delivery: create_stop_monitoring(
                     stop_idx,
                     data,

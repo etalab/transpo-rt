@@ -3,9 +3,6 @@ use navitia_model::objects::StopPoint;
 use navitia_model::Model;
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct ErrorCondition {}
-
-#[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "PascalCase")]
 pub struct Line {
     pub line_ref: String,
@@ -29,11 +26,8 @@ pub struct AnnotatedStopPoint {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "PascalCase")]
 pub struct StopPointsDelivery {
-    pub version: String,
-    pub response_time_stamp: String,
-    pub status: bool,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub error_condition: Option<ErrorCondition>,
+    #[serde(flatten)]
+    pub common: crate::siri_lite::shared::CommonDelivery,
     pub annotated_stop_point: Vec<AnnotatedStopPoint>,
 }
 

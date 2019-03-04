@@ -1,4 +1,5 @@
 use crate::actors::{DatasetActor, GetDataset};
+use crate::siri_lite::shared::CommonDelivery;
 use crate::siri_lite::stop_points_delivery::{AnnotatedStopPoint, StopPointsDelivery};
 use crate::siri_lite::{Siri, SiriResponse};
 use actix::Addr;
@@ -48,11 +49,8 @@ pub fn filter(data: &crate::datasets::Dataset, request: Params) -> SiriResponse 
     SiriResponse {
         siri: Siri {
             stop_points_delivery: Some(StopPointsDelivery {
-                version: "2.0".to_string(),
-                response_time_stamp: chrono::Utc::now().to_rfc3339(),
+                common: CommonDelivery::default(),
                 annotated_stop_point: filtered,
-                error_condition: None,
-                status: true,
             }),
             ..Default::default()
         },
