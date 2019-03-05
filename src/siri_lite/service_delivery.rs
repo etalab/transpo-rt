@@ -1,3 +1,4 @@
+use crate::siri_lite::general_message::GeneralMessageDelivery;
 use crate::siri_lite::DateTime;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -95,7 +96,7 @@ pub struct StopMonitoringDelivery {
     pub monitored_stop_visits: Vec<MonitoredStopVisit>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Default)]
 #[serde(rename_all = "PascalCase")]
 pub struct ServiceDelivery {
     #[serde(flatten)]
@@ -109,5 +110,8 @@ pub struct ServiceDelivery {
     /// Id of the response
     #[serde(skip_serializing_if = "Option::is_none")]
     pub response_message_identifier: Option<String>, // Note: this is mandatory for idf profil
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub stop_monitoring_delivery: Vec<StopMonitoringDelivery>,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub general_message_delivery: Vec<GeneralMessageDelivery>,
 }
