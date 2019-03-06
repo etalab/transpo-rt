@@ -36,3 +36,14 @@ impl<'de> ::serde::Deserialize<'de> for Duration {
         Ok(Duration(dur))
     }
 }
+
+pub fn read_pbf_dt(dt: Option<u64>, timezone: chrono_tz::Tz) -> Option<chrono::NaiveDateTime> {
+    dt.map(|t| {
+        chrono::DateTime::<chrono::Utc>::from_utc(
+            chrono::NaiveDateTime::from_timestamp(t as i64, 0),
+            chrono::Utc,
+        )
+    })
+    .map(|utc_dt| utc_dt.with_timezone(&timezone))
+    .map(|local_dt| local_dt.naive_local())
+}

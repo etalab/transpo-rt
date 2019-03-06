@@ -42,6 +42,10 @@ fn create_mock_feed_message() -> transit_realtime::FeedMessage {
                         language: None,
                     }],
                 }),
+                active_period: vec![TimeRange {
+                    start: Some(utils::to_timestamp("2018-12-15T08:00:00-08:00") as u64),
+                    end: Some(utils::to_timestamp("2018-12-15T12:00:00-08:00") as u64),
+                }],
                 ..Default::default()
             }),
             ..Default::default()
@@ -50,14 +54,22 @@ fn create_mock_feed_message() -> transit_realtime::FeedMessage {
 }
 
 #[test]
-fn genral_message_integration_test() {
+fn general_message_integration_test() {
     let gtfs_rt = create_mock_feed_message();
     let _server = utils::run_simple_gtfs_rt_server(gtfs_rt);
 
     let mut srv = utils::make_simple_test_server();
 
+    call_in_activity_period(&mut srv);
+    call_not_in_activity_period(&mut srv);
+}
+
+fn call_in_activity_period(srv: &mut actix_web::test::TestServer) {
     let request = srv
-        .client(http::Method::GET, "/default/siri/2.0/general-message.json")
+        .client(
+            http::Method::GET,
+            "/default/siri/2.0/general-message.json?RequestTimestamp=2018-12-15T10:00:00",
+        )
         .finish()
         .unwrap();
     let response = srv.execute(request.send()).unwrap();
@@ -67,7 +79,6 @@ fn genral_message_integration_test() {
     let bytes = srv.execute(response.body()).unwrap();
     let body = std::str::from_utf8(&bytes).unwrap();
 
-    println!("=== {}", &body);
     let resp: serde_json::Value = serde_json::from_str(body).unwrap();
 
     let messages = resp.pointer("/Siri/ServiceDelivery/GeneralMessageDelivery/0/InfoMessages");
@@ -108,4 +119,28 @@ fn genral_message_integration_test() {
           }
         ]))
     );
+}
+
+fn call_not_in_activity_period(srv: &mut actix_web::test::TestServer) {
+    let request = srv
+        .client(
+            http::Method::GET,
+            "/default/siri/2.0/general-message.json?RequestTimestamp=2018-12-15T14:00:00",
+        )
+        .finish()
+        .unwrap();
+    let response = srv.execute(request.send()).unwrap();
+
+    assert!(response.status().is_success());
+
+    let bytes = srv.execute(response.body()).unwrap();
+    let body = std::str::from_utf8(&bytes).unwrap();
+
+    println!("body::: {}", &body);
+    let resp: serde_json::Value = serde_json::from_str(body).unwrap();
+
+    let messages = resp.pointer("/Siri/ServiceDelivery/GeneralMessageDelivery/0/InfoMessages");
+
+    // we are outside the activity period, we should not have any msg
+    assert_eq!(messages, Some(&serde_json::json!([])));
 }
