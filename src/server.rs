@@ -2,7 +2,8 @@ use crate::actors::{BaseScheduleReloader, DatasetActor, RealTimeReloader};
 use crate::datasets;
 use crate::datasets::{Dataset, DatasetInfo, Datasets, Period};
 use crate::routes::{
-    gtfs_rt, gtfs_rt_json, list_datasets, sp_discovery, status_query, stop_monitoring_query,
+    general_message_query, gtfs_rt, gtfs_rt_json, list_datasets, sp_discovery, status_query,
+    stop_monitoring_query,
 };
 use actix::Actor;
 use actix::Addr;
@@ -73,6 +74,9 @@ pub fn create_datasets_servers(
                     scope
                         .resource("/stoppoints-discovery.json", |r| r.with(sp_discovery))
                         .resource("/stop-monitoring.json", |r| r.with(stop_monitoring_query))
+                        .resource("/general-message.json", |r| {
+                            r.with_async(general_message_query)
+                        })
                 })
         })
         .collect()

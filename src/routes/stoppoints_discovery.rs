@@ -1,5 +1,7 @@
 use crate::actors::{DatasetActor, GetDataset};
-use crate::siri_model::{AnnotatedStopPoint, Siri, SiriResponse, StopPointsDelivery};
+use crate::siri_lite::shared::CommonDelivery;
+use crate::siri_lite::stop_points_delivery::{AnnotatedStopPoint, StopPointsDelivery};
+use crate::siri_lite::{Siri, SiriResponse};
 use actix::Addr;
 use actix_web::{AsyncResponder, Error, Json, Query, State};
 use futures::future::Future;
@@ -47,11 +49,8 @@ pub fn filter(data: &crate::datasets::Dataset, request: Params) -> SiriResponse 
     SiriResponse {
         siri: Siri {
             stop_points_delivery: Some(StopPointsDelivery {
-                version: "2.0".to_string(),
-                response_time_stamp: chrono::Utc::now().to_rfc3339(),
+                common: CommonDelivery::default(),
                 annotated_stop_point: filtered,
-                error_condition: None,
-                status: true,
             }),
             ..Default::default()
         },
@@ -59,7 +58,8 @@ pub fn filter(data: &crate::datasets::Dataset, request: Params) -> SiriResponse 
 }
 
 pub fn sp_discovery(
-    (actor_addr, query): (State<Addr<DatasetActor>>, Query<Params>),
+    actor_addr: State<Addr<DatasetActor>>,
+    query: Query<Params>,
 ) -> Box<Future<Item = Json<SiriResponse>, Error = Error>> {
     actor_addr
         .send(GetDataset)

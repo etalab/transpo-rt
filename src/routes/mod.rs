@@ -1,9 +1,11 @@
+mod general_message;
 mod gtfs_rt;
 mod list_datasets;
 mod status;
 mod stop_monitoring;
 mod stoppoints_discovery;
 
+pub use self::general_message::general_message_query;
 pub use self::gtfs_rt::{gtfs_rt, gtfs_rt_json};
 pub use self::list_datasets::list_datasets;
 pub use self::status::status_query;
