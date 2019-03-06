@@ -115,7 +115,8 @@ fn call_in_activity_period(srv: &mut actix_web::test::TestServer) {
                   }
                 }
               ]
-            }
+            },
+            "ValidUntilTime": "2018-12-15T12:00:00"
           }
         ]))
     );
@@ -136,7 +137,6 @@ fn call_not_in_activity_period(srv: &mut actix_web::test::TestServer) {
     let bytes = srv.execute(response.body()).unwrap();
     let body = std::str::from_utf8(&bytes).unwrap();
 
-    println!("body::: {}", &body);
     let resp: serde_json::Value = serde_json::from_str(body).unwrap();
 
     let messages = resp.pointer("/Siri/ServiceDelivery/GeneralMessageDelivery/0/InfoMessages");

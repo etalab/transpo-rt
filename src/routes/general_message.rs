@@ -18,6 +18,18 @@ pub struct Params {
     request_timestamp: Option<crate::siri_lite::DateTime>,
 }
 
+fn get_max_validity(
+    alert: &transit_realtime::Alert,
+    timezone: chrono_tz::Tz,
+) -> Option<crate::siri_lite::DateTime> {
+    alert
+        .active_period
+        .iter()
+        .filter_map(|p| utils::read_pbf_dt(p.end, timezone))
+        .max()
+        .map(crate::siri_lite::DateTime)
+}
+
 fn display_alert(
     alert: &transit_realtime::Alert,
     requested_dt: chrono::NaiveDateTime,
@@ -98,6 +110,7 @@ fn read_info_messages(
         .filter(|a| display_alert(a, requested_dt, timezone))
         .map(|a| gm::InfoMessage {
             content: read_content(a),
+            valid_until_time: get_max_validity(a, timezone),
             ..Default::default()
         })
         .collect()
