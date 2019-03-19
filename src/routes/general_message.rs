@@ -5,25 +5,40 @@ use crate::siri_lite::{
     SiriResponse,
 };
 use crate::transit_realtime;
+use crate::utils;
 use actix::Addr;
 use actix_web::{error, AsyncResponder, Error, Json, Query, Result, State};
 use futures::future::Future;
 
-// #[derive(Deserialize, Debug)]
-// enum InfoChannel {
-//     Perturbation,
-//     Information,
-//     Commercial,
-// }
-
 #[derive(Deserialize, Debug)]
+#[serde(rename_all = "PascalCase")]
 pub struct Params {
-    // info_channel_ref: Vec<InfoChannel>,
+    /// start_time is the datetime from which we want the next departures
+    /// The default is the current time of the query
+    request_timestamp: Option<crate::siri_lite::DateTime>,
 }
 
-fn display_alert(_alert: &transit_realtime::Alert) -> bool {
-    // TODO check active_period
-    true
+fn get_max_validity(
+    alert: &transit_realtime::Alert,
+    timezone: chrono_tz::Tz,
+) -> Option<crate::siri_lite::DateTime> {
+    alert
+        .active_period
+        .iter()
+        .filter_map(|p| utils::read_pbf_dt(p.end, timezone))
+        .max()
+        .map(crate::siri_lite::DateTime)
+}
+
+fn display_alert(
+    alert: &transit_realtime::Alert,
+    requested_dt: chrono::NaiveDateTime,
+    timezone: chrono_tz::Tz,
+) -> bool {
+    alert.active_period.iter().any(|p| {
+        utils::read_pbf_dt(p.start, timezone).map_or(true, |s| s <= requested_dt)
+            && utils::read_pbf_dt(p.end, timezone).map_or(true, |e| requested_dt <= e)
+    })
 }
 
 // we create one message by lang
@@ -75,19 +90,29 @@ fn read_content(alert: &transit_realtime::Alert) -> gm::GeneralMessageStructure 
     }
 }
 
-fn read_info_messages(feed: &transit_realtime::FeedMessage) -> Vec<gm::InfoMessage> {
+fn read_info_messages(
+    feed: &transit_realtime::FeedMessage,
+    requested_dt: chrono::NaiveDateTime,
+    timezone: chrono_tz::Tz,
+) -> Vec<gm::InfoMessage> {
     feed.entity
         .iter()
         .filter_map(|e| e.alert.as_ref())
-        .filter(|a| display_alert(a))
+        .filter(|a| display_alert(a, requested_dt, timezone))
         .map(|a| gm::InfoMessage {
             content: read_content(a),
+            valid_until_time: get_max_validity(a, timezone),
             ..Default::default()
         })
         .collect()
 }
 
-fn general_message(_request: Params, rt_data: &RealTimeDataset) -> Result<SiriResponse> {
+fn general_message(request: Params, rt_data: &RealTimeDataset) -> Result<SiriResponse> {
+    let requested_dt = request.request_timestamp.map(|d| d.0).unwrap_or_else(|| {
+        chrono::Utc::now()
+            .with_timezone(&rt_data.base_schedule_dataset.timezone)
+            .naive_local()
+    });
     // Note: we decode the gtfs at the query. if needed we can cache this, to parse it once
     use bytes::IntoBuf;
     use prost::Message;
@@ -111,7 +136,11 @@ fn general_message(_request: Params, rt_data: &RealTimeDataset) -> Result<SiriRe
                 producer_ref: None, // TODO take the id of the dataset ?
                 general_message_delivery: vec![gm::GeneralMessageDelivery {
                     common: CommonDelivery::default(),
-                    info_messages: read_info_messages(&feed),
+                    info_messages: read_info_messages(
+                        &feed,
+                        requested_dt,
+                        rt_data.base_schedule_dataset.timezone,
+                    ),
                     info_messages_cancellation: vec![],
                 }],
                 ..Default::default()

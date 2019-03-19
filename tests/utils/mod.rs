@@ -62,7 +62,7 @@ pub fn run_gtfs_rt_server(
 
 // take a date (formated as YYYY-MM-DDTHH:MM:SS) and convert it to a timestamp
 #[allow(dead_code)]
-fn to_timestamp(date: &str) -> i64 {
+pub fn to_timestamp(date: &str) -> i64 {
     chrono::DateTime::<chrono::FixedOffset>::parse_from_rfc3339(date)
         .expect("impossible to parse datetime")
         .timestamp()
