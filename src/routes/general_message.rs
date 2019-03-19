@@ -36,17 +36,8 @@ fn display_alert(
     timezone: chrono_tz::Tz,
 ) -> bool {
     alert.active_period.iter().any(|p| {
-        if let Some(s) = utils::read_pbf_dt(p.start, timezone) {
-            if s > requested_dt {
-                return false;
-            }
-        }
-        if let Some(e) = utils::read_pbf_dt(p.end, timezone) {
-            if e < requested_dt {
-                return false;
-            }
-        }
-        true
+        utils::read_pbf_dt(p.start, timezone).map_or(true, |s| s <= requested_dt)
+            && utils::read_pbf_dt(p.end, timezone).map_or(true, |e| requested_dt <= e)
     })
 }
 
