@@ -20,7 +20,7 @@ pub struct Params {
 }
 
 fn bounding_box_matches(
-    coord: &navitia_model::objects::Coord,
+    coord: &transit_model::objects::Coord,
     min_lon: f64,
     max_lon: f64,
     min_lat: f64,

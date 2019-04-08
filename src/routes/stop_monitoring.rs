@@ -6,8 +6,8 @@ use crate::utils;
 use actix::Addr;
 use actix_web::{error, AsyncResponder, Error, Json, Query, Result, State};
 use futures::future::Future;
-use navitia_model::collection::Idx;
-use navitia_model::objects::StopPoint;
+use transit_model::collection::Idx;
+use transit_model::objects::StopPoint;
 
 #[derive(Debug, Deserialize, PartialEq, Eq)]
 enum DataFreshness {
@@ -104,7 +104,7 @@ fn create_monitored_stop_visit(
     }
 }
 
-fn get_line_ref<'a>(cnx: &Connection, model: &'a navitia_model::Model) -> Option<&'a str> {
+fn get_line_ref<'a>(cnx: &Connection, model: &'a transit_model::Model) -> Option<&'a str> {
     let vj = &model.vehicle_journeys[cnx.dated_vj.vj_idx];
     model.routes.get(&vj.route_id).map(|r| r.line_id.as_str())
 }
