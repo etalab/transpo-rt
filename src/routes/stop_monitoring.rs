@@ -1,3 +1,4 @@
+use super::open_api::make_param;
 use crate::actors::{DatasetActor, GetRealtimeDataset};
 use crate::datasets::{Connection, Dataset, RealTimeConnection, RealTimeDataset, UpdatedTimetable};
 use crate::siri_lite;
@@ -6,10 +7,11 @@ use crate::utils;
 use actix::Addr;
 use actix_web::{error, AsyncResponder, Error, Json, Query, Result, State};
 use futures::future::Future;
+use openapi_schema::OpenapiSchema;
 use transit_model::collection::Idx;
 use transit_model::objects::StopPoint;
 
-#[derive(Debug, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Deserialize, PartialEq, Eq, OpenapiSchema)]
 enum DataFreshness {
     RealTime,
     Scheduled,
@@ -50,6 +52,20 @@ pub struct Params {
     /// Default is arbitrary 2 (contrary to the spec, but we don't want it to be unlimited by default)
     #[serde(default = "default_stop_visits")]
     maximum_stop_visits: u8,
+}
+
+impl Params {
+    // TODO: generate this via derive macro
+    pub fn openapi_description(spec: &mut openapi::v3_0::Spec) -> Vec<openapi::v3_0::Parameter> {
+        vec![
+            make_param::<String>(spec, "MonitoringRef", true),
+            make_param::<String>(spec, "LineRef", false),
+            make_param::<siri_lite::DateTime>(spec, "StartTime", false),
+            make_param::<DataFreshness>(spec, "DataFreshness", false),
+            make_param::<utils::Duration>(spec, "PreviewInterval", false),
+            make_param::<u16>(spec, "MaximumStopVisits", false),
+        ]
+    }
 }
 
 fn create_monitored_stop_visit(

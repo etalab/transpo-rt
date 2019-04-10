@@ -1,3 +1,4 @@
+use super::open_api::make_param;
 use crate::actors::{DatasetActor, GetDataset};
 use crate::siri_lite::shared::CommonDelivery;
 use crate::siri_lite::stop_points_delivery::{AnnotatedStopPoint, StopPointsDelivery};
@@ -17,6 +18,18 @@ pub struct Params {
     lower_right_longitude: Option<f64>,
     #[serde(rename = "BoundingBoxStructure.LowerRight.Latitude")]
     lower_right_latitude: Option<f64>,
+}
+
+impl Params {
+    pub fn openapi_description(spec: &mut openapi::v3_0::Spec) -> Vec<openapi::v3_0::Parameter> {
+        vec![
+            make_param::<String>(spec, "q", false),
+            make_param::<f64>(spec, "BoundingBoxStructure.UpperLeft.Longitude", false),
+            make_param::<f64>(spec, "BoundingBoxStructure.UpperLeft.Latitude", false),
+            make_param::<f64>(spec, "BoundingBoxStructure.LowerRight.Longitude", false),
+            make_param::<f64>(spec, "BoundingBoxStructure.LowerRight.Latitude", false),
+        ]
+    }
 }
 
 fn bounding_box_matches(

@@ -1,6 +1,7 @@
 use chrono::{DateTime, NaiveDate, NaiveDateTime, Utc};
 use chrono_tz::Tz;
 use log::info;
+use openapi_schema::OpenapiSchema;
 use std::collections::HashMap;
 use std::sync::Arc;
 use transit_model::collection::Idx;
@@ -105,7 +106,7 @@ pub struct Datasets {
     pub datasets: Vec<DatasetInfo>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, OpenapiSchema)]
 #[serde(rename_all = "kebab-case")]
 pub struct DatasetInfo {
     pub name: String,

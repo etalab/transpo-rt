@@ -1,3 +1,4 @@
+use super::open_api::make_param;
 use crate::actors::{DatasetActor, GetRealtimeDataset};
 use crate::datasets::RealTimeDataset;
 use crate::siri_lite::{
@@ -16,6 +17,17 @@ pub struct Params {
     /// start_time is the datetime from which we want the next departures
     /// The default is the current time of the query
     request_timestamp: Option<crate::siri_lite::DateTime>,
+}
+
+impl Params {
+    // TODO: generate this via derive macro
+    pub fn openapi_description(spec: &mut openapi::v3_0::Spec) -> Vec<openapi::v3_0::Parameter> {
+        vec![make_param::<crate::siri_lite::DateTime>(
+            spec,
+            "RequestTimestamp",
+            false,
+        )]
+    }
 }
 
 fn get_max_validity(

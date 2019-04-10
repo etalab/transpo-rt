@@ -2,8 +2,9 @@ use crate::actors::{DatasetActor, GetDataset};
 use actix::Addr;
 use actix_web::{AsyncResponder, Error, HttpRequest, Json};
 use futures::future::Future;
+use openapi_schema::OpenapiSchema;
 
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Debug, OpenapiSchema)]
 pub struct Status {
     feed: String,
     loaded_at: chrono::DateTime<chrono::Utc>,

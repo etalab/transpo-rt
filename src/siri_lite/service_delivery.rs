@@ -1,7 +1,8 @@
 use crate::siri_lite::general_message::GeneralMessageDelivery;
 use crate::siri_lite::DateTime;
+use openapi_schema::OpenapiSchema;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, OpenapiSchema)]
 #[serde(rename_all = "camelCase")]
 pub enum ArrivalStatus {
     OnTime,
@@ -14,7 +15,7 @@ pub enum ArrivalStatus {
     NoReport,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, OpenapiSchema)]
 #[serde(rename_all = "PascalCase")]
 pub struct MonitoredCall {
     pub order: u16,
@@ -42,7 +43,7 @@ pub struct MonitoredCall {
     pub arrival_status: Option<ArrivalStatus>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, OpenapiSchema)]
 #[serde(rename_all = "PascalCase")]
 pub struct ServiceInfoGroup {
     /// Id of the operator
@@ -55,7 +56,7 @@ pub struct ServiceInfoGroup {
     */
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, OpenapiSchema)]
 #[serde(rename_all = "PascalCase")]
 pub struct MonitoredVehicleJourney {
     /// Id of the line
@@ -69,7 +70,7 @@ pub struct MonitoredVehicleJourney {
     // pub onward_calls: Option<OnwardCall>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, OpenapiSchema)]
 #[serde(rename_all = "PascalCase")]
 pub struct MonitoredStopVisit {
     /// Id of the stop point
@@ -81,7 +82,7 @@ pub struct MonitoredStopVisit {
     pub monitored_vehicle_journey: MonitoredVehicleJourney,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, OpenapiSchema)]
 #[serde(rename_all = "PascalCase")]
 pub struct StopMonitoringDelivery {
     /// Version of the siri's response
@@ -96,7 +97,7 @@ pub struct StopMonitoringDelivery {
     pub monitored_stop_visit: Vec<MonitoredStopVisit>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Default)]
+#[derive(Debug, Serialize, Deserialize, OpenapiSchema, Default)]
 #[serde(rename_all = "PascalCase")]
 pub struct ServiceDelivery {
     #[serde(flatten)]
