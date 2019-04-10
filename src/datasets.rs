@@ -1,15 +1,15 @@
 use chrono::{DateTime, NaiveDate, NaiveDateTime, Utc};
 use chrono_tz::Tz;
 use log::info;
-use navitia_model::collection::Idx;
 use std::collections::HashMap;
 use std::sync::Arc;
+use transit_model::collection::Idx;
 
 use crate::transit_realtime;
 
 pub enum Stop {
-    StopPoint(Idx<navitia_model::objects::StopPoint>),
-    StopArea(Idx<navitia_model::objects::StopArea>),
+    StopPoint(Idx<transit_model::objects::StopPoint>),
+    StopArea(Idx<transit_model::objects::StopArea>),
 }
 
 #[derive(Clone)]
@@ -36,14 +36,14 @@ pub struct RealTimeConnection {
 
 #[derive(Clone, Debug, Hash, Eq, PartialEq)]
 pub struct DatedVehicleJourney {
-    pub vj_idx: Idx<navitia_model::objects::VehicleJourney>,
+    pub vj_idx: Idx<transit_model::objects::VehicleJourney>,
     pub date: chrono::NaiveDate,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Connection {
     pub dated_vj: DatedVehicleJourney,
-    pub stop_point_idx: Idx<navitia_model::objects::StopPoint>,
+    pub stop_point_idx: Idx<transit_model::objects::StopPoint>,
     pub dep_time: NaiveDateTime,
     pub arr_time: NaiveDateTime,
     pub sequence: u32,
@@ -68,7 +68,7 @@ pub struct FeedConstructionInfo {
 }
 
 pub struct Dataset {
-    pub ntm: navitia_model::Model,
+    pub ntm: transit_model::Model,
     pub timetable: Timetable,
     pub timezone: Tz,
     pub loaded_at: chrono::DateTime<chrono::Utc>,
@@ -128,12 +128,12 @@ impl DatasetInfo {
 // create a dt from a Date and a StopTime's time
 // Note: the time might be on the next day, for example "26:00:00"
 // is the next day at 2 in the morning
-fn create_dt(date: NaiveDate, time: navitia_model::objects::Time) -> NaiveDateTime {
+fn create_dt(date: NaiveDate, time: transit_model::objects::Time) -> NaiveDateTime {
     date.and_time(chrono::NaiveTime::from_hms(0, 0, 0))
         + chrono::Duration::seconds(i64::from(time.total_seconds()))
 }
 
-fn create_timetable(ntm: &navitia_model::Model, generation_period: &Period) -> Timetable {
+fn create_timetable(ntm: &transit_model::Model, generation_period: &Period) -> Timetable {
     info!("computing timetable for {:?}", &generation_period);
     let begin_dt = Utc::now();
     let mut timetable = Timetable {
@@ -189,7 +189,7 @@ pub trait HasTimezone {
     fn timezone(&self) -> Option<chrono_tz::Tz>;
 }
 
-impl HasTimezone for navitia_model::Model {
+impl HasTimezone for transit_model::Model {
     fn timezone(&self) -> Option<chrono_tz::Tz> {
         self.networks
             .values()
@@ -206,7 +206,7 @@ impl HasTimezone for navitia_model::Model {
 impl Dataset {
     pub fn new(
         id: &str,
-        ntm: navitia_model::Model,
+        ntm: transit_model::Model,
         gtfs_path: &str,
         generation_period: &Period,
     ) -> Self {
@@ -235,9 +235,9 @@ impl Dataset {
     pub fn from_path(id: &str, gtfs: &str, generation_period: &Period) -> Self {
         log::info!("reading from path");
         let nav_data = if gtfs.starts_with("http") {
-            navitia_model::gtfs::read_from_url(gtfs, None::<&str>, None).unwrap()
+            transit_model::gtfs::read_from_url(gtfs, None::<&str>, None).unwrap()
         } else {
-            navitia_model::gtfs::read_from_zip(gtfs, None::<&str>, None).unwrap()
+            transit_model::gtfs::read_from_zip(gtfs, None::<&str>, None).unwrap()
         };
         log::info!("gtfs read");
         Self::new(id, nav_data, gtfs, &generation_period)
@@ -247,7 +247,7 @@ impl Dataset {
 #[cfg(test)]
 mod tests {
     use crate::datasets::{Connection, DatedVehicleJourney, Period};
-    use model_builder::ModelBuilder;
+    use transit_model_builder::ModelBuilder;
 
     #[test]
     fn test_timetable_creation() {

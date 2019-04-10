@@ -2,14 +2,14 @@ use crate::model_update;
 use crate::tests::test_utils::{create_feed_message, make_stu, trip_update};
 use crate::transit_realtime as tr;
 use chrono::NaiveDateTime;
-use model_builder::ModelBuilder;
 use std::str::FromStr;
+use transit_model_builder::ModelBuilder;
 
 fn ndt(d: &str) -> NaiveDateTime {
     NaiveDateTime::from_str(d).unwrap()
 }
 
-fn simple_dataset() -> navitia_model::Model {
+fn simple_dataset() -> transit_model::Model {
     ModelBuilder::default()
         .vj("vj1", |vj_builder| {
             vj_builder

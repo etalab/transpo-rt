@@ -4,9 +4,9 @@ use chrono::{DateTime, NaiveDateTime, Utc};
 use failure::format_err;
 use failure::Error;
 use log::{debug, trace, warn};
-use navitia_model::collection::Idx;
-use navitia_model::objects::StopPoint;
 use std::collections::HashMap;
+use transit_model::collection::Idx;
+use transit_model::objects::StopPoint;
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct StopTimeUpdate {
@@ -42,7 +42,7 @@ fn get_date_time(
 // this reduce the problems when the GTFS-RT producer's data and our scheduled data are different
 fn create_stop_time_updates(
     trip_update: &transit_realtime::TripUpdate,
-    model: &navitia_model::Model,
+    model: &transit_model::Model,
     timezone: chrono_tz::Tz,
 ) -> Result<HashMap<u32, StopTimeUpdate>, Error> {
     let mut res = HashMap::default();
@@ -112,7 +112,7 @@ fn get_date(
 }
 
 fn get_dated_vj(
-    model: &navitia_model::Model,
+    model: &transit_model::Model,
     trip: &transit_realtime::TripDescriptor,
     entity_id: &str,
     timezone: chrono_tz::Tz,
@@ -136,7 +136,7 @@ fn get_dated_vj(
 /// read a gtfs-rt FeedMessage to create a ModelUpdate,
 /// a temporary structure used to
 pub fn get_model_update(
-    model: &navitia_model::Model,
+    model: &transit_model::Model,
     gtfs_rts: &[transit_realtime::FeedMessage],
     timezone: chrono_tz::Tz,
 ) -> Result<ModelUpdate, Error> {

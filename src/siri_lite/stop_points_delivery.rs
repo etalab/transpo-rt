@@ -1,6 +1,6 @@
-use navitia_model::collection::Idx;
-use navitia_model::objects::StopPoint;
-use navitia_model::Model;
+use transit_model::collection::Idx;
+use transit_model::objects::StopPoint;
+use transit_model::Model;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "PascalCase")]
