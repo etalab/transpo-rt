@@ -78,7 +78,7 @@ pub struct MonitoredStopVisit {
     pub recorded_at_time: chrono::DateTime<chrono::Utc>,
     /// Id of the couple Stop / VehicleJourney
     pub item_identifier: String,
-    pub monitoring_vehicle_journey: MonitoredVehicleJourney,
+    pub monitored_vehicle_journey: MonitoredVehicleJourney,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -93,7 +93,7 @@ pub struct StopMonitoringDelivery {
     pub request_message_ref: Option<String>, // Note: this is mandatory for idf profil
     /// Status of the response, true if the response has been correctly treated, false otherwise
     pub status: bool,
-    pub monitored_stop_visits: Vec<MonitoredStopVisit>,
+    pub monitored_stop_visit: Vec<MonitoredStopVisit>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Default)]

@@ -34,12 +34,12 @@ MaximumStopVisits=3"#,
     let spd = resp.siri.service_delivery.unwrap();
     let sm = spd.stop_monitoring_delivery.iter().next().unwrap();
 
-    assert_eq!(sm.monitored_stop_visits.len(), 3);
+    assert_eq!(sm.monitored_stop_visit.len(), 3);
 
-    let first_passage = &sm.monitored_stop_visits[0];
+    let first_passage = &sm.monitored_stop_visit[0];
 
     assert_eq!(first_passage.monitoring_ref, "EMSI");
-    let vj = &first_passage.monitoring_vehicle_journey;
+    let vj = &first_passage.monitored_vehicle_journey;
     assert_eq!(vj.line_ref, "CITY");
     assert_eq!(vj.service_info.operator_ref, Some("DTA".to_owned()));
     let passage = &vj.monitored_call.as_ref().unwrap();
@@ -83,15 +83,15 @@ fn test_beatty_stop_call(srv: &mut actix_web::test::TestServer) {
     let spd = resp.siri.service_delivery.unwrap();
     let sm = spd.stop_monitoring_delivery.iter().next().unwrap();
 
-    assert_eq!(sm.monitored_stop_visits.len(), 2);
+    assert_eq!(sm.monitored_stop_visit.len(), 2);
 
     // there should be a passage at 6:20 for line STBA
     // and a passage at 08:00 for line AB
 
-    let first_passage = &sm.monitored_stop_visits[0];
+    let first_passage = &sm.monitored_stop_visit[0];
     assert_eq!(first_passage.monitoring_ref, "BEATTY_AIRPORT");
     assert_eq!(first_passage.item_identifier, "BEATTY_AIRPORT:STBA");
-    let vj = &first_passage.monitoring_vehicle_journey;
+    let vj = &first_passage.monitored_vehicle_journey;
     assert_eq!(vj.line_ref, "STBA");
     let first_passage = &vj.monitored_call.as_ref().unwrap();
     assert_eq!(
@@ -107,11 +107,11 @@ fn test_beatty_stop_call(srv: &mut actix_web::test::TestServer) {
     assert_eq!(first_passage.order, 2);
 
     // second passage on line AB
-    let second_passage = &sm.monitored_stop_visits[1];
+    let second_passage = &sm.monitored_stop_visit[1];
 
     assert_eq!(second_passage.monitoring_ref, "BEATTY_AIRPORT");
     assert_eq!(second_passage.item_identifier, "BEATTY_AIRPORT:AB1");
-    let vj = &second_passage.monitoring_vehicle_journey;
+    let vj = &second_passage.monitored_vehicle_journey;
     assert_eq!(vj.line_ref, "AB");
     let second_passage = &vj.monitored_call.as_ref().unwrap();
     assert_eq!(
@@ -146,12 +146,12 @@ fn test_beatty_stop_call(srv: &mut actix_web::test::TestServer) {
     let spd = resp.siri.service_delivery.unwrap();
     let sm = spd.stop_monitoring_delivery.iter().next().unwrap();
 
-    assert_eq!(sm.monitored_stop_visits.len(), 2);
+    assert_eq!(sm.monitored_stop_visit.len(), 2);
 
-    let first_passage = &sm.monitored_stop_visits[0];
+    let first_passage = &sm.monitored_stop_visit[0];
     assert_eq!(first_passage.monitoring_ref, "BEATTY_AIRPORT");
     assert_eq!(first_passage.item_identifier, "BEATTY_AIRPORT:AB1");
-    let vj = &first_passage.monitoring_vehicle_journey;
+    let vj = &first_passage.monitored_vehicle_journey;
     assert_eq!(vj.line_ref, "AB");
     let first_passage = &vj.monitored_call.as_ref().unwrap();
     assert_eq!(
@@ -166,10 +166,10 @@ fn test_beatty_stop_call(srv: &mut actix_web::test::TestServer) {
     assert!(first_passage.expected_departure_time.is_none());
     assert_eq!(first_passage.order, 1);
 
-    let second_passage = &sm.monitored_stop_visits[1];
+    let second_passage = &sm.monitored_stop_visit[1];
     assert_eq!(second_passage.monitoring_ref, "BEATTY_AIRPORT");
     assert_eq!(second_passage.item_identifier, "BEATTY_AIRPORT:AB2");
-    let vj = &second_passage.monitoring_vehicle_journey;
+    let vj = &second_passage.monitored_vehicle_journey;
     assert_eq!(vj.line_ref, "AB");
     let second_passage = &vj.monitored_call.as_ref().unwrap();
     assert_eq!(
@@ -210,7 +210,7 @@ DataFreshness=Scheduled
     let spd = resp.siri.service_delivery.unwrap();
     let sm = spd.stop_monitoring_delivery.iter().next().unwrap();
 
-    assert_eq!(sm.monitored_stop_visits.len(), 1);
+    assert_eq!(sm.monitored_stop_visit.len(), 1);
 }
 
 fn create_mock_feed_message() -> transit_realtime::FeedMessage {
@@ -270,12 +270,12 @@ fn sp_monitoring_relatime_integration_test() {
     let spd = resp.siri.service_delivery.unwrap();
     let sm = spd.stop_monitoring_delivery.iter().next().unwrap();
 
-    assert_eq!(sm.monitored_stop_visits.len(), 2);
+    assert_eq!(sm.monitored_stop_visit.len(), 2);
 
-    let first_passage = &sm.monitored_stop_visits[0];
+    let first_passage = &sm.monitored_stop_visit[0];
 
     assert_eq!(first_passage.monitoring_ref, "EMSI");
-    let vj = &first_passage.monitoring_vehicle_journey;
+    let vj = &first_passage.monitored_vehicle_journey;
     assert_eq!(vj.line_ref, "CITY");
     let passage = &vj.monitored_call.as_ref().unwrap();
     assert_eq!(

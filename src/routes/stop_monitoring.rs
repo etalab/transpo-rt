@@ -93,7 +93,7 @@ fn create_monitored_stop_visit(
 
     model::MonitoredStopVisit {
         monitoring_ref: stop.id.clone(),
-        monitoring_vehicle_journey: model::MonitoredVehicleJourney {
+        monitored_vehicle_journey: model::MonitoredVehicleJourney {
             line_ref,
             service_info: model::ServiceInfoGroup { operator_ref },
             journey_pattern_ref: None,
@@ -166,7 +166,7 @@ fn create_stop_monitoring(
         response_time_stamp: chrono::Local::now().to_rfc3339(),
         request_message_ref: None,
         status: true,
-        monitored_stop_visits: stop_visit,
+        monitored_stop_visit: stop_visit,
     }]
 }
 
