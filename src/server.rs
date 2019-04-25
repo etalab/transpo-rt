@@ -2,8 +2,8 @@ use crate::actors::{BaseScheduleReloader, DatasetActor, RealTimeReloader};
 use crate::datasets;
 use crate::datasets::{Dataset, DatasetInfo, Datasets, Period};
 use crate::routes::{
-    general_message_query, gtfs_rt, gtfs_rt_json, list_datasets, sp_discovery, status_query,
-    stop_monitoring_query,
+    documentation, general_message_query, gtfs_rt, gtfs_rt_json, list_datasets, sp_discovery,
+    status_query, stop_monitoring_query,
 };
 use actix::Actor;
 use actix::Addr;
@@ -88,12 +88,13 @@ pub fn create_server(
 ) -> Vec<Box<dyn HttpHandler<Task = Box<dyn HttpHandlerTask>>>> {
     create_datasets_servers(datasets_actors)
         .into_iter()
-        .map(|s| s.boxed())
+        .map(actix_web::App::boxed)
         .chain(std::iter::once(
             App::with_state(datasets.clone())
                 .middleware(middleware::Logger::default())
                 .middleware(Cors::build().allowed_methods(vec!["GET"]).finish())
                 .resource("/", |r| r.f(list_datasets))
+                .resource("/spec", |r| r.f(documentation))
                 .boxed(),
         ))
         .collect()

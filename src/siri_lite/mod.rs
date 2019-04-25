@@ -3,12 +3,13 @@ pub mod service_delivery;
 pub mod shared;
 pub mod stop_points_delivery;
 
+use openapi_schema::OpenapiSchema;
 use service_delivery::ServiceDelivery;
 use stop_points_delivery::StopPointsDelivery;
 
 pub use shared::DateTime;
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Default, Serialize, Deserialize, OpenapiSchema)]
 #[serde(rename_all = "PascalCase")]
 pub struct Siri {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -17,7 +18,7 @@ pub struct Siri {
     pub service_delivery: Option<ServiceDelivery>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, OpenapiSchema)]
 #[serde(rename_all = "PascalCase")]
 pub struct SiriResponse {
     pub siri: Siri,

@@ -33,7 +33,7 @@ pub struct RealTimeReloader {
 fn fetch_gtfs_rt(url: &str) -> Result<GtfsRT, Error> {
     info!("fetching a gtfs_rt");
     let gtfs_rt = reqwest::get(url)
-        .and_then(|resp| resp.error_for_status())
+        .and_then(reqwest::Response::error_for_status)
         .map_err(|e| format_err!("Unable to fetch GTFS: {}", e))
         .and_then(|resp| {
             resp.bytes()
@@ -191,7 +191,7 @@ impl RealTimeReloader {
     ) -> Result<RealTimeDataset, Error> {
         let feed_messages: Vec<transit_realtime::FeedMessage> = gtfs_rts
             .iter()
-            .filter_map(|gtfs_rt| gtfs_rt.decode_feed_message())
+            .filter_map(GtfsRT::decode_feed_message)
             .collect();
 
         let gtfs_rt = aggregate_rts(&feed_messages)?;

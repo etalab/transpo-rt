@@ -11,6 +11,9 @@ macro_rules! skip_fail {
     };
 }
 
+use openapi::v3_0::{ObjectOrReference, Schema, Spec};
+use openapi_schema::OpenapiSchema;
+
 /// Duration that deseialize to ISO 8601
 #[derive(Debug)]
 pub struct Duration(chrono::Duration);
@@ -34,6 +37,16 @@ impl<'de> ::serde::Deserialize<'de> for Duration {
             .and_then(|d| chrono::Duration::from_std(d).ok())
             .ok_or_else(|| serde::de::Error::custom("invalid duration".to_owned()))?;
         Ok(Duration(dur))
+    }
+}
+
+impl OpenapiSchema for Duration {
+    fn generate_schema(_spec: &mut Spec) -> ObjectOrReference<Schema> {
+        ObjectOrReference::Object(Schema {
+            schema_type: Some("string".into()),
+            format: Some("duration".into()),
+            ..Default::default()
+        })
     }
 }
 

@@ -1,20 +1,21 @@
+use openapi_schema::OpenapiSchema;
 use transit_model::collection::Idx;
 use transit_model::objects::StopPoint;
 use transit_model::Model;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, OpenapiSchema)]
 #[serde(rename_all = "PascalCase")]
 pub struct Line {
     pub line_ref: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, OpenapiSchema)]
 pub struct Location {
     pub longitude: f64,
     pub latitude: f64,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, OpenapiSchema)]
 #[serde(rename_all = "PascalCase")]
 pub struct AnnotatedStopPoint {
     pub stop_point_ref: String,
@@ -23,7 +24,7 @@ pub struct AnnotatedStopPoint {
     pub location: Location,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, OpenapiSchema)]
 #[serde(rename_all = "PascalCase")]
 pub struct StopPointsDelivery {
     #[serde(flatten)]

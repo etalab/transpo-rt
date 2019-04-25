@@ -11,6 +11,7 @@ A [hosted version](https://app-be8e53a7-9b77-4f95-bea0-681b97077017.cleverapps.i
 The API provides several routes:
 
 * `GET` `/`: list the available datasets - [example call](https://app-be8e53a7-9b77-4f95-bea0-681b97077017.cleverapps.io/)
+* `GET` `/spec`: [OpenApi](https://www.openapis.org/) [v3](https://github.com/OAI/OpenAPI-Specification/blob/master/versions/3.0.2.md) description of this API - [example call](https://app-be8e53a7-9b77-4f95-bea0-681b97077017.cleverapps.io/spec)
 * `GET` `/{id}/gtfs-rt`: get the gtfs-rt as binary - [example call](https://app-be8e53a7-9b77-4f95-bea0-681b97077017.cleverapps.io/metromobilite/gtfs-rt)
 * `GET` `/{id}/gtfs-rt.json`: get the gtfs-rt as json - [example call](https://app-be8e53a7-9b77-4f95-bea0-681b97077017.cleverapps.io/metromobilite/gtfs-rt.json)
 * `GET` `/{id}/siri/2.0/stop-monitoring.json`: get a siri-lite stop monitoring response - [example call](https://app-be8e53a7-9b77-4f95-bea0-681b97077017.cleverapps.io/metromobilite/siri/2.0/stoppoints-discovery.json?q=mairie)
@@ -24,12 +25,13 @@ The API provides several routes:
 
 The API follow the [Siri-lite specification](http://www.chouette.mobi/irys/wp-content/uploads/20151023-Siri-Lite-Sp%C3%A9cification-Interfaces-V1.4.pdf) (documentation in french).
 
-TODO document supported parameters
+A formal description of the supported parameters and of the response can be seen in the [OpenAPI endpoint](https://app-be8e53a7-9b77-4f95-bea0-681b97077017.cleverapps.io/spec/).
 
 ##### /siri/2.0/stoppoints-discovery.json
 
 The API follow the [Siri-lite specification](http://www.chouette.mobi/irys/wp-content/uploads/20151023-Siri-Lite-Sp%C3%A9cification-Interfaces-V1.4.pdf) (documentation in french).
-TODO document supported parameters
+
+A formal description of the supported parameters and of the response can be seen in the [OpenAPI endpoint](https://app-be8e53a7-9b77-4f95-bea0-681b97077017.cleverapps.io/spec/).
 
 ## Developping
 
