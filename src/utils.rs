@@ -60,3 +60,25 @@ pub fn read_pbf_dt(dt: Option<u64>, timezone: chrono_tz::Tz) -> Option<chrono::N
     .map(|utc_dt| utc_dt.with_timezone(&timezone))
     .map(|local_dt| local_dt.naive_local())
 }
+
+pub fn init_logger() -> slog_scope::GlobalLoggerGuard {
+    use slog::Drain;
+
+    let drain = slog_term::FullFormat::new(slog_term::TermDecorator::new().stderr().build())
+        .build()
+        .fuse();
+
+    let builder = slog_envlogger::LogBuilder::new(drain).filter(None, slog::FilterLevel::Info);
+    let builder = match std::env::var("RUST_LOG") {
+        Ok(s) => builder.parse(&s),
+        _ => builder,
+    };
+    let drain = slog_async::Async::new(builder.build())
+        .chan_size(512)
+        .build();
+
+    let log = slog::Logger::root(drain.fuse(), slog::slog_o!());
+    let scope_guard = slog_scope::set_global_logger(log);
+    slog_stdlog::init().unwrap();
+    scope_guard
+}

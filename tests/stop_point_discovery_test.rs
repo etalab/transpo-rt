@@ -7,6 +7,7 @@ mod utils;
 
 #[test]
 fn sp_discovery_integration_test() {
+    let _log_guard = utils::init_log();
     let mut srv = utils::make_simple_test_server();
 
     let request = srv

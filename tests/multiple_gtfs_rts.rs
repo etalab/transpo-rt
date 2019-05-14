@@ -74,6 +74,7 @@ fn create_mock_feed_message_ab() -> transit_realtime::FeedMessage {
 /// we also test that the resulting GTFS_RT provided by /gtfs_rt is valid
 #[test]
 fn multiple_gtfs_rt_integration_test() {
+    let _log_guard = utils::init_log();
     let gtfs_rt1 = create_mock_feed_message_stba();
     let gtfs_rt2 = create_mock_feed_message_ab();
     let _server1 = utils::run_gtfs_rt_server("/gtfs_rt_1", gtfs_rt1);

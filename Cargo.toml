@@ -29,9 +29,9 @@ openapi = { git = "https://github.com/antoine-de/openapi.git", rev = "f23e484253
 maplit = "1.0"
 slog = "2"
 slog-term = "2"
+slog-envlogger = "2"
 slog-async = "2"
 slog-scope = "4"
-slog-envlogger = "2"
 slog-stdlog = "3"
 
 [dev-dependencies]
