@@ -1,5 +1,4 @@
 use actix_web::server;
-use env_logger::{Builder, Env};
 use failure::format_err;
 use failure::ResultExt;
 use structopt::StructOpt;
@@ -78,8 +77,30 @@ fn get_datasets(params: &Params) -> Result<Datasets, failure::Error> {
     }
 }
 
+fn init_logger() -> (slog_scope::GlobalLoggerGuard, ()) {
+    use slog::Drain;
+
+    let drain = slog_term::FullFormat::new(slog_term::TermDecorator::new().stderr().build())
+        .build()
+        .fuse();
+
+    let builder = slog_envlogger::LogBuilder::new(drain).filter(None, slog::FilterLevel::Info);
+    let builder = match std::env::var("RUST_LOG") {
+        Ok(s) => builder.parse(&s),
+        _ => builder,
+    };
+    let drain = slog_async::Async::new(builder.build())
+        .chan_size(512)
+        .build();
+
+    let log = slog::Logger::root(drain.fuse(), slog::slog_o!());
+    let scope_guard = slog_scope::set_global_logger(log);
+    let log_guard = slog_stdlog::init().unwrap();
+    (scope_guard, log_guard)
+}
+
 fn main() {
-    Builder::from_env(Env::default().default_filter_or("info")).init();
+    let (_log_guard, _) = init_logger();
 
     let params = Params::from_args();
     let sentry = sentry::init(params.sentry.clone().unwrap_or_else(|| "".to_owned()));
