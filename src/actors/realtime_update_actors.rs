@@ -11,9 +11,9 @@ use actix::AsyncContext;
 use failure::format_err;
 use failure::Error;
 use futures::future::Future;
-use log::info;
 use prost::Message;
 use sentry::integrations::failure::capture_error;
+use slog::info;
 use std::io::Read;
 use std::sync::Arc;
 
@@ -27,11 +27,12 @@ pub struct RealTimeReloader {
     // NOte: for the moment it's a single Actor,
     // but if we have several instances of DatasetActor we could have a list of recipient here
     pub dataset_actor: actix::Addr<DatasetActor>,
+    pub log: slog::Logger,
 }
 
 // TODO: make this async
-fn fetch_gtfs_rt(url: &str) -> Result<GtfsRT, Error> {
-    info!("fetching a gtfs_rt");
+fn fetch_gtfs_rt(url: &str, log: &slog::Logger) -> Result<GtfsRT, Error> {
+    info!(log, "fetching a gtfs_rt");
     let gtfs_rt = reqwest::get(url)
         .and_then(reqwest::Response::error_for_status)
         .map_err(|e| format_err!("Unable to fetch GTFS: {}", e))
@@ -79,6 +80,7 @@ fn aggregate_rts(feed_messages: &[transit_realtime::FeedMessage]) -> Result<Gtfs
 fn apply_rt_update(
     data: &Dataset,
     gtfs_rts: &[transit_realtime::FeedMessage],
+    log: &slog::Logger,
 ) -> Result<UpdatedTimetable, Error> {
     let mut updated_timetable = UpdatedTimetable::default();
 
@@ -96,7 +98,7 @@ fn apply_rt_update(
                 // integrity check
                 if let Some(stop_idx) = stop_time_update.stop_point_idx {
                     if stop_idx != connection.stop_point_idx {
-                        log::warn!("for trip {}, invalid stop connection, the stop n.{} '{}' does not correspond to the gtfsrt stop '{}'",
+                        slog::warn!(log, "for trip {}, invalid stop connection, the stop n.{} '{}' does not correspond to the gtfsrt stop '{}'",
                     &data.ntm.vehicle_journeys[connection.dated_vj.vj_idx].id,
                     &connection.sequence,
                     &data.ntm.stop_points[connection.stop_point_idx].id,
@@ -132,8 +134,8 @@ fn apply_rt_update(
     }
 
     info!(
-        "{} connections have been updated with trip updates",
-        nb_changes
+        log,
+        "{} connections have been updated with trip updates", nb_changes
     );
 
     Ok(updated_timetable)
@@ -156,10 +158,10 @@ impl RealTimeReloader {
                     .and_then(|dataset| act.apply_rt(dataset.unwrap()))
                 {
                     Ok(()) => {
-                        info!("realtime reloaded");
+                        info!(act.log, "realtime reloaded");
                     }
                     Err(e) => {
-                        log::error!("unable to apply realtime update due to: {}", e);
+                        slog::error!(act.log, "unable to apply realtime update due to: {}", e);
                         capture_error(&e);
                     }
                 }
@@ -174,7 +176,11 @@ impl RealTimeReloader {
         let gtfs_rts = self
             .gtfs_rt_urls
             .iter()
-            .filter_map(|url| fetch_gtfs_rt(&url).map_err(|e| log::warn!("{}", e)).ok())
+            .filter_map(|url| {
+                fetch_gtfs_rt(&url, &self.log)
+                    .map_err(|e| slog::warn!(self.log, "{}", e))
+                    .ok()
+            })
             .collect();
 
         let rt_dataset = self.make_rt_dataset(dataset, gtfs_rts)?;
@@ -195,7 +201,7 @@ impl RealTimeReloader {
             .collect();
 
         let gtfs_rt = aggregate_rts(&feed_messages)?;
-        let updated_timetable = apply_rt_update(&dataset, &feed_messages)?;
+        let updated_timetable = apply_rt_update(&dataset, &feed_messages, &self.log)?;
 
         Ok(RealTimeDataset {
             base_schedule_dataset: dataset,
@@ -210,11 +216,11 @@ impl actix::Actor for RealTimeReloader {
     type Context = actix::Context<Self>;
 
     fn started(&mut self, ctx: &mut Self::Context) {
-        info!("Starting the realtime updater actor");
+        info!(self.log, "Starting the realtime updater actor");
 
         self.update_realtime_data(ctx);
         ctx.run_interval(std::time::Duration::from_secs(60), |act, ctx| {
-            info!("reloading realtime data");
+            info!(act.log, "reloading realtime data");
             act.update_realtime_data(ctx);
         });
     }

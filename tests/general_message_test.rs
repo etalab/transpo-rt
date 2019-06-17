@@ -55,6 +55,7 @@ fn create_mock_feed_message() -> transit_realtime::FeedMessage {
 
 #[test]
 fn general_message_integration_test() {
+    let _log_guard = utils::init_log();
     let gtfs_rt = create_mock_feed_message();
     let _server = utils::run_simple_gtfs_rt_server(gtfs_rt);
 

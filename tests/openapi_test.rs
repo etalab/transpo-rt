@@ -6,6 +6,7 @@ mod utils;
 
 #[test]
 fn openapi_test() {
+    let _log_guard = utils::init_log();
     let mut srv = utils::make_simple_test_server();
 
     let request = srv.client(http::Method::GET, "/spec").finish().unwrap();

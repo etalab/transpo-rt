@@ -10,6 +10,7 @@ fn string(time: &Option<DateTime>) -> Option<String> {
 
 #[test]
 fn sp_monitoring_integration_test() {
+    let _log_guard = utils::init_log();
     let mut srv = utils::make_simple_test_server();
 
     let request = srv
@@ -247,6 +248,7 @@ fn create_mock_feed_message() -> transit_realtime::FeedMessage {
 // but we mock a gtfs_rt saying that the bus will be 30s late
 #[test]
 fn sp_monitoring_relatime_integration_test() {
+    let _log_guard = utils::init_log();
     let gtfs_rt = create_mock_feed_message();
     let _server = utils::run_simple_gtfs_rt_server(gtfs_rt);
 

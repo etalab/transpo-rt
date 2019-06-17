@@ -1,5 +1,4 @@
 use actix_web::server;
-use env_logger::{Builder, Env};
 use failure::format_err;
 use failure::ResultExt;
 use structopt::StructOpt;
@@ -79,7 +78,7 @@ fn get_datasets(params: &Params) -> Result<Datasets, failure::Error> {
 }
 
 fn main() {
-    Builder::from_env(Env::default().default_filter_or("info")).init();
+    let _log_guard = transpo_rt::utils::init_logger();
 
     let params = Params::from_args();
     let sentry = sentry::init(params.sentry.clone().unwrap_or_else(|| "".to_owned()));

@@ -7,7 +7,7 @@ pub mod transit_realtime {
     include!(concat!(env!("OUT_DIR"), "/transit_realtime.rs"));
 }
 #[macro_use]
-pub(crate) mod utils;
+pub mod utils;
 
 pub mod actors;
 pub mod datasets;
