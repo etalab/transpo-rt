@@ -196,7 +196,6 @@ fn create_schema() -> oa::Spec {
 }
 
 pub fn documentation(_req: &HttpRequest<Datasets>) -> Json<openapi::v3_0::Spec> {
-    use openapi_schema::OpenapiSchema;
     let mut spec = create_schema();
 
     crate::siri_lite::SiriResponse::generate_schema(&mut spec);
