@@ -2,7 +2,7 @@ use crate::actors::{BaseScheduleReloader, DatasetActor, RealTimeReloader};
 use crate::datasets;
 use crate::datasets::{Dataset, DatasetInfo, Datasets, Period};
 use crate::routes::{
-    documentation, general_message_query, gtfs_rt, gtfs_rt_json, list_datasets, sp_discovery,
+    api_entry_point, documentation, general_message_query, gtfs_rt, gtfs_rt_json, sp_discovery,
     status_query, stop_monitoring_query,
 };
 use actix::Actor;
@@ -21,8 +21,7 @@ pub fn create_dataset_actors(
     slog_scope::scope(&logger, || {
         log::info!("creating actors");
         let dataset =
-            Dataset::try_from_path(&dataset_info.id, &dataset_info.gtfs, &generation_period)
-                .unwrap();
+            Dataset::try_from_dataset_info(dataset_info.clone(), &generation_period).unwrap();
         let arc_dataset = Arc::new(dataset);
         let rt_dataset =
             datasets::RealTimeDataset::new(arc_dataset.clone(), &dataset_info.gtfs_rt_urls);
@@ -33,8 +32,7 @@ pub fn create_dataset_actors(
         let dataset_actors_addr = dataset_actors.start();
         let base_schedule_reloader = BaseScheduleReloader {
             feed_construction_info: datasets::FeedConstructionInfo {
-                id: dataset_info.id.clone(),
-                feed_path: dataset_info.gtfs.clone(),
+                dataset_info: dataset_info.clone(),
                 generation_period: generation_period.clone(),
             },
             dataset_actor: dataset_actors_addr.clone(),
@@ -75,14 +73,30 @@ pub fn create_datasets_servers(
                 .middleware(middleware::Logger::default())
                 .middleware(sentry_actix::SentryMiddleware::new())
                 .middleware(Cors::build().allowed_methods(vec!["GET"]).finish())
-                .resource("/", |r| r.f(status_query))
-                .resource("/gtfs-rt", |r| r.f(gtfs_rt))
-                .resource("/gtfs-rt.json", |r| r.f(gtfs_rt_json))
-                .scope("/siri/2.0/", |scope| {
+                .resource("/", |r| {
+                    r.name("dataset");
+                    r.f(status_query)
+                })
+                .resource("/gtfs-rt", |r| {
+                    r.name("gtfs-rt");
+                    r.f(gtfs_rt)
+                })
+                .resource("/gtfs-rt.json", |r| {
+                    r.name("gtfs-rt.json");
+                    r.f(gtfs_rt_json)
+                })
+                .scope("/siri/2.0", |scope| {
                     scope
-                        .resource("/stoppoints-discovery.json", |r| r.with(sp_discovery))
-                        .resource("/stop-monitoring.json", |r| r.with(stop_monitoring_query))
+                        .resource("/stoppoints-discovery.json", |r| {
+                            r.name("stoppoints-discovery");
+                            r.with(sp_discovery)
+                        })
+                        .resource("/stop-monitoring.json", |r| {
+                            r.name("stop-monitoring");
+                            r.with(stop_monitoring_query)
+                        })
                         .resource("/general-message.json", |r| {
+                            r.name("general-message");
                             r.with_async(general_message_query)
                         })
                 })
@@ -101,8 +115,14 @@ pub fn create_server(
             App::with_state(datasets.clone())
                 .middleware(middleware::Logger::default())
                 .middleware(Cors::build().allowed_methods(vec!["GET"]).finish())
-                .resource("/", |r| r.f(list_datasets))
-                .resource("/spec", |r| r.f(documentation))
+                .resource("/", |r| {
+                    r.name("entrypoint");
+                    r.f(api_entry_point)
+                })
+                .resource("/spec", |r| {
+                    r.name("documentation");
+                    r.f(documentation)
+                })
                 .boxed(),
         ))
         .collect()

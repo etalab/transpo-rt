@@ -1244,7 +1244,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "openapi"
 version = "0.1.5"
-source = "git+https://github.com/antoine-de/openapi?rev=f23e4842532fd804d2597f6f8b8b09067e54e9c9#f23e4842532fd804d2597f6f8b8b09067e54e9c9"
+source = "git+https://github.com/antoine-de/openapi?rev=11f732b373d2dc1d725f77a245fac3677b51318b#11f732b373d2dc1d725f77a245fac3677b51318b"
 dependencies = [
  "error-chain 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "failure 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1259,20 +1259,20 @@ dependencies = [
 [[package]]
 name = "openapi-schema"
 version = "0.1.0"
-source = "git+https://github.com/antoine-de/openapi-schema.git?rev=610cd52#610cd523687b46e934c4b4d8db989caad863cdf4"
+source = "git+https://github.com/antoine-de/openapi-schema.git?rev=7e7c373e8b9f96dd81c7aaae0d2d307d1e82ff40#7e7c373e8b9f96dd81c7aaae0d2d307d1e82ff40"
 dependencies = [
  "chrono 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "openapi 0.1.5 (git+https://github.com/antoine-de/openapi?rev=f23e4842532fd804d2597f6f8b8b09067e54e9c9)",
- "openapi-schema-derive 0.1.0 (git+https://github.com/antoine-de/openapi-schema.git?rev=610cd52)",
+ "openapi 0.1.5 (git+https://github.com/antoine-de/openapi?rev=11f732b373d2dc1d725f77a245fac3677b51318b)",
+ "openapi-schema-derive 0.1.0 (git+https://github.com/antoine-de/openapi-schema.git?rev=7e7c373e8b9f96dd81c7aaae0d2d307d1e82ff40)",
  "serde_json 1.0.39 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "openapi-schema-derive"
 version = "0.1.0"
-source = "git+https://github.com/antoine-de/openapi-schema.git?rev=610cd52#610cd523687b46e934c4b4d8db989caad863cdf4"
+source = "git+https://github.com/antoine-de/openapi-schema.git?rev=7e7c373e8b9f96dd81c7aaae0d2d307d1e82ff40#7e7c373e8b9f96dd81c7aaae0d2d307d1e82ff40"
 dependencies = [
- "openapi 0.1.5 (git+https://github.com/antoine-de/openapi?rev=f23e4842532fd804d2597f6f8b8b09067e54e9c9)",
+ "openapi 0.1.5 (git+https://github.com/antoine-de/openapi?rev=11f732b373d2dc1d725f77a245fac3677b51318b)",
  "proc-macro2 0.4.28 (registry+https://github.com/rust-lang/crates.io-index)",
  "quote 0.6.12 (registry+https://github.com/rust-lang/crates.io-index)",
  "syn 0.15.32 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1761,6 +1761,16 @@ version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "semver 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "rustic_hal"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "serde 1.0.90 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_derive 1.0.90 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_json 1.0.39 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -2497,12 +2507,13 @@ dependencies = [
  "log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "maplit 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "mockito 0.15.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "openapi 0.1.5 (git+https://github.com/antoine-de/openapi?rev=f23e4842532fd804d2597f6f8b8b09067e54e9c9)",
- "openapi-schema 0.1.0 (git+https://github.com/antoine-de/openapi-schema.git?rev=610cd52)",
+ "openapi 0.1.5 (git+https://github.com/antoine-de/openapi?rev=11f732b373d2dc1d725f77a245fac3677b51318b)",
+ "openapi-schema 0.1.0 (git+https://github.com/antoine-de/openapi-schema.git?rev=7e7c373e8b9f96dd81c7aaae0d2d307d1e82ff40)",
  "prost 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "prost-build 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "prost-derive 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "reqwest 0.9.15 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rustic_hal 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "sentry 0.13.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "sentry-actix 0.13.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.90 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2519,6 +2530,7 @@ dependencies = [
  "time-parse 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "transit_model 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "transit_model_builder 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "url 1.7.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -3026,9 +3038,9 @@ dependencies = [
 "checksum num-traits 0.2.6 (registry+https://github.com/rust-lang/crates.io-index)" = "0b3a5d7cc97d6d30d8b9bc8fa19bf45349ffe46241e8816f50f62f6d6aaabee1"
 "checksum num_cpus 1.10.0 (registry+https://github.com/rust-lang/crates.io-index)" = "1a23f0ed30a54abaa0c7e83b1d2d87ada7c3c23078d1d87815af3e3b6385fbba"
 "checksum numtoa 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "b8f8bdf33df195859076e54ab11ee78a1b208382d3a26ec40d142ffc1ecc49ef"
-"checksum openapi 0.1.5 (git+https://github.com/antoine-de/openapi?rev=f23e4842532fd804d2597f6f8b8b09067e54e9c9)" = "<none>"
-"checksum openapi-schema 0.1.0 (git+https://github.com/antoine-de/openapi-schema.git?rev=610cd52)" = "<none>"
-"checksum openapi-schema-derive 0.1.0 (git+https://github.com/antoine-de/openapi-schema.git?rev=610cd52)" = "<none>"
+"checksum openapi 0.1.5 (git+https://github.com/antoine-de/openapi?rev=11f732b373d2dc1d725f77a245fac3677b51318b)" = "<none>"
+"checksum openapi-schema 0.1.0 (git+https://github.com/antoine-de/openapi-schema.git?rev=7e7c373e8b9f96dd81c7aaae0d2d307d1e82ff40)" = "<none>"
+"checksum openapi-schema-derive 0.1.0 (git+https://github.com/antoine-de/openapi-schema.git?rev=7e7c373e8b9f96dd81c7aaae0d2d307d1e82ff40)" = "<none>"
 "checksum openssl 0.10.20 (registry+https://github.com/rust-lang/crates.io-index)" = "5a0d6b781aac4ac1bd6cafe2a2f0ad8c16ae8e1dd5184822a16c50139f8838d9"
 "checksum openssl-probe 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "77af24da69f9d9341038eba93a073b1fdaaa1b788221b00a69bce9e762cb32de"
 "checksum openssl-sys 0.9.43 (registry+https://github.com/rust-lang/crates.io-index)" = "33c86834957dd5b915623e94f2f4ab2c70dd8f6b70679824155d5ae21dbd495d"
@@ -3080,6 +3092,7 @@ dependencies = [
 "checksum ring 0.13.5 (registry+https://github.com/rust-lang/crates.io-index)" = "2c4db68a2e35f3497146b7e4563df7d4773a2433230c5e4b448328e31740458a"
 "checksum rustc-demangle 0.1.14 (registry+https://github.com/rust-lang/crates.io-index)" = "ccc78bfd5acd7bf3e89cffcf899e5cb1a52d6fafa8dec2739ad70c9577a57288"
 "checksum rustc_version 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)" = "138e3e0acb6c9fb258b19b67cb8abd63c00679d2851805ea151465464fe9030a"
+"checksum rustic_hal 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "2b1ccd06d11b47d956ce9a15db7047ee1537452f71a1fe4197f1ce7255183b4d"
 "checksum ryu 0.2.7 (registry+https://github.com/rust-lang/crates.io-index)" = "eb9e9b8cde282a9fe6a42dd4681319bfb63f121b8a8ee9439c6f4107e58a46f7"
 "checksum safemem 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)" = "8dca453248a96cb0749e36ccdfe2b0b4e54a61bfef89fb97ec621eb8e0a93dd9"
 "checksum same-file 1.0.4 (registry+https://github.com/rust-lang/crates.io-index)" = "8f20c4be53a8a1ff4c1f1b2bd14570d2f634628709752f0702ecdd2b3f9a5267"

@@ -63,8 +63,7 @@ pub struct UpdatedTimetable {
 
 #[derive(Clone)]
 pub struct FeedConstructionInfo {
-    pub id: String,
-    pub feed_path: String,
+    pub dataset_info: DatasetInfo,
     pub generation_period: Period,
 }
 
@@ -205,10 +204,9 @@ impl HasTimezone for transit_model::Model {
 }
 
 impl Dataset {
-    pub fn new(
-        id: &str,
+    fn new(
+        dataset_info: DatasetInfo,
         ntm: transit_model::Model,
-        gtfs_path: &str,
         generation_period: &Period,
     ) -> Self {
         // To correctly handle GTFS-RT stream we need the dataset's timezone,
@@ -226,26 +224,25 @@ impl Dataset {
             timezone,
             loaded_at: chrono::Utc::now(),
             feed_construction_info: FeedConstructionInfo {
-                feed_path: gtfs_path.to_owned(),
+                dataset_info,
                 generation_period: generation_period.clone(),
-                id: id.to_owned(),
             },
         }
     }
 
-    pub fn try_from_path(
-        id: &str,
-        gtfs: &str,
+    pub fn try_from_dataset_info(
+        dataset_info: DatasetInfo,
         generation_period: &Period,
     ) -> Result<Self, failure::Error> {
         log::info!("reading from path");
+        let gtfs = dataset_info.gtfs.as_str();
         let nav_data = if gtfs.starts_with("http") {
             transit_model::gtfs::read_from_url(gtfs, None::<&str>, None)?
         } else {
             transit_model::gtfs::read_from_zip(gtfs, None::<&str>, None)?
         };
         log::info!("gtfs read");
-        Ok(Self::new(id, nav_data, gtfs, &generation_period))
+        Ok(Self::new(dataset_info, nav_data, &generation_period))
     }
 }
 
