@@ -20,6 +20,7 @@ pub struct TripUpdate {
     pub update_dt: chrono::DateTime<chrono::Utc>,
 }
 
+#[derive(Default)]
 pub struct ModelUpdate {
     pub trips: HashMap<DatedVehicleJourney, TripUpdate>,
 }
@@ -111,22 +112,91 @@ fn get_date(
     )
 }
 
+// TODO move this in transit_model ?
+fn make_navitia_route_id(gtfs_route_id: &str, direction_id: u32) -> Result<String, failure::Error> {
+    match direction_id {
+        0 => Ok(gtfs_route_id.to_owned()),
+        1 => Ok(format!("{}_R", gtfs_route_id)),
+        n => Err(format_err!("{} is not a valid GTFS direction", n)),
+    }
+}
+
+// TODO move this in transit_model ?
+fn find_corresponging_vjs(
+    model: &transit_model::Model,
+    gtfs_route_id: &str,
+    direction_id: u32,
+    start_date: chrono::NaiveDate,
+    start_time: transit_model::objects::Time,
+) -> Result<Vec<Idx<transit_model::objects::VehicleJourney>>, failure::Error> {
+    let route_id = make_navitia_route_id(gtfs_route_id, direction_id)?;
+
+    let route_idx = model
+        .routes
+        .get_idx(&route_id)
+        .ok_or_else(|| format_err!("impossible to find route {}", route_id))?;
+
+    Ok(model
+        .get_corresponding_from_idx(route_idx)
+        .into_iter()
+        .map(|vj_idx| (&model.vehicle_journeys[vj_idx], vj_idx))
+        .filter(|(vj, _)| {
+            // we want all the vjs that are valid this day
+            let service = model.calendars.get(&vj.service_id).unwrap();
+            service.dates.contains(&start_date)
+        })
+        .filter(|(vj, _)| {
+            // and the trip should start at start_time
+            vj.stop_times
+                .iter()
+                .next()
+                .map(|st| st.departure_time == start_time)
+                .unwrap_or(false)
+        })
+        .map(|(_, vj_idx)| vj_idx)
+        .collect())
+}
+
 fn get_dated_vj(
     model: &transit_model::Model,
     trip: &transit_realtime::TripDescriptor,
     entity_id: &str,
     timezone: chrono_tz::Tz,
 ) -> Result<DatedVehicleJourney, failure::Error> {
-    let vj_idx = model
-        .vehicle_journeys
-        .get_idx(trip.trip_id())
-        .ok_or_else(|| {
-            format_err!(
-                "impossible to find trip {} for entity {}",
+    let vj_idx = model.vehicle_journeys.get_idx(trip.trip_id());
+
+    let vj_idx = if let Some(vj_idx) = vj_idx {
+        vj_idx
+    } else {
+        // we did not find the vj by it's id, we'll try to find it with the route_id
+        if let (Some(route_id), Some(direction_id), Some(start_time)) =
+            (&trip.route_id, trip.direction_id, &trip.start_time)
+        {
+            use std::str::FromStr;
+            let date = get_date(&trip, timezone)?;
+            let time = transit_model::objects::Time::from_str(start_time)?;
+            let vjs = find_corresponging_vjs(model, &route_id, direction_id, date, time)?;
+
+            match vjs.len() {
+                1 => Ok(vjs[0]),
+                0 => Err(format_err!(
+                    "for entity {}, impossible to find a matching trip",
+                    &entity_id
+                )),
+                l => Err(format_err!(
+                    "for entity {}, there is no trip id, and {} matching trips, we can't choose one",
+                    &entity_id,
+                    l
+                )),
+            }
+        } else {
+            Err(format_err!(
+                "impossible to find trip {} for entity {} and no route_id was provided",
                 &trip.trip_id(),
                 &entity_id
-            )
-        })?;
+            ))
+        }?
+    };
 
     let date = get_date(trip, timezone)?;
 
@@ -141,9 +211,7 @@ pub fn get_model_update(
     timezone: chrono_tz::Tz,
 ) -> Result<ModelUpdate, Error> {
     debug!("applying a trip update");
-    let mut model_update = ModelUpdate {
-        trips: HashMap::new(),
-    };
+    let mut model_update = ModelUpdate::default();
     let mut unhandled_entities = 0;
     for gtfs_rt in gtfs_rts {
         for entity in &gtfs_rt.entity {
@@ -177,4 +245,176 @@ pub fn get_model_update(
     );
     debug!("{} unhandled entities", unhandled_entities);
     Ok(model_update)
+}
+
+#[cfg(test)]
+mod test {
+    use crate::transit_realtime as tr;
+
+    fn make_fake_model() -> transit_model::Model {
+        transit_model_builder::ModelBuilder::default()
+            .calendar("c", |c| {
+                c.dates.insert(chrono::NaiveDate::from_ymd(2019, 2, 6));
+            })
+            .route("l1", |r| {
+                r.name = "ligne 1".to_owned();
+            })
+            .route("l1_R", |r| {
+                r.name = "ligne 1 backward".to_owned();
+            })
+            .vj("vj1", |vj_builder| {
+                vj_builder
+                    .route("l1")
+                    .calendar("c")
+                    .st("A", "10:00:00", "10:01:00")
+                    .st("B", "11:00:00", "11:01:00")
+                    .st("C", "12:00:00", "12:01:00");
+            })
+            .vj("vj2", |vj_builder| {
+                vj_builder
+                    .route("l1")
+                    .calendar("c")
+                    .st("B", "11:30:00", "11:31:00")
+                    .st("D", "15:00:00", "15:01:00");
+            })
+            .build()
+    }
+
+    #[test]
+    fn corresponding_vj_with_id() {
+        let trip_descriptor = tr::TripDescriptor {
+            trip_id: Some("vj1".to_owned()),
+            start_date: Some("20190206".to_owned()),
+            ..Default::default()
+        };
+
+        let model = make_fake_model();
+
+        let dated_vj = super::get_dated_vj(&model, &trip_descriptor, "entity_id", chrono_tz::UTC);
+
+        // we should be able to find the vj since the id is valid
+        let vj_idx = dated_vj.unwrap().vj_idx;
+        let vj = &model.vehicle_journeys[vj_idx];
+        assert_eq!(&vj.id, "vj1");
+    }
+
+    #[test]
+    fn corresponding_vj_without_id() {
+        let trip_descriptor = tr::TripDescriptor {
+            start_date: Some("20190206".to_owned()),
+            ..Default::default()
+        };
+        let model = make_fake_model();
+        let dated_vj = super::get_dated_vj(&model, &trip_descriptor, "entity_id", chrono_tz::UTC);
+        // we shouldn't be able to find a vj
+        assert_eq!(
+            &format!("{}", dated_vj.unwrap_err()),
+            "impossible to find trip  for entity entity_id and no route_id was provided"
+        );
+    }
+
+    #[test]
+    fn corresponding_vj_with_wrong_id() {
+        let trip_descriptor = tr::TripDescriptor {
+            trip_id: Some("id_that_does_not_exist".to_owned()),
+            start_date: Some("20190206".to_owned()),
+            ..Default::default()
+        };
+        let model = make_fake_model();
+        let dated_vj = super::get_dated_vj(&model, &trip_descriptor, "entity_id", chrono_tz::UTC);
+        // we shouldn't be able to find a vj
+        assert_eq!(&format!("{}", dated_vj.unwrap_err()),
+        "impossible to find trip id_that_does_not_exist for entity entity_id and no route_id was provided");
+    }
+
+    #[test]
+    fn corresponding_vj_with_wrong_id_but_way_to_find_vj() {
+        // the trip_id is not good, but with the route_id, the direction, and the start date time
+        // we are able to identify an unique vj
+        // cf: "Alternative trip matching"
+        // in https://developers.google.com/transit/gtfs-realtime/guides/trip-updates
+        let trip_descriptor = tr::TripDescriptor {
+            trip_id: Some("id_that_does_not_exist".to_owned()),
+            route_id: Some("l1".to_owned()),
+            start_date: Some("20190206".to_owned()),
+            start_time: Some("10:01:00".to_owned()),
+            direction_id: Some(0),
+            ..Default::default()
+        };
+        let model = make_fake_model();
+        let dated_vj = super::get_dated_vj(&model, &trip_descriptor, "entity_id", chrono_tz::UTC);
+
+        // we should be able to find the vj since the id is valid
+        let vj_idx = dated_vj.unwrap().vj_idx;
+        let vj = &model.vehicle_journeys[vj_idx];
+        assert_eq!(&vj.id, "vj1");
+    }
+
+    #[test]
+    fn corresponding_vj_with_wrong_id_but_no_way_to_find_vj() {
+        // the trip_id is not good, but with the route_id
+        // we are able to identify an unique vj
+        // the problem is that this vj does not run on the given date, there is an error
+        let trip_descriptor = tr::TripDescriptor {
+            trip_id: Some("id_that_does_not_exist".to_owned()),
+            route_id: Some("l1".to_owned()),
+            start_date: Some("20190210".to_owned()),
+            start_time: Some("10:01:00".to_owned()),
+            direction_id: Some(0),
+            ..Default::default()
+        };
+        let model = make_fake_model();
+        let dated_vj = super::get_dated_vj(&model, &trip_descriptor, "entity_id", chrono_tz::UTC);
+        assert_eq!(
+            &format!("{}", dated_vj.unwrap_err()),
+            "for entity entity_id, impossible to find a matching trip"
+        );
+    }
+
+    #[test]
+    fn corresponding_vj_with_wrong_id_but_too_many_matching_vj() {
+        // the trip_id is not good, and we are able to match some vj,
+        // but more than one, we cannot chose, there is an error
+        let trip_descriptor = tr::TripDescriptor {
+            trip_id: Some("id_that_does_not_exist".to_owned()),
+            route_id: Some("l1".to_owned()),
+            start_date: Some("20190206".to_owned()),
+            start_time: Some("10:01:00".to_owned()),
+            direction_id: Some(1), // 1 means backward direction, so in transit_model it will means route "l1_R"
+            ..Default::default()
+        };
+        let model = transit_model_builder::ModelBuilder::default()
+            .calendar("c", |c| {
+                c.dates.insert(chrono::NaiveDate::from_ymd(2019, 2, 6));
+            })
+            .route("l1", |r| {
+                r.name = "ligne 1".to_owned();
+            })
+            .route("l1_R", |r| {
+                r.name = "ligne 1 backward".to_owned();
+            })
+            .vj("vj1", |vj_builder| {
+                vj_builder
+                    .route("l1_R")
+                    .calendar("c")
+                    .st("A", "10:00:00", "10:01:00")
+                    .st("B", "11:00:00", "11:01:00")
+                    .st("C", "12:00:00", "12:01:00");
+            })
+            .vj("vj2", |vj_builder| {
+                vj_builder
+                    .route("l1_R")
+                    .calendar("c")
+                    .st("A", "10:00:00", "10:01:00")
+                    .st("B", "11:00:00", "11:01:00")
+                    .st("C", "12:00:00", "12:01:00");
+            })
+            .build();
+        let dated_vj = super::get_dated_vj(&model, &trip_descriptor, "entity_id", chrono_tz::UTC);
+        // vj1 and vj2 are eligible, there is an error
+        assert_eq!(
+            &format!("{}", dated_vj.unwrap_err()),
+            "for entity entity_id, there is no trip id, and 2 matching trips, we can\'t choose one"
+        );
+    }
 }
