@@ -30,8 +30,8 @@ fn openapi_test() {
             "/",
             "/spec",
             "/{dataset}",
+            "/{dataset}/gtfs-rt",
             "/{dataset}/gtfs-rt.json",
-            "/{dataset}/gtfs.json",
             "/{dataset}/siri/2.0/general-message.json",
             "/{dataset}/siri/2.0/stop-monitoring.json",
             "/{dataset}/siri/2.0/stoppoints-discovery.json",
@@ -49,8 +49,8 @@ fn openapi_test() {
     assert_eq!(nb_params("/"), 0);
     assert_eq!(nb_params("/spec"), 0);
     assert_eq!(nb_params("/{dataset}"), 1);
+    assert_eq!(nb_params("/{dataset}/gtfs-rt"), 1);
     assert_eq!(nb_params("/{dataset}/gtfs-rt.json"), 1);
-    assert_eq!(nb_params("/{dataset}/gtfs.json"), 1);
     assert_eq!(nb_params("/{dataset}/siri/2.0/general-message.json"), 2);
     assert_eq!(nb_params("/{dataset}/siri/2.0/stop-monitoring.json"), 7);
     assert_eq!(

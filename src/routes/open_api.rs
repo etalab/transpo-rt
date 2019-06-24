@@ -188,7 +188,7 @@ fn create_schema() -> oa::Spec {
     );
     add_path_item_with_undefined_response(
         &mut spec,
-        "/{dataset}/gtfs.json",
+        "/{dataset}/gtfs-rt",
         "raw gtfs-rt (protobuf)",
         "application/x-protobuf",
     );
