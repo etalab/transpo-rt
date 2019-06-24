@@ -233,15 +233,19 @@ impl Dataset {
         }
     }
 
-    pub fn from_path(id: &str, gtfs: &str, generation_period: &Period) -> Self {
+    pub fn try_from_path(
+        id: &str,
+        gtfs: &str,
+        generation_period: &Period,
+    ) -> Result<Self, failure::Error> {
         log::info!("reading from path");
         let nav_data = if gtfs.starts_with("http") {
-            transit_model::gtfs::read_from_url(gtfs, None::<&str>, None).unwrap()
+            transit_model::gtfs::read_from_url(gtfs, None::<&str>, None)?
         } else {
-            transit_model::gtfs::read_from_zip(gtfs, None::<&str>, None).unwrap()
+            transit_model::gtfs::read_from_zip(gtfs, None::<&str>, None)?
         };
         log::info!("gtfs read");
-        Self::new(id, nav_data, gtfs, &generation_period)
+        Ok(Self::new(id, nav_data, gtfs, &generation_period))
     }
 }
 

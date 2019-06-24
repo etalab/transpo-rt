@@ -17,9 +17,9 @@ pub struct BaseScheduleReloader {
 }
 
 impl BaseScheduleReloader {
-    fn update_data(&self) {
+    fn update_data(&self, ctx: &mut actix::Context<Self>) {
         slog_scope::scope(&self.log, || {
-            let new_dataset = Dataset::from_path(
+            let new_dataset = Dataset::try_from_path(
                 &self.feed_construction_info.id,
                 &self.feed_construction_info.feed_path,
                 &crate::datasets::Period {
@@ -28,9 +28,19 @@ impl BaseScheduleReloader {
                 },
             );
 
-            // we send those data as a BaseScheduleReloader message, for the DatasetActor to load those new data
-            self.dataset_actor
-                .do_send(UpdateBaseSchedule(Arc::new(new_dataset)));
+            match new_dataset {
+                Err(e) => {
+                    log::warn!("impossible to update dataset because of: {}", e);
+                    log::warn!("rescheduling data loading in 5 mn");
+                    ctx.run_later(std::time::Duration::from_secs(5 * 60), |act, ctx| {
+                        act.update_data(ctx)
+                    });
+                }
+                Ok(d) => {
+                    // we send those data as a BaseScheduleReloader message, for the DatasetActor to load those new data
+                    self.dataset_actor.do_send(UpdateBaseSchedule(Arc::new(d)));
+                }
+            }
         });
     }
 }
@@ -40,9 +50,9 @@ impl actix::Actor for BaseScheduleReloader {
 
     fn started(&mut self, ctx: &mut Self::Context) {
         info!(self.log, "Starting the base schedule updater actor");
-        ctx.run_interval(std::time::Duration::from_secs(60 * 60 * 24), |act, _ctx| {
+        ctx.run_interval(std::time::Duration::from_secs(60 * 60 * 24), |act, ctx| {
             info!(act.log, "reloading baseschedule data");
-            act.update_data();
+            act.update_data(ctx);
         });
     }
 }
