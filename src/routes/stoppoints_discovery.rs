@@ -7,6 +7,10 @@ use actix::Addr;
 use actix_web::{AsyncResponder, Error, Json, Query, State};
 use futures::future::Future;
 
+fn default_limit() -> usize {
+    20
+}
+
 #[derive(Deserialize, Clone)]
 pub struct Params {
     q: Option<String>,
@@ -18,6 +22,10 @@ pub struct Params {
     lower_right_longitude: Option<f64>,
     #[serde(rename = "BoundingBoxStructure.LowerRight.Latitude")]
     lower_right_latitude: Option<f64>,
+    #[serde(default = "default_limit")]
+    limit: usize,
+    #[serde(default)]
+    offset: usize,
 }
 
 impl Params {
@@ -28,6 +36,8 @@ impl Params {
             make_param::<f64>(spec, "BoundingBoxStructure.UpperLeft.Latitude", false),
             make_param::<f64>(spec, "BoundingBoxStructure.LowerRight.Longitude", false),
             make_param::<f64>(spec, "BoundingBoxStructure.LowerRight.Latitude", false),
+            make_param::<usize>(spec, "limit", false),
+            make_param::<usize>(spec, "offset", false),
         ]
     }
 }
@@ -57,6 +67,8 @@ pub fn filter(data: &crate::datasets::Dataset, request: Params) -> SiriResponse 
         .filter(|(_, s)| s.name.to_lowercase().contains(&q))
         .filter(|(_, s)| bounding_box_matches(&s.coord, min_lon, max_lon, min_lat, max_lat))
         .map(|(id, _)| AnnotatedStopPoint::from(id, &model))
+        .skip(request.offset)
+        .take(request.limit)
         .collect();
 
     SiriResponse {
