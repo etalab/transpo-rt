@@ -19,9 +19,8 @@ pub struct BaseScheduleReloader {
 impl BaseScheduleReloader {
     fn update_data(&self, ctx: &mut actix::Context<Self>) {
         slog_scope::scope(&self.log, || {
-            let new_dataset = Dataset::try_from_path(
-                &self.feed_construction_info.id,
-                &self.feed_construction_info.feed_path,
+            let new_dataset = Dataset::try_from_dataset_info(
+                self.feed_construction_info.dataset_info.clone(),
                 &crate::datasets::Period {
                     begin: chrono::Local::today().naive_local(),
                     horizon: self.feed_construction_info.generation_period.horizon,
