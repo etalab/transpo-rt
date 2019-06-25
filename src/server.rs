@@ -20,7 +20,9 @@ pub fn create_dataset_actors(
     let logger = slog_scope::logger().new(slog::o!("instance" => dataset_info.id.clone()));
     slog_scope::scope(&logger, || {
         log::info!("creating actors");
-        let dataset = Dataset::from_path(&dataset_info.id, &dataset_info.gtfs, &generation_period);
+        let dataset =
+            Dataset::try_from_path(&dataset_info.id, &dataset_info.gtfs, &generation_period)
+                .unwrap();
         let arc_dataset = Arc::new(dataset);
         let rt_dataset =
             datasets::RealTimeDataset::new(arc_dataset.clone(), &dataset_info.gtfs_rt_urls);
