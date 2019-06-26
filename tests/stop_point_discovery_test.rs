@@ -10,6 +10,11 @@ fn sp_discovery_integration_test() {
     let _log_guard = utils::init_log();
     let mut srv = utils::make_simple_test_server();
 
+    filter_query(&mut srv);
+    limit_query(&mut srv);
+}
+
+fn filter_query(srv: &mut actix_web::test::TestServer) {
     let request = srv
         .client(
             http::Method::GET,
@@ -49,4 +54,44 @@ fn sp_discovery_integration_test() {
         vec!["CITY_R".into(), "CITY".into()].into_iter().collect()
     );
     //TODO more tests
+}
+
+fn limit_query(srv: &mut actix_web::test::TestServer) {
+    let request = srv
+        .client(
+            http::Method::GET,
+            "/default/siri/2.0/stoppoints-discovery.json?",
+        )
+        .finish()
+        .unwrap();
+    let response = srv.execute(request.send()).unwrap();
+
+    assert!(response.status().is_success());
+
+    let bytes = srv.execute(response.body()).unwrap();
+    let body = std::str::from_utf8(&bytes).unwrap();
+    let resp: SiriResponse = serde_json::from_str(body).unwrap();
+
+    // with no filtering there are 9 stops
+    let spd = resp.siri.stop_points_delivery.unwrap();
+    assert_eq!(spd.annotated_stop_point.len(), 9);
+
+    let request = srv
+        .client(
+            http::Method::GET,
+            "/default/siri/2.0/stoppoints-discovery.json?limit=3",
+        )
+        .finish()
+        .unwrap();
+    let response = srv.execute(request.send()).unwrap();
+
+    assert!(response.status().is_success());
+
+    let bytes = srv.execute(response.body()).unwrap();
+    let body = std::str::from_utf8(&bytes).unwrap();
+    let resp: SiriResponse = serde_json::from_str(body).unwrap();
+
+    // if we ask for only 3 stops, we got only 3
+    let spd = resp.siri.stop_points_delivery.unwrap();
+    assert_eq!(spd.annotated_stop_point.len(), 3);
 }

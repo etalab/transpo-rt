@@ -55,7 +55,7 @@ fn openapi_test() {
     assert_eq!(nb_params("/{dataset}/siri/2.0/stop-monitoring.json"), 7);
     assert_eq!(
         nb_params("/{dataset}/siri/2.0/stoppoints-discovery.json"),
-        6
+        8
     );
 
     // we don't check all the responses, just that there is at least the definition of SiriResponse
