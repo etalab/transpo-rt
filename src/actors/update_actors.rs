@@ -31,6 +31,13 @@ impl BaseScheduleReloader {
                 Err(e) => {
                     log::warn!("impossible to update dataset because of: {}", e);
                     log::warn!("rescheduling data loading in 5 mn");
+
+                    // trace error in sentry
+                    sentry::Hub::current().configure_scope(|scope| {
+                        scope.set_tag("dataset", &self.feed_construction_info.dataset_info.id);
+                    });
+                    sentry::integrations::failure::capture_error(&e);
+
                     ctx.run_later(std::time::Duration::from_secs(5 * 60), |act, ctx| {
                         act.update_data(ctx)
                     });
