@@ -2,7 +2,7 @@
 
 Simple API for public transport realtime data.
 
-This API reads a public transport base schedule (a [GTFS](http://gtfs.org/)) and some realtime data (for the moment in [GTFS_RT](https://developers.google.com/transit/gtfs-realtime/) to provide realtime feeds in [siri lite](http://www.normes-donnees-tc.org/format-dechange/donnees-temps-reel/).
+This API reads a public transport base schedule (a [GTFS](http://gtfs.org/)) and some realtime data (for the moment in [GTFS_RT](https://developers.google.com/transit/gtfs-realtime/)) to provide realtime feeds in [siri lite](http://www.normes-donnees-tc.org/format-dechange/donnees-temps-reel/).
 
 ### Using
 
