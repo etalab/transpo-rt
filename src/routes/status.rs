@@ -17,7 +17,7 @@ pub struct Status {
 
 pub fn status_query(
     req: &HttpRequest<Addr<DatasetActor>>,
-) -> Box<Future<Item = Json<Status>, Error = Error>> {
+) -> Box<dyn Future<Item = Json<Status>, Error = Error>> {
     let q = req.clone();
     req.state()
         .send(GetDataset)

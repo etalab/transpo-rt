@@ -164,7 +164,7 @@ fn general_message(request: Params, rt_data: &RealTimeDataset) -> Result<SiriRes
 
 pub fn general_message_query(
     (actor_addr, query): (State<Addr<DatasetActor>>, Query<Params>),
-) -> Box<Future<Item = Json<SiriResponse>, Error = Error>> {
+) -> Box<dyn Future<Item = Json<SiriResponse>, Error = Error>> {
     actor_addr
         .send(GetRealtimeDataset)
         .map_err(Error::from)

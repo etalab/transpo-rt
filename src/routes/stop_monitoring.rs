@@ -231,7 +231,7 @@ fn stop_monitoring(
 
 pub fn stop_monitoring_query(
     (actor_addr, query): (State<Addr<DatasetActor>>, Query<Params>),
-) -> Box<Future<Item = Json<siri_lite::SiriResponse>, Error = Error>> {
+) -> Box<dyn Future<Item = Json<siri_lite::SiriResponse>, Error = Error>> {
     actor_addr
         .send(GetRealtimeDataset)
         .map_err(Error::from)

@@ -85,7 +85,7 @@ pub fn filter(data: &crate::datasets::Dataset, request: Params) -> SiriResponse 
 pub fn sp_discovery(
     actor_addr: State<Addr<DatasetActor>>,
     query: Query<Params>,
-) -> Box<Future<Item = Json<SiriResponse>, Error = Error>> {
+) -> Box<dyn Future<Item = Json<SiriResponse>, Error = Error>> {
     actor_addr
         .send(GetDataset)
         .map_err(Error::from)

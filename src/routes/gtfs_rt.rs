@@ -7,7 +7,7 @@ use futures::future::Future;
 
 pub fn gtfs_rt(
     req: &HttpRequest<Addr<DatasetActor>>,
-) -> Box<Future<Item = HttpResponse, Error = Error>> {
+) -> Box<dyn Future<Item = HttpResponse, Error = Error>> {
     req.state()
         .send(GetRealtimeDataset)
         .map_err(Error::from)
@@ -28,7 +28,7 @@ pub fn gtfs_rt(
 
 pub fn gtfs_rt_json(
     req: &HttpRequest<Addr<DatasetActor>>,
-) -> Box<Future<Item = Json<transit_realtime::FeedMessage>, Error = Error>> {
+) -> Box<dyn Future<Item = Json<transit_realtime::FeedMessage>, Error = Error>> {
     use bytes::IntoBuf;
     use prost::Message;
     req.state()
