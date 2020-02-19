@@ -2,8 +2,8 @@ use crate::actors::{BaseScheduleReloader, DatasetActor, RealTimeReloader};
 use crate::datasets;
 use crate::datasets::{Dataset, DatasetInfo, Datasets, Period};
 use crate::routes::{
-    api_entry_point, documentation, general_message_query, gtfs_rt, gtfs_rt_json, sp_discovery,
-    status_query, stop_monitoring_query,
+    api_entry_point, documentation, general_message_query, gtfs_rt, gtfs_rt_json, siri_endpoint,
+    sp_discovery, status_query, stop_monitoring_query,
 };
 use actix::Actor;
 use actix::Addr;
@@ -26,7 +26,7 @@ pub fn create_dataset_actors(
         let rt_dataset =
             datasets::RealTimeDataset::new(arc_dataset.clone(), &dataset_info.gtfs_rt_urls);
         let dataset_actors = DatasetActor {
-            gtfs: arc_dataset.clone(),
+            gtfs: arc_dataset,
             realtime: Arc::new(rt_dataset),
         };
         let dataset_actors_addr = dataset_actors.start();
@@ -87,6 +87,10 @@ pub fn create_datasets_servers(
                 })
                 .scope("/siri/2.0", |scope| {
                     scope
+                        .resource("", |r| {
+                            r.name("siri-lite");
+                            r.with(siri_endpoint)
+                        })
                         .resource("/stoppoints-discovery.json", |r| {
                             r.name("stoppoints-discovery");
                             r.with(sp_discovery)

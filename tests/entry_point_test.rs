@@ -9,6 +9,7 @@ fn entry_point_integration_test() {
 
     test_entrypoint(&mut srv);
     test_dataset_entrypoint(&mut srv);
+    test_siri_entrypoint(&mut srv);
 }
 
 fn test_entrypoint(srv: &mut actix_web::test::TestServer) {
@@ -80,6 +81,42 @@ fn test_dataset_entrypoint(srv: &mut actix_web::test::TestServer) {
                     },
                     "gtfs-rt.json": {
                         "href": &srv.url("/default/gtfs-rt.json")
+                    },
+                    "stop-monitoring": {
+                        "href": &srv.url("/default/siri/2.0/stop-monitoring.json")
+                    },
+                    "siri-lite": {
+                        "href": &srv.url("/default/siri/2.0")
+                    },
+                    "stoppoints-discovery": {
+                        "href": &srv.url("/default/siri/2.0/stoppoints-discovery.json")
+                    }
+                }
+            }
+        }
+    );
+}
+
+fn test_siri_entrypoint(srv: &mut actix_web::test::TestServer) {
+    let request = srv
+        .client(http::Method::GET, "/default/siri/2.0")
+        .finish()
+        .unwrap();
+    let response = srv.execute(request.send()).unwrap();
+    assert!(response.status().is_success());
+
+    let bytes = srv.execute(response.body()).unwrap();
+    let body = std::str::from_utf8(&bytes).unwrap();
+
+    let resp: serde_json::Value = serde_json::from_str(body).unwrap();
+
+    assert_eq!(
+        resp,
+        serde_json::json! {
+            {
+                "_links": {
+                    "general-message": {
+                        "href": &srv.url("/default/siri/2.0/general-message.json")
                     },
                     "stop-monitoring": {
                         "href": &srv.url("/default/siri/2.0/stop-monitoring.json")
