@@ -88,7 +88,7 @@ fn apply_rt_update(
     let mut nb_changes = 0;
     let mut cpt_incoherent_stops_id = 0;
 
-    for (idx, connection) in &mut data.timetable.connections.iter().enumerate() {
+    for (idx, connection) in data.timetable.connections.iter().enumerate() {
         let trip_update = parsed_trip_update.trips.get(&connection.dated_vj);
         if let Some(trip_update) = trip_update {
             let stop_time_update = trip_update
