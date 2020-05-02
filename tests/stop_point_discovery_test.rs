@@ -43,8 +43,11 @@ fn filter_query(srv: &mut actix_web::test::TestServer) {
         .unwrap();
 
     assert_eq!(stop1.stop_name, "E Main St / S Irving St (Demo)");
-    assert_eq!(stop1.location.longitude, -116.76218);
-    assert_eq!(stop1.location.latitude, 36.905697);
+    #[allow(clippy::float_cmp)]
+    {
+        assert_eq!(stop1.location.longitude, -116.762_18_f64);
+        assert_eq!(stop1.location.latitude, 36.905_697_f64);
+    }
     assert_eq!(
         stop1
             .lines

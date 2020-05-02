@@ -65,6 +65,7 @@ MaximumStopVisits=3"#,
 
 // test stop_monitoring on BEATTY_AIRPORT
 // multiple lines pass though this stop so we should be able to test more stuff
+#[allow(clippy::cognitive_complexity)]
 fn test_beatty_stop_call(srv: &mut actix_web::test::TestServer) {
     let request = srv
         .client(

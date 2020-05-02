@@ -8,11 +8,6 @@ use transit_model::collection::Idx;
 
 use crate::transit_realtime;
 
-pub enum Stop {
-    StopPoint(Idx<transit_model::objects::StopPoint>),
-    StopArea(Idx<transit_model::objects::StopArea>),
-}
-
 #[derive(Clone)]
 pub struct GtfsRT {
     pub datetime: DateTime<Utc>,
@@ -288,8 +283,8 @@ mod tests {
                     date: date,
                 },
                 stop_point_idx: model.stop_points.get_idx("A").unwrap(),
-                dep_time: date.and_hms(10, 01, 00),
-                arr_time: date.and_hms(10, 00, 00),
+                dep_time: date.and_hms(10, 1, 0),
+                arr_time: date.and_hms(10, 0, 0),
                 sequence: 0,
             }
         );
@@ -302,8 +297,8 @@ mod tests {
                     date: date,
                 },
                 stop_point_idx: model.stop_points.get_idx("B").unwrap(),
-                dep_time: date.and_hms(11, 01, 00),
-                arr_time: date.and_hms(11, 00, 00),
+                dep_time: date.and_hms(11, 1, 0),
+                arr_time: date.and_hms(11, 0, 0),
                 sequence: 1,
             }
         );
@@ -316,8 +311,8 @@ mod tests {
                     date: date,
                 },
                 stop_point_idx: model.stop_points.get_idx("B").unwrap(),
-                dep_time: date.and_hms(11, 31, 00),
-                arr_time: date.and_hms(11, 30, 00),
+                dep_time: date.and_hms(11, 31, 0),
+                arr_time: date.and_hms(11, 30, 0),
                 sequence: 0,
             }
         );
@@ -330,8 +325,8 @@ mod tests {
                     date: date,
                 },
                 stop_point_idx: model.stop_points.get_idx("C").unwrap(),
-                dep_time: date.and_hms(12, 01, 00),
-                arr_time: date.and_hms(12, 00, 00),
+                dep_time: date.and_hms(12, 1, 0),
+                arr_time: date.and_hms(12, 0, 0),
                 sequence: 2,
             }
         );
@@ -344,8 +339,8 @@ mod tests {
                     date: date,
                 },
                 stop_point_idx: model.stop_points.get_idx("D").unwrap(),
-                dep_time: date.and_hms(15, 01, 00),
-                arr_time: date.and_hms(15, 00, 00),
+                dep_time: date.and_hms(15, 1, 0),
+                arr_time: date.and_hms(15, 0, 0),
                 sequence: 1,
             }
         );
