@@ -83,8 +83,8 @@ fn multiple_gtfs_rt_integration_test() {
     let mut srv = utils::make_test_server(vec![DatasetInfo::new_default(
         "fixtures/gtfs.zip",
         &[
-            mockito::server_url().to_string() + "/gtfs_rt_1",
-            mockito::server_url().to_string() + "/gtfs_rt_2",
+            mockito::server_url() + "/gtfs_rt_1",
+            mockito::server_url() + "/gtfs_rt_2",
         ],
     )]);
 

@@ -151,7 +151,7 @@ fn create_stop_monitoring(
             .with_timezone(&data.timezone)
             .naive_local()
     });
-    let requested_line_ref = request.line_ref.as_ref().map(String::as_str);
+    let requested_line_ref = request.line_ref.as_deref();
     let stop_visit = data
         .timetable
         .connections

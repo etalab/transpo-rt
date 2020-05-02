@@ -14,7 +14,7 @@ pub fn init_log() -> slog_scope::GlobalLoggerGuard {
 pub fn make_simple_test_server() -> actix_web::test::TestServer {
     make_test_server(vec![DatasetInfo::new_default(
         "fixtures/gtfs.zip",
-        &[mockito::server_url().to_string() + SERVER_PATH],
+        &[mockito::server_url() + SERVER_PATH],
     )])
 }
 
