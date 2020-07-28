@@ -14,8 +14,8 @@ The API provides several routes:
 * `GET` `/spec`: [OpenApi](https://www.openapis.org/) [v3](https://github.com/OAI/OpenAPI-Specification/blob/master/versions/3.0.2.md) description of this API - [example call](https://tr.transport.data.gouv.fr/spec)
 * `GET` `/{id}/gtfs-rt`: get the gtfs-rt as binary - [example call](https://tr.transport.data.gouv.fr/metromobilite/gtfs-rt)
 * `GET` `/{id}/gtfs-rt.json`: get the gtfs-rt as json - [example call](https://tr.transport.data.gouv.fr/metromobilite/gtfs-rt.json)
-* `GET` `/{id}/siri/2.0/stop-monitoring.json`: get a siri-lite stop monitoring response - [example call](https://tr.transport.data.gouv.fr/metromobilite/siri/2.0/stoppoints-discovery.json?q=mairie)
-* `GET` `/{id}/siri/2.0/stoppoints-discovery.json`: get a siri-lite stoppoint discovery response - [example call](https://tr.transport.data.gouv.fr/metromobilite/siri/2.0/stop-monitoring.json?MonitoringRef=4235)
+* `GET` `/{id}/siri/2.0/stop-monitoring.json`: get a siri-lite stop monitoring response - [example call](https://tr.transport.data.gouv.fr/metromobilite/siri/2.0/stop-monitoring.json?MonitoringRef=4235)
+* `GET` `/{id}/siri/2.0/stoppoints-discovery.json`: get a siri-lite stoppoint discovery response - [example call](https://tr.transport.data.gouv.fr/metromobilite/siri/2.0/stoppoints-discovery.json?q=mairie)
 * `GET` `/{id}/siri/2.0/general-message.json`: get a siri-lite general message response - [example call](https://tr.transport.data.gouv.fr/metromobilite/siri/2.0/general-message.json)
 * `GET` `/{id}/`: simple status on the dataset - [example call](https://tr.transport.data.gouv.fr/metromobilite/)
 
