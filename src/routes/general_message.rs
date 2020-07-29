@@ -72,7 +72,7 @@ fn get_msgs(
                 })
                 .collect()
         })
-        .unwrap_or_else(|| vec![])
+        .unwrap_or_else(Vec::new)
 }
 
 fn read_content(alert: &transit_realtime::Alert) -> gm::GeneralMessageStructure {
