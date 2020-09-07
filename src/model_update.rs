@@ -148,8 +148,7 @@ fn find_corresponging_vjs(
         .filter(|(vj, _)| {
             // and the trip should start at start_time
             vj.stop_times
-                .iter()
-                .next()
+                .get(0)
                 .map(|st| st.departure_time == start_time)
                 .unwrap_or(false)
         })
