@@ -138,7 +138,15 @@ fn create_timetable(ntm: &transit_model::Model, generation_period: &Period) -> T
     let end = begin + generation_period.horizon;
 
     for (vj_idx, vj) in ntm.vehicle_journeys.iter() {
-        let service = ntm.calendars.get(&vj.service_id).unwrap();
+        let service =
+            skip_fail!(ntm
+                .calendars
+                .get(&vj.service_id)
+                .ok_or_else(|| failure::format_err!(
+                    "impossible to find service {} for vj {}, skipping vj",
+                    &vj.service_id,
+                    &vj.id
+                )));
         for st in &vj.stop_times {
             for date in service
                 .dates

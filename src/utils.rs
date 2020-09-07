@@ -4,7 +4,7 @@ macro_rules! skip_fail {
         match $res {
             Ok(val) => val,
             Err(e) => {
-                warn!("{}", e);
+                log::warn!("{}", e);
                 continue;
             }
         }
