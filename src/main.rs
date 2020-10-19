@@ -76,7 +76,7 @@ fn get_datasets(params: &Params) -> Result<Datasets, failure::Error> {
     }
 }
 
-#[actix_rt::main]
+#[actix_web::main]
 async fn main() -> std::io::Result<()> {
     let _log_guard = transpo_rt::utils::init_logger();
 
@@ -96,23 +96,19 @@ async fn main() -> std::io::Result<()> {
     let datasets_infos = get_datasets(&params).unwrap();
     let actors = transpo_rt::server::create_all_actors(&datasets_infos, &period);
 
+    log::info!("creating server");
     actix_web::HttpServer::new(move || {
+        log::info!("creating app");
         actix_web::App::new()
             .wrap(actix_web::middleware::Logger::default())
+            .wrap(
+                actix_cors::Cors::new()
+                    .allowed_methods(vec!["GET"])
+                    .finish(),
+            )
             .configure(|cfg| transpo_rt::server::init_routes(cfg, &actors, &datasets_infos))
     })
     .bind(bind)?
     .run()
     .await
-    // let code = actix::System::run(move || {
-
-    // //     server::new(move || {
-    // //         transpo_rt::server::create_server(&datasets_actors_addr, &datasets_infos)
-    // //     })
-    // //     .bind(bind)
-    // //     .unwrap()
-    // //     .start();
-    // // });
-
-    // // std::process::exit(code);
 }

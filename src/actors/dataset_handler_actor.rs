@@ -17,40 +17,31 @@ impl actix::Actor for DatasetActor {
     }
 }
 
+#[derive(actix::Message)]
+#[rtype(result = "Arc<Dataset>")]
 pub struct GetDataset;
 
-impl actix::Message for GetDataset {
-    // TODO use Arc<Dataset> instead of Result<Arc<Dataset>>
-    // cf https://github.com/actix/actix/pull/199
-    type Result = Result<Arc<Dataset>, actix_web::Error>;
-}
-
 impl actix::Handler<GetDataset> for DatasetActor {
-    // type Result = Arc<Dataset>;
-    type Result = Result<Arc<Dataset>, actix_web::Error>;
+    type Result = Arc<Dataset>;
 
     fn handle(&mut self, _params: GetDataset, _ctx: &mut actix::Context<Self>) -> Self::Result {
         // we return a new Arc on the dataset
-        Ok(self.gtfs.clone())
+        self.gtfs.clone()
     }
 }
 
+#[derive(actix::Message)]
+#[rtype(result = "Arc<RealTimeDataset>")]
 pub struct GetRealtimeDataset;
 
-impl actix::Message for GetRealtimeDataset {
-    // TODO use Arc<Dataset> instead of Result<Arc<Dataset>>
-    // cf https://github.com/actix/actix/pull/199
-    type Result = Result<Arc<RealTimeDataset>, actix_web::Error>;
-}
-
 impl actix::Handler<GetRealtimeDataset> for DatasetActor {
-    type Result = Result<Arc<RealTimeDataset>, actix_web::Error>;
+    type Result = Arc<RealTimeDataset>;
 
     fn handle(
         &mut self,
         _params: GetRealtimeDataset,
         _ctx: &mut actix::Context<Self>,
     ) -> Self::Result {
-        Ok(self.realtime.clone())
+        self.realtime.clone()
     }
 }

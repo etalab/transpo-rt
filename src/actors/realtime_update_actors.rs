@@ -10,7 +10,6 @@ use actix::prelude::ContextFutureSpawner;
 use actix::AsyncContext;
 use failure::format_err;
 use failure::Error;
-use futures::future::Future;
 use prost::Message;
 use sentry::integrations::failure::capture_error;
 use slog::info;
@@ -147,7 +146,6 @@ impl RealTimeReloader {
         let dataset_id = self.dataset_id.clone();
         self.dataset_actor
             .send(GetDataset)
-            .map_err(|e| format!("impossible to fetch baseschedule data: {}", e))
             .into_actor(self)
             .then(|res, act, _| {
                 sentry::Hub::current().configure_scope(|scope| {
@@ -155,7 +153,7 @@ impl RealTimeReloader {
                 });
                 match res
                     .map_err(|e| format_err!("maibox error: {}", e))
-                    .and_then(|dataset| act.apply_rt(dataset.unwrap()))
+                    .and_then(|dataset| act.apply_rt(dataset))
                 {
                     Ok(()) => {
                         info!(act.log, "realtime reloaded");
@@ -165,8 +163,7 @@ impl RealTimeReloader {
                         capture_error(&e);
                     }
                 }
-                // Note: this return value is not very useful as the `wait(ctx)` function below does not handle the return value
-                actix::fut::ok(())
+                actix::fut::ready(())
             })
             .wait(ctx);
     }

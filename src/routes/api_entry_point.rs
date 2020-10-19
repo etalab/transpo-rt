@@ -28,7 +28,7 @@ async fn entry_point(req: HttpRequest, datasets: web::Data<Datasets>) -> web::Js
             .iter()
             .map(|d| {
                 ExposedDataset::from(d)
-                .add_link("self", &raw_url(&req, &format!("/{id}/", id = &d.id)))
+                    .add_link("self", &raw_url(&req, &format!("/{id}/", id = &d.id)))
             })
             .collect(),
         links: btreemap! {

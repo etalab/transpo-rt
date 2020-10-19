@@ -5,12 +5,12 @@ authors = ["antoine-de <antoine.desbordes@gmail.com>", "Tristram Gräbener <tris
 edition = "2018"
 
 [dependencies]
-actix = "0.7"
+actix = "0.10"
 actix-web = "3"
-actix-rt = "*"
+actix-cors = "*"
 # TODO: plug it back
 #sentry-actix = "0.13.0"
-#sentry = "0.13.0"
+sentry = "0.13.0"
 futures = "*"
 reqwest = "0.9"
 log = "0.4"
