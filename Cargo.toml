@@ -6,10 +6,12 @@ edition = "2018"
 
 [dependencies]
 actix = "0.7"
-actix-web = "0.7"
-sentry-actix = "0.13.0"
-sentry = "0.13.0"
-futures = "0.1"
+actix-web = "3"
+actix-rt = "*"
+# TODO: plug it back
+#sentry-actix = "0.13.0"
+#sentry = "0.13.0"
+futures = "*"
 reqwest = "0.9"
 log = "0.4"
 chrono = { version = "0.4", features = ["serde"] }

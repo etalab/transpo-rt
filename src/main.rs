@@ -1,4 +1,3 @@
-use actix_web::server;
 use failure::format_err;
 use failure::ResultExt;
 use structopt::StructOpt;
@@ -77,35 +76,43 @@ fn get_datasets(params: &Params) -> Result<Datasets, failure::Error> {
     }
 }
 
-fn main() {
+#[actix_rt::main]
+async fn main() -> std::io::Result<()> {
     let _log_guard = transpo_rt::utils::init_logger();
 
     let params = Params::from_args();
-    let sentry = sentry::init(params.sentry.clone().unwrap_or_else(|| "".to_owned()));
-    if sentry.is_enabled() {
-        log::info!("sentry activated");
-        std::env::set_var("RUST_BACKTRACE", "1");
-        sentry::integrations::panic::register_panic_handler();
-    }
+    // let sentry = sentry::init(params.sentry.clone().unwrap_or_else(|| "".to_owned()));
+    // if sentry.is_enabled() {
+    //     log::info!("sentry activated");
+    //     std::env::set_var("RUST_BACKTRACE", "1");
+    //     sentry::integrations::panic::register_panic_handler();
+    // }
+    let bind = format!("{}:{}", &params.bind, &params.port);
+    let today = chrono::Local::today(); //TODO use the timezone's dataset ?
+    let period = transpo_rt::datasets::Period {
+        begin: today.naive_local(),
+        horizon: chrono::Duration::days(2),
+    };
+    let datasets_infos = get_datasets(&params).unwrap();
+    let actors = transpo_rt::server::create_all_actors(&datasets_infos, &period);
 
-    let code = actix::System::run(move || {
-        let bind = format!("{}:{}", &params.bind, &params.port);
+    actix_web::HttpServer::new(move || {
+        actix_web::App::new()
+            .wrap(actix_web::middleware::Logger::default())
+            .configure(|cfg| transpo_rt::server::init_routes(cfg, &actors, &datasets_infos))
+    })
+    .bind(bind)?
+    .run()
+    .await
+    // let code = actix::System::run(move || {
 
-        let today = chrono::Local::today(); //TODO use the timezone's dataset ?
-        let period = transpo_rt::datasets::Period {
-            begin: today.naive_local(),
-            horizon: chrono::Duration::days(2),
-        };
-        let datasets_infos = get_datasets(&params).unwrap();
+    // //     server::new(move || {
+    // //         transpo_rt::server::create_server(&datasets_actors_addr, &datasets_infos)
+    // //     })
+    // //     .bind(bind)
+    // //     .unwrap()
+    // //     .start();
+    // // });
 
-        let datasets_actors_addr = transpo_rt::server::create_all_actors(&datasets_infos, &period);
-        server::new(move || {
-            transpo_rt::server::create_server(&datasets_actors_addr, &datasets_infos)
-        })
-        .bind(bind)
-        .unwrap()
-        .start();
-    });
-
-    std::process::exit(code);
+    // // std::process::exit(code);
 }
