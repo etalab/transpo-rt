@@ -23,9 +23,9 @@ pub async fn siri_endpoint(
     };
     Ok(web::Json(
         btreemap! {
-            "stop-monitoring" => url_for("stop-monitoring"),
-            "stoppoints-discovery" => url_for("stoppoints-discovery"),
-            "general-message" => url_for("general-message"),
+            "stop-monitoring" => url_for("stop_monitoring_query"),
+            "stoppoints-discovery" => url_for("stoppoints_discovery_query"),
+            "general-message" => url_for("general_message_query"),
         }
         .into(),
     ))
