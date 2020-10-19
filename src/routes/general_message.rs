@@ -8,7 +8,7 @@ use crate::siri_lite::{
 use crate::transit_realtime;
 use crate::utils;
 use actix::Addr;
-use actix_web::{web, get, Result};
+use actix_web::{get, web, Result};
 
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "PascalCase")]
@@ -161,14 +161,11 @@ fn general_message(request: Params, rt_data: &RealTimeDataset) -> Result<SiriRes
     })
 }
 
-
-
 #[get("/siri/2.0/general-message.json")]
 pub async fn general_message_query(
     web::Query(query): web::Query<Params>,
     dataset_actor: web::Data<Addr<DatasetActor>>,
 ) -> actix_web::Result<web::Json<SiriResponse>> {
-
     let rt_dataset = dataset_actor.send(GetRealtimeDataset).await.map_err(|e| {
         log::error!("error while querying actor for data: {:?}", e);
         actix_web::error::ErrorInternalServerError(format!("impossible to get data",))

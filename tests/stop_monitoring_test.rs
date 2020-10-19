@@ -1,5 +1,3 @@
-use actix_web::http;
-use actix_web::HttpMessage;
 use transpo_rt::siri_lite::{DateTime, SiriResponse};
 use transpo_rt::transit_realtime;
 mod utils;
@@ -8,30 +6,20 @@ fn string(time: &Option<DateTime>) -> Option<String> {
     time.as_ref().map(|t| t.to_string())
 }
 
-#[test]
-fn sp_monitoring_integration_test() {
+#[actix_rt::test]
+async fn sp_monitoring_integration_test() {
     let _log_guard = utils::init_log();
     let mut srv = utils::make_simple_test_server();
 
-    let request = srv
-        .client(
-            http::Method::GET,
-            r#"/default/siri/2.0/stop-monitoring.json?
+    let resp: SiriResponse = utils::get_json(
+        &mut srv,
+        r#"/default/siri/2.0/stop-monitoring.json?
 MonitoringRef=EMSI&
 StartTime=2018-12-15T05:22:00&
 DataFreshness=Scheduled&
 MaximumStopVisits=3"#,
-        )
-        .finish()
-        .unwrap();
-    let response = srv.execute(request.send()).unwrap();
-
-    assert!(response.status().is_success());
-
-    let bytes = srv.execute(response.body()).unwrap();
-    let body = std::str::from_utf8(&bytes).unwrap();
-
-    let resp: SiriResponse = serde_json::from_str(body).unwrap();
+    )
+    .await;
     let spd = resp.siri.service_delivery.unwrap();
     let sm = spd.stop_monitoring_delivery.iter().next().unwrap();
 
@@ -59,29 +47,15 @@ MaximumStopVisits=3"#,
 
     // Note: to reduce the number of time the dataset is loaded (thus the integration tests running time)
     // we chain some different tests
-    test_interval_filtering(&mut srv);
-    test_beatty_stop_call(&mut srv);
+    test_interval_filtering(&mut srv).await;
+    test_beatty_stop_call(&mut srv).await;
 }
 
 // test stop_monitoring on BEATTY_AIRPORT
 // multiple lines pass though this stop so we should be able to test more stuff
 #[allow(clippy::cognitive_complexity)]
-fn test_beatty_stop_call(srv: &mut actix_web::test::TestServer) {
-    let request = srv
-        .client(
-            http::Method::GET,
-            "/default/siri/2.0/stop-monitoring.json?MonitoringRef=BEATTY_AIRPORT&StartTime=2018-12-15T05:22:00&DataFreshness=Scheduled",
-        )
-        .finish()
-        .unwrap();
-    let response = srv.execute(request.send()).unwrap();
-
-    assert!(response.status().is_success());
-
-    let bytes = srv.execute(response.body()).unwrap();
-    let body = std::str::from_utf8(&bytes).unwrap();
-
-    let resp: SiriResponse = serde_json::from_str(body).unwrap();
+async fn test_beatty_stop_call(srv: &mut actix_web::test::TestServer) {
+    let resp: SiriResponse = utils::get_json(srv, "/default/siri/2.0/stop-monitoring.json?MonitoringRef=BEATTY_AIRPORT&StartTime=2018-12-15T05:22:00&DataFreshness=Scheduled").await;
     let spd = resp.siri.service_delivery.unwrap();
     let sm = spd.stop_monitoring_delivery.iter().next().unwrap();
 
@@ -130,21 +104,8 @@ fn test_beatty_stop_call(srv: &mut actix_web::test::TestServer) {
 
     // now we do the same call, but we filter by line_ref=AB
     // we should have only passage for this line (and still 2 passages)
-    let request = srv
-        .client(
-            http::Method::GET,
-            "/default/siri/2.0/stop-monitoring.json?MonitoringRef=BEATTY_AIRPORT&StartTime=2018-12-15T05:22:00&DataFreshness=Scheduled&LineRef=AB",
-        )
-        .finish()
-        .unwrap();
-    let response = srv.execute(request.send()).unwrap();
+    let resp: SiriResponse = utils::get_json(srv, "/default/siri/2.0/stop-monitoring.json?MonitoringRef=BEATTY_AIRPORT&StartTime=2018-12-15T05:22:00&DataFreshness=Scheduled&LineRef=AB").await;
 
-    assert!(response.status().is_success());
-
-    let bytes = srv.execute(response.body()).unwrap();
-    let body = std::str::from_utf8(&bytes).unwrap();
-
-    let resp: SiriResponse = serde_json::from_str(body).unwrap();
     let spd = resp.siri.service_delivery.unwrap();
     let sm = spd.stop_monitoring_delivery.iter().next().unwrap();
 
@@ -189,26 +150,16 @@ fn test_beatty_stop_call(srv: &mut actix_web::test::TestServer) {
 
 // we filter the departure/arrival within the hour, we should have only 1 departure
 // Note: since it is not specified in the spec, we filter on the scheduled departure/arrival time
-fn test_interval_filtering(srv: &mut actix_web::test::TestServer) {
-    let request = srv
-        .client(
-            http::Method::GET,
-            r#"/default/siri/2.0/stop-monitoring.json?
-MonitoringRef=BEATTY_AIRPORT&
-StartTime=2018-12-15T05:22:00&
-DataFreshness=Scheduled
-&PreviewInterval=PT1H"#,
-        )
-        .finish()
-        .unwrap();
-    let response = srv.execute(request.send()).unwrap();
-
-    assert!(response.status().is_success());
-
-    let bytes = srv.execute(response.body()).unwrap();
-    let body = std::str::from_utf8(&bytes).unwrap();
-
-    let resp: SiriResponse = serde_json::from_str(body).unwrap();
+async fn test_interval_filtering(srv: &mut actix_web::test::TestServer) {
+    let resp: SiriResponse = utils::get_json(
+        srv,
+        r#"/default/siri/2.0/stop-monitoring.json?
+    MonitoringRef=BEATTY_AIRPORT&
+    StartTime=2018-12-15T05:22:00&
+    DataFreshness=Scheduled
+    &PreviewInterval=PT1H"#,
+    )
+    .await;
     let spd = resp.siri.service_delivery.unwrap();
     let sm = spd.stop_monitoring_delivery.iter().next().unwrap();
 
@@ -247,29 +198,19 @@ fn create_mock_feed_message() -> transit_realtime::FeedMessage {
 // integration test for stop_monitoring
 // we query the same stop as sp_monitoring_integration_test ("EMSI")
 // but we mock a gtfs_rt saying that the bus will be 30s late
-#[test]
-fn sp_monitoring_relatime_integration_test() {
+#[actix_rt::test]
+async fn sp_monitoring_relatime_integration_test() {
     let _log_guard = utils::init_log();
     let gtfs_rt = create_mock_feed_message();
     let _server = utils::run_simple_gtfs_rt_server(gtfs_rt);
 
     let mut srv = utils::make_simple_test_server();
 
-    let request = srv
-        .client(
-            http::Method::GET,
-            "/default/siri/2.0/stop-monitoring.json?MonitoringRef=EMSI&StartTime=2018-12-15T05:22:00",
-        )
-        .finish()
-        .unwrap();
-    let response = srv.execute(request.send()).unwrap();
-
-    assert!(response.status().is_success());
-
-    let bytes = srv.execute(response.body()).unwrap();
-    let body = std::str::from_utf8(&bytes).unwrap();
-
-    let resp: SiriResponse = serde_json::from_str(body).unwrap();
+    let resp: SiriResponse = utils::get_json(
+        &mut srv,
+        "/default/siri/2.0/stop-monitoring.json?MonitoringRef=EMSI&StartTime=2018-12-15T05:22:00",
+    )
+    .await;
     let spd = resp.siri.service_delivery.unwrap();
     let sm = spd.stop_monitoring_delivery.iter().next().unwrap();
 

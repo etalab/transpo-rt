@@ -1,5 +1,3 @@
-use actix_web::http;
-use actix_web::HttpMessage;
 use transpo_rt::transit_realtime;
 mod utils;
 
@@ -53,34 +51,24 @@ fn create_mock_feed_message() -> transit_realtime::FeedMessage {
     }
 }
 
-#[test]
-fn general_message_integration_test() {
+#[actix_rt::test]
+async fn general_message_integration_test() {
     let _log_guard = utils::init_log();
     let gtfs_rt = create_mock_feed_message();
     let _server = utils::run_simple_gtfs_rt_server(gtfs_rt);
 
     let mut srv = utils::make_simple_test_server();
 
-    call_in_activity_period(&mut srv);
-    call_not_in_activity_period(&mut srv);
+    call_in_activity_period(&mut srv).await;
+    call_not_in_activity_period(&mut srv).await;
 }
 
-fn call_in_activity_period(srv: &mut actix_web::test::TestServer) {
-    let request = srv
-        .client(
-            http::Method::GET,
-            "/default/siri/2.0/general-message.json?RequestTimestamp=2018-12-15T10:00:00",
-        )
-        .finish()
-        .unwrap();
-    let response = srv.execute(request.send()).unwrap();
-
-    assert!(response.status().is_success());
-
-    let bytes = srv.execute(response.body()).unwrap();
-    let body = std::str::from_utf8(&bytes).unwrap();
-
-    let resp: serde_json::Value = serde_json::from_str(body).unwrap();
+async fn call_in_activity_period(srv: &mut actix_web::test::TestServer) {
+    let resp: serde_json::Value = utils::get_json(
+        srv,
+        "/default/siri/2.0/general-message.json?RequestTimestamp=2018-12-15T10:00:00",
+    )
+    .await;
 
     let messages = resp.pointer("/Siri/ServiceDelivery/GeneralMessageDelivery/0/InfoMessages");
 
@@ -123,22 +111,12 @@ fn call_in_activity_period(srv: &mut actix_web::test::TestServer) {
     );
 }
 
-fn call_not_in_activity_period(srv: &mut actix_web::test::TestServer) {
-    let request = srv
-        .client(
-            http::Method::GET,
-            "/default/siri/2.0/general-message.json?RequestTimestamp=2018-12-15T14:00:00",
-        )
-        .finish()
-        .unwrap();
-    let response = srv.execute(request.send()).unwrap();
-
-    assert!(response.status().is_success());
-
-    let bytes = srv.execute(response.body()).unwrap();
-    let body = std::str::from_utf8(&bytes).unwrap();
-
-    let resp: serde_json::Value = serde_json::from_str(body).unwrap();
+async fn call_not_in_activity_period(srv: &mut actix_web::test::TestServer) {
+    let resp: serde_json::Value = utils::get_json(
+        srv,
+        "/default/siri/2.0/general-message.json?RequestTimestamp=2018-12-15T14:00:00",
+    )
+    .await;
 
     let messages = resp.pointer("/Siri/ServiceDelivery/GeneralMessageDelivery/0/InfoMessages");
 

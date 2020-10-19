@@ -1,10 +1,10 @@
 use super::open_api::make_param;
 use crate::actors::{DatasetActor, GetRealtimeDataset};
 use crate::datasets::{Connection, Dataset, RealTimeConnection, RealTimeDataset, UpdatedTimetable};
-use crate::siri_lite::{service_delivery as model, SiriResponse, self};
+use crate::siri_lite::{self, service_delivery as model, SiriResponse};
 use crate::utils;
 use actix::Addr;
-use actix_web::{error, web, get};
+use actix_web::{error, get, web};
 use openapi_schema::OpenapiSchema;
 use transit_model::collection::Idx;
 use transit_model::objects::StopPoint;
@@ -232,7 +232,6 @@ pub async fn stop_monitoring_query(
     web::Query(query): web::Query<Params>,
     dataset_actor: web::Data<Addr<DatasetActor>>,
 ) -> actix_web::Result<web::Json<SiriResponse>> {
-
     let rt_dataset = dataset_actor.send(GetRealtimeDataset).await.map_err(|e| {
         log::error!("error while querying actor for data: {:?}", e);
         actix_web::error::ErrorInternalServerError(format!("impossible to get data",))

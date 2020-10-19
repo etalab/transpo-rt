@@ -1,7 +1,7 @@
 use crate::actors::{DatasetActor, GetDataset};
 use crate::routes::{Link, Links};
 use actix::Addr;
-use actix_web::{ HttpRequest, web, get};
+use actix_web::{get, web, HttpRequest};
 use maplit::btreemap;
 
 /// Api to tell what is available in siri-lite

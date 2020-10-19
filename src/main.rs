@@ -96,9 +96,7 @@ async fn main() -> std::io::Result<()> {
     let datasets_infos = get_datasets(&params).unwrap();
     let actors = transpo_rt::server::create_all_actors(&datasets_infos, &period);
 
-    log::info!("creating server");
     actix_web::HttpServer::new(move || {
-        log::info!("creating app");
         actix_web::App::new()
             .wrap(actix_web::middleware::Logger::default())
             .wrap(

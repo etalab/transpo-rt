@@ -1,4 +1,4 @@
-use actix_web::{web, get};
+use actix_web::{get, web};
 use maplit::btreemap;
 use openapi::v3_0 as oa;
 use openapi_schema::OpenapiSchema;
@@ -194,7 +194,7 @@ fn create_schema() -> oa::Spec {
     spec
 }
 
-#[get("/documentation")]
+#[get("/spec")]
 pub async fn documentation() -> web::Json<openapi::v3_0::Spec> {
     let mut spec = create_schema();
 

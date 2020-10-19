@@ -2,8 +2,8 @@ use crate::actors::{BaseScheduleReloader, DatasetActor, RealTimeReloader};
 use crate::datasets;
 use crate::datasets::{Dataset, DatasetInfo, Datasets, Period};
 use crate::routes::{
-    entry_point, documentation, general_message_query, gtfs_rt, gtfs_rt_json, siri_endpoint,
-    stoppoints_discovery_query, status_query, stop_monitoring_query,
+    documentation, entry_point, general_message_query, gtfs_rt, gtfs_rt_json, siri_endpoint,
+    status_query, stop_monitoring_query, stoppoints_discovery_query,
 };
 use actix::{Actor, Addr};
 use actix_web::web;
@@ -11,7 +11,7 @@ use failure;
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
-pub fn create_dataset_actors(
+fn create_dataset_actors(
     dataset_info: &DatasetInfo,
     generation_period: &Period,
 ) -> Result<Addr<DatasetActor>, failure::Error> {
@@ -67,7 +67,7 @@ pub fn create_all_actors(
         .collect()
 }
 
-pub fn register_dataset_routes(
+fn register_dataset_routes(
     cfg: &mut web::ServiceConfig,
     datasets_actors: &BTreeMap<String, Addr<DatasetActor>>,
 ) {
@@ -77,13 +77,13 @@ pub fn register_dataset_routes(
             web::scope(&format!("/{id}", id = &id))
                 .data(dataset_actor.clone())
                 // .wrap(sentry_actix::SentryMiddleware::new()) TODO
-                .route("/", web::get().to(status_query))
-                .route("/gtfs-rt", web::get().to(gtfs_rt))
-                .route("/gtfs-rt.json", web::get().to(gtfs_rt_json))
+                .service(status_query)
+                .service(gtfs_rt)
+                .service(gtfs_rt_json)
                 .service(siri_endpoint)
                 .service(stoppoints_discovery_query)
                 .service(stop_monitoring_query)
-                .service(general_message_query)
+                .service(general_message_query),
         );
     }
 }

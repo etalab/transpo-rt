@@ -4,7 +4,7 @@ use crate::siri_lite::shared::CommonDelivery;
 use crate::siri_lite::stop_points_delivery::{AnnotatedStopPoint, StopPointsDelivery};
 use crate::siri_lite::{Siri, SiriResponse};
 use actix::Addr;
-use actix_web::{web, get};
+use actix_web::{get, web};
 
 fn default_limit() -> usize {
     20
@@ -86,7 +86,6 @@ pub async fn stoppoints_discovery_query(
     web::Query(query): web::Query<Params>,
     dataset_actor: web::Data<Addr<DatasetActor>>,
 ) -> actix_web::Result<web::Json<SiriResponse>> {
-
     let dataset = dataset_actor.send(GetDataset).await.map_err(|e| {
         log::error!("error while querying actor for data: {:?}", e);
         actix_web::error::ErrorInternalServerError(format!("impossible to get data",))

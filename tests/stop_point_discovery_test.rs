@@ -1,35 +1,20 @@
-use actix_web::http;
-use actix_web::HttpMessage;
 use std::collections::BTreeSet;
 use transpo_rt::siri_lite::SiriResponse;
 
 mod utils;
 
-#[test]
-fn sp_discovery_integration_test() {
+#[actix_rt::test]
+async fn sp_discovery_integration_test() {
     let _log_guard = utils::init_log();
     let mut srv = utils::make_simple_test_server();
 
-    filter_query(&mut srv);
-    limit_query(&mut srv);
+    filter_query(&mut srv).await;
+    limit_query(&mut srv).await;
 }
 
-fn filter_query(srv: &mut actix_web::test::TestServer) {
-    let request = srv
-        .client(
-            http::Method::GET,
-            "/default/siri/2.0/stoppoints-discovery.json?q=mai",
-        )
-        .finish()
-        .unwrap();
-    let response = srv.execute(request.send()).unwrap();
-
-    assert!(response.status().is_success());
-
-    let bytes = srv.execute(response.body()).unwrap();
-    let body = std::str::from_utf8(&bytes).unwrap();
-
-    let resp: SiriResponse = serde_json::from_str(body).unwrap();
+async fn filter_query(srv: &mut actix_web::test::TestServer) {
+    let resp: SiriResponse =
+        utils::get_json(srv, "/default/siri/2.0/stoppoints-discovery.json?q=mai").await;
     let spd = resp.siri.stop_points_delivery.unwrap();
     assert_eq!(spd.common.version, "2.0");
     assert_eq!(spd.common.status, Some(true));
@@ -59,40 +44,15 @@ fn filter_query(srv: &mut actix_web::test::TestServer) {
     //TODO more tests
 }
 
-fn limit_query(srv: &mut actix_web::test::TestServer) {
-    let request = srv
-        .client(
-            http::Method::GET,
-            "/default/siri/2.0/stoppoints-discovery.json?",
-        )
-        .finish()
-        .unwrap();
-    let response = srv.execute(request.send()).unwrap();
-
-    assert!(response.status().is_success());
-
-    let bytes = srv.execute(response.body()).unwrap();
-    let body = std::str::from_utf8(&bytes).unwrap();
-    let resp: SiriResponse = serde_json::from_str(body).unwrap();
+async fn limit_query(srv: &mut actix_web::test::TestServer) {
+    let resp: SiriResponse =
+        utils::get_json(srv, "/default/siri/2.0/stoppoints-discovery.json?").await;
 
     // with no filtering there are 9 stops
     let spd = resp.siri.stop_points_delivery.unwrap();
     assert_eq!(spd.annotated_stop_point.len(), 9);
-
-    let request = srv
-        .client(
-            http::Method::GET,
-            "/default/siri/2.0/stoppoints-discovery.json?limit=3",
-        )
-        .finish()
-        .unwrap();
-    let response = srv.execute(request.send()).unwrap();
-
-    assert!(response.status().is_success());
-
-    let bytes = srv.execute(response.body()).unwrap();
-    let body = std::str::from_utf8(&bytes).unwrap();
-    let resp: SiriResponse = serde_json::from_str(body).unwrap();
+    let resp: SiriResponse =
+        utils::get_json(srv, "/default/siri/2.0/stoppoints-discovery.json?limit=3").await;
 
     // if we ask for only 3 stops, we got only 3
     let spd = resp.siri.stop_points_delivery.unwrap();

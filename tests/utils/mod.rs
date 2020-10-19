@@ -24,15 +24,27 @@ pub fn make_test_server(datasets_info: Vec<DatasetInfo>) -> actix_web::test::Tes
         horizon: chrono::Duration::days(1),
     };
 
-    let make_server = move || {
-        let dataset_infos = Datasets {
-            datasets: datasets_info.clone(),
-        };
-        let dataset_actors_addr = transpo_rt::server::create_all_actors(&dataset_infos, &period);
-        transpo_rt::server::create_server(&dataset_actors_addr, &dataset_infos)
+    let dataset_infos = Datasets {
+        datasets: datasets_info.clone(),
     };
+    let actors = transpo_rt::server::create_all_actors(&dataset_infos, &period);
+    actix_web::test::start(move || {
+        actix_web::App::new()
+            .configure(|cfg| transpo_rt::server::init_routes(cfg, &actors, &dataset_infos))
+    })
+}
 
-    actix_web::test::TestServer::with_factory(make_server)
+/// utils to query a route and get the response as json
+/// It also assert that the response's status is ok
+#[allow(dead_code)]
+pub async fn get_json<T: serde::de::DeserializeOwned>(
+    srv: &mut actix_web::test::TestServer,
+    route: &str,
+) -> T {
+    let mut response = srv.get(route).send().await.unwrap();
+    assert!(response.status().is_success());
+
+    response.json().await.unwrap()
 }
 
 // Note: as each integration test is build as a separate binary,

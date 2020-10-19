@@ -1,7 +1,7 @@
 use crate::actors::{DatasetActor, GetDataset};
 use crate::routes::{Link, Links};
 use actix::Addr;
-use actix_web::{web, HttpRequest};
+use actix_web::{web, HttpRequest, get};
 use maplit::btreemap;
 use openapi_schema::OpenapiSchema;
 
@@ -14,6 +14,7 @@ pub struct Status {
     pub links: Links,
 }
 
+#[get("/")]
 pub async fn status_query(
     req: HttpRequest,
     dataset_actor: web::Data<Addr<DatasetActor>>,

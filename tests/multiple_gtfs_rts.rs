@@ -1,5 +1,3 @@
-use actix_web::http;
-use actix_web::HttpMessage;
 use transpo_rt::datasets::DatasetInfo;
 use transpo_rt::siri_lite::{DateTime, SiriResponse};
 use transpo_rt::transit_realtime;
@@ -72,8 +70,9 @@ fn create_mock_feed_message_ab() -> transit_realtime::FeedMessage {
 /// and another one that provides a delay on AB
 /// when querying /stop_monitoring we should have the 2 delays
 /// we also test that the resulting GTFS_RT provided by /gtfs_rt is valid
-#[test]
-fn multiple_gtfs_rt_integration_test() {
+
+#[actix_rt::test]
+async fn multiple_gtfs_rt_integration_test() {
     let _log_guard = utils::init_log();
     let gtfs_rt1 = create_mock_feed_message_stba();
     let gtfs_rt2 = create_mock_feed_message_ab();
@@ -88,26 +87,12 @@ fn multiple_gtfs_rt_integration_test() {
         ],
     )]);
 
-    test_stop_monitoring(&mut srv);
-    test_gtfs_rt(&mut srv);
+    test_stop_monitoring(&mut srv).await;
+    test_gtfs_rt(&mut srv).await;
 }
 
-fn test_stop_monitoring(srv: &mut actix_web::test::TestServer) {
-    let request = srv
-        .client(
-            http::Method::GET,
-            "/default/siri/2.0/stop-monitoring.json?MonitoringRef=BEATTY_AIRPORT&StartTime=2018-12-15T05:22:00",
-        )
-        .finish()
-        .unwrap();
-    let response = srv.execute(request.send()).unwrap();
-
-    assert!(response.status().is_success());
-
-    let bytes = srv.execute(response.body()).unwrap();
-    let body = std::str::from_utf8(&bytes).unwrap();
-
-    let resp: SiriResponse = serde_json::from_str(body).unwrap();
+async fn test_stop_monitoring(srv: &mut actix_web::test::TestServer) {
+    let resp: SiriResponse = utils::get_json(srv, "/default/siri/2.0/stop-monitoring.json?MonitoringRef=BEATTY_AIRPORT&StartTime=2018-12-15T05:22:00").await;
     let spd = resp.siri.service_delivery.unwrap();
     let sm = spd.stop_monitoring_delivery.iter().next().unwrap();
 
@@ -164,18 +149,8 @@ fn test_stop_monitoring(srv: &mut actix_web::test::TestServer) {
     assert_eq!(second_passage.order, 1);
 }
 
-fn test_gtfs_rt(srv: &mut actix_web::test::TestServer) {
-    let request = srv
-        .client(http::Method::GET, "/default/gtfs-rt.json")
-        .finish()
-        .unwrap();
-    let response = srv.execute(request.send()).unwrap();
-    assert!(response.status().is_success());
-
-    let bytes = srv.execute(response.body()).unwrap();
-    let body = std::str::from_utf8(&bytes).unwrap();
-
-    let feed: transit_realtime::FeedMessage = serde_json::from_str(body).unwrap();
+async fn test_gtfs_rt(srv: &mut actix_web::test::TestServer) {
+    let feed: transit_realtime::FeedMessage = utils::get_json(srv, "/default/gtfs-rt.json").await;
 
     // the resulting gtfs_rt should have both entities
     let entities: std::collections::BTreeSet<_> =
