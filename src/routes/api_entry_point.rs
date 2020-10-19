@@ -19,7 +19,6 @@ fn raw_url(req: &HttpRequest, u: &str) -> String {
 }
 
 /// Api to list all the hosted datasets
-
 #[get("/")]
 async fn entry_point(req: HttpRequest, datasets: web::Data<Datasets>) -> web::Json<ApiEntryPoint> {
     web::Json(ApiEntryPoint {

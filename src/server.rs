@@ -1,15 +1,11 @@
 use crate::actors::{BaseScheduleReloader, DatasetActor, RealTimeReloader};
 use crate::datasets;
 use crate::datasets::{Dataset, DatasetInfo, Datasets, Period};
-// use crate::routes::{
-//     api_entry_point, documentation, general_message_query, gtfs_rt, gtfs_rt_json, siri_endpoint,
-//     sp_discovery, status_query, stop_monitoring_query,
-// };
-use crate::routes::{entry_point, gtfs_rt, gtfs_rt_json, status_query};
-use actix::Actor;
-use actix::Addr;
-// use actix_web::middleware::cors::Cors;
-// use actix_web::server::{HttpHandler, HttpHandlerTask};
+use crate::routes::{
+    entry_point, documentation, general_message_query, gtfs_rt, gtfs_rt_json, siri_endpoint,
+    stoppoints_discovery_query, status_query, stop_monitoring_query,
+};
+use actix::{Actor, Addr};
 use actix_web::web;
 use failure;
 use std::collections::BTreeMap;
@@ -71,52 +67,6 @@ pub fn create_all_actors(
         .collect()
 }
 
-// pub fn create_datasets_servers(
-//     datasets_actors: &BTreeMap<String, Addr<DatasetActor>>,
-// ) -> Vec<App<Addr<DatasetActor>>> {
-//     datasets_actors
-//         .iter()
-//         .map(|(id, a)| {
-//             App::with_state(a.clone())
-//                 .prefix(format!("/{id}", id = &id))
-//                 .middleware(middleware::Logger::default())
-//                 .middleware(sentry_actix::SentryMiddleware::new())
-//                 .middleware(Cors::build().allowed_methods(vec!["GET"]).finish())
-//                 .resource("/", |r| {
-//                     r.name("dataset");
-//                     r.f(status_query)
-//                 })
-//                 .resource("/gtfs-rt", |r| {
-//                     r.name("gtfs-rt");
-//                     r.f(gtfs_rt)
-//                 })
-//                 .resource("/gtfs-rt.json", |r| {
-//                     r.name("gtfs-rt.json");
-//                     r.f(gtfs_rt_json)
-//                 })
-//                 .scope("/siri/2.0", |scope| {
-//                     scope
-//                         .resource("", |r| {
-//                             r.name("siri-lite");
-//                             r.with(siri_endpoint)
-//                         })
-//                         .resource("/stoppoints-discovery.json", |r| {
-//                             r.name("stoppoints-discovery");
-//                             r.with(sp_discovery)
-//                         })
-//                         .resource("/stop-monitoring.json", |r| {
-//                             r.name("stop-monitoring");
-//                             r.with(stop_monitoring_query)
-//                         })
-//                         .resource("/general-message.json", |r| {
-//                             r.name("general-message");
-//                             r.with_async(general_message_query)
-//                         })
-//                 })
-//         })
-//         .collect()
-// }
-
 pub fn register_dataset_routes(
     cfg: &mut web::ServiceConfig,
     datasets_actors: &BTreeMap<String, Addr<DatasetActor>>,
@@ -129,27 +79,12 @@ pub fn register_dataset_routes(
                 // .wrap(sentry_actix::SentryMiddleware::new()) TODO
                 .route("/", web::get().to(status_query))
                 .route("/gtfs-rt", web::get().to(gtfs_rt))
-                .route("/gtfs-rt.json", web::get().to(gtfs_rt_json)),
+                .route("/gtfs-rt.json", web::get().to(gtfs_rt_json))
+                .service(siri_endpoint)
+                .service(stoppoints_discovery_query)
+                .service(stop_monitoring_query)
+                .service(general_message_query)
         );
-
-        // .scope("/siri/2.0", |scope| {
-        //     scope
-        //         .resource("", |r| {
-        //             r.name("siri-lite");
-        //             r.with(siri_endpoint)
-        //         })
-        //         .resource("/stoppoints-discovery.json", |r| {
-        //             r.name("stoppoints-discovery");
-        //             r.with(sp_discovery)
-        //         })
-        //         .resource("/stop-monitoring.json", |r| {
-        //             r.name("stop-monitoring");
-        //             r.with(stop_monitoring_query)
-        //         })
-        //         .resource("/general-message.json", |r| {
-        //             r.name("general-message");
-        //             r.with_async(general_message_query)
-        //         })
     }
 }
 
@@ -160,34 +95,8 @@ pub fn init_routes(
 ) {
     log::info!("creating default routes");
     cfg.data(datasets.clone())
-        // .service(documentation)
+        .service(documentation)
         .service(entry_point);
     log::info!("creating dataset routes {}", datasets_actors.len());
     register_dataset_routes(cfg, datasets_actors);
 }
-
-// pub fn create_server(
-//     datasets_actors: &BTreeMap<String, Addr<DatasetActor>>,
-//     datasets: &Datasets,
-// ) -> Vec<Box<dyn HttpHandler<Task = Box<dyn HttpHandlerTask>>>> {
-//     // create_datasets_servers(datasets_actors)
-//     //     .into_iter()
-//     //     .map(actix_web::App::boxed)
-//     //     .chain(std::iter::once(
-//         vec![
-//             App::with_state(datasets.clone())
-//                 .middleware(middleware::Logger::default())
-//                 // .middleware(Cors::build().allowed_methods(vec!["GET"]).finish())
-//                 .resource("/", |r| {
-//                     r.name("entrypoint");
-//                     r.f(api_entry_point)
-//                 })
-//                 // .resource("/spec", |r| {
-//                 //     r.name("documentation");
-//                 //     r.f(documentation)
-//                 // })
-//                 .boxed(),
-//         ]
-//         // ))
-//         // .collect()
-// }

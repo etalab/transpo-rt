@@ -1,12 +1,10 @@
 use super::open_api::make_param;
 use crate::actors::{DatasetActor, GetRealtimeDataset};
 use crate::datasets::{Connection, Dataset, RealTimeConnection, RealTimeDataset, UpdatedTimetable};
-use crate::siri_lite;
-use crate::siri_lite::service_delivery as model;
+use crate::siri_lite::{service_delivery as model, SiriResponse, self};
 use crate::utils;
 use actix::Addr;
-use actix_web::{error, AsyncResponder, Error, Json, Query, Result, State};
-use futures::future::Future;
+use actix_web::{error, web, get};
 use openapi_schema::OpenapiSchema;
 use transit_model::collection::Idx;
 use transit_model::objects::StopPoint;
@@ -186,7 +184,7 @@ fn create_stop_monitoring(
     }]
 }
 
-fn validate_params(request: &mut Params) -> Result<()> {
+fn validate_params(request: &mut Params) -> actix_web::Result<()> {
     // we silently bound the maximum stop visits to 20
     request.maximum_stop_visits = std::cmp::min(request.maximum_stop_visits, 20);
     Ok(())
@@ -195,7 +193,7 @@ fn validate_params(request: &mut Params) -> Result<()> {
 fn stop_monitoring(
     mut request: Params,
     rt_data: &RealTimeDataset,
-) -> Result<siri_lite::SiriResponse> {
+) -> actix_web::Result<siri_lite::SiriResponse> {
     let data = &rt_data.base_schedule_dataset;
     let updated_timetable = &rt_data.updated_timetable;
 
@@ -229,16 +227,15 @@ fn stop_monitoring(
     })
 }
 
-pub fn stop_monitoring_query(
-    (actor_addr, query): (State<Addr<DatasetActor>>, Query<Params>),
-) -> Box<dyn Future<Item = Json<siri_lite::SiriResponse>, Error = Error>> {
-    actor_addr
-        .send(GetRealtimeDataset)
-        .map_err(Error::from)
-        .and_then(|dataset| {
-            dataset
-                .and_then(|d| stop_monitoring(query.into_inner(), &*d))
-                .map(Json)
-        })
-        .responder()
+#[get("/siri/2.0/stop-monitoring.json")]
+pub async fn stop_monitoring_query(
+    web::Query(query): web::Query<Params>,
+    dataset_actor: web::Data<Addr<DatasetActor>>,
+) -> actix_web::Result<web::Json<SiriResponse>> {
+
+    let rt_dataset = dataset_actor.send(GetRealtimeDataset).await.map_err(|e| {
+        log::error!("error while querying actor for data: {:?}", e);
+        actix_web::error::ErrorInternalServerError(format!("impossible to get data",))
+    })?;
+    Ok(web::Json(stop_monitoring(query, &rt_dataset)?))
 }

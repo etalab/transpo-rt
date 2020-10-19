@@ -1,5 +1,4 @@
-use crate::datasets::Datasets;
-use actix_web::{HttpRequest, Json};
+use actix_web::{web, get};
 use maplit::btreemap;
 use openapi::v3_0 as oa;
 use openapi_schema::OpenapiSchema;
@@ -195,9 +194,10 @@ fn create_schema() -> oa::Spec {
     spec
 }
 
-pub fn documentation(_req: &HttpRequest<Datasets>) -> Json<openapi::v3_0::Spec> {
+#[get("/documentation")]
+pub async fn documentation() -> web::Json<openapi::v3_0::Spec> {
     let mut spec = create_schema();
 
     crate::siri_lite::SiriResponse::generate_schema(&mut spec);
-    Json(spec)
+    web::Json(spec)
 }

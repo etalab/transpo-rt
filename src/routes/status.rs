@@ -17,8 +17,11 @@ pub struct Status {
 pub async fn status_query(
     req: HttpRequest,
     dataset_actor: web::Data<Addr<DatasetActor>>,
-) -> web::Json<Status> {
-    let dataset = dataset_actor.send(GetDataset).await.unwrap(); //TODO remove this unwrap
+) -> actix_web::Result<web::Json<Status>> {
+    let dataset = dataset_actor.send(GetDataset).await.map_err(|e| {
+        log::error!("error while querying actor for data: {:?}", e);
+        actix_web::error::ErrorInternalServerError(format!("impossible to get data",))
+    })?;
     let url_for = |link: &str| Link {
         href: req
             .url_for(link, &[&dataset.feed_construction_info.dataset_info.id])
@@ -26,7 +29,7 @@ pub async fn status_query(
             .unwrap(),
         ..Default::default()
     };
-    web::Json(Status {
+    Ok(web::Json(Status {
         dataset: (&dataset.feed_construction_info.dataset_info).into(),
         loaded_at: dataset.loaded_at,
         links: btreemap! {
@@ -38,5 +41,5 @@ pub async fn status_query(
             "siri-lite" => url_for("siri-lite"),
         }
         .into(),
-    })
+    }))
 }

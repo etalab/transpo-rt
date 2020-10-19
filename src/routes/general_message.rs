@@ -8,8 +8,7 @@ use crate::siri_lite::{
 use crate::transit_realtime;
 use crate::utils;
 use actix::Addr;
-use actix_web::{error, AsyncResponder, Error, Json, Query, Result, State};
-use futures::future::Future;
+use actix_web::{web, get, Result};
 
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "PascalCase")]
@@ -131,11 +130,11 @@ fn general_message(request: Params, rt_data: &RealTimeDataset) -> Result<SiriRes
     let feed = rt_data
         .gtfs_rt
         .as_ref()
-        .ok_or_else(|| error::ErrorNotFound("no realtime data available"))
+        .ok_or_else(|| actix_web::error::ErrorNotFound("no realtime data available"))
         .map(|rt| rt.data.clone())
         .and_then(|d| {
             transit_realtime::FeedMessage::decode(d.into_buf()).map_err(|e| {
-                error::ErrorInternalServerError(format!(
+                actix_web::error::ErrorInternalServerError(format!(
                     "impossible to decode protobuf message: {}",
                     e
                 ))
@@ -162,16 +161,17 @@ fn general_message(request: Params, rt_data: &RealTimeDataset) -> Result<SiriRes
     })
 }
 
-pub fn general_message_query(
-    (actor_addr, query): (State<Addr<DatasetActor>>, Query<Params>),
-) -> Box<dyn Future<Item = Json<SiriResponse>, Error = Error>> {
-    actor_addr
-        .send(GetRealtimeDataset)
-        .map_err(Error::from)
-        .and_then(|dataset| {
-            dataset
-                .and_then(|d| general_message(query.into_inner(), &*d))
-                .map(Json)
-        })
-        .responder()
+
+
+#[get("/siri/2.0/general-message.json")]
+pub async fn general_message_query(
+    web::Query(query): web::Query<Params>,
+    dataset_actor: web::Data<Addr<DatasetActor>>,
+) -> actix_web::Result<web::Json<SiriResponse>> {
+
+    let rt_dataset = dataset_actor.send(GetRealtimeDataset).await.map_err(|e| {
+        log::error!("error while querying actor for data: {:?}", e);
+        actix_web::error::ErrorInternalServerError(format!("impossible to get data",))
+    })?;
+    Ok(web::Json(general_message(query, &rt_dataset)?))
 }
