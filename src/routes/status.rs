@@ -1,7 +1,7 @@
 use crate::actors::{DatasetActor, GetDataset};
 use crate::routes::{Link, Links};
 use actix::Addr;
-use actix_web::{web, HttpRequest, get};
+use actix_web::{get, web, HttpRequest};
 use maplit::btreemap;
 use openapi_schema::OpenapiSchema;
 
@@ -27,19 +27,19 @@ pub async fn status_query(
         href: req
             .url_for(link, &[&dataset.feed_construction_info.dataset_info.id])
             .map(|u| u.into_string())
-            .unwrap(),
+            .expect(&format!("impossible to find route {} to make a link", link)),
         ..Default::default()
     };
     Ok(web::Json(Status {
         dataset: (&dataset.feed_construction_info.dataset_info).into(),
         loaded_at: dataset.loaded_at,
         links: btreemap! {
-            "gtfs-rt" => url_for("gtfs-rt"),
-            "gtfs-rt.json" => url_for("gtfs-rt.json"),
-            "stop-monitoring" => url_for("stop-monitoring"),
-            "stoppoints-discovery" => url_for("stoppoints-discovery"),
-            "general-message" => url_for("general-message"),
-            "siri-lite" => url_for("siri-lite"),
+            "gtfs-rt" => url_for("gtfs_rt_protobuf"),
+            "gtfs-rt.json" => url_for("gtfs_rt_json"),
+            "stop-monitoring" => url_for("stop_monitoring_query"),
+            "stoppoints-discovery" => url_for("stoppoints_discovery_query"),
+            "general-message" => url_for("general_message_query"),
+            "siri-lite" => url_for("siri_endpoint"),
         }
         .into(),
     }))

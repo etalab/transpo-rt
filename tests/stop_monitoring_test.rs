@@ -13,11 +13,8 @@ async fn sp_monitoring_integration_test() {
 
     let resp: SiriResponse = utils::get_json(
         &mut srv,
-        r#"/default/siri/2.0/stop-monitoring.json?
-MonitoringRef=EMSI&
-StartTime=2018-12-15T05:22:00&
-DataFreshness=Scheduled&
-MaximumStopVisits=3"#,
+
+r#"/default/siri/2.0/stop-monitoring.json?MonitoringRef=EMSI&StartTime=2018-12-15T05:22:00&DataFreshness=Scheduled&MaximumStopVisits=3"#,
     )
     .await;
     let spd = resp.siri.service_delivery.unwrap();
@@ -153,11 +150,7 @@ async fn test_beatty_stop_call(srv: &mut actix_web::test::TestServer) {
 async fn test_interval_filtering(srv: &mut actix_web::test::TestServer) {
     let resp: SiriResponse = utils::get_json(
         srv,
-        r#"/default/siri/2.0/stop-monitoring.json?
-    MonitoringRef=BEATTY_AIRPORT&
-    StartTime=2018-12-15T05:22:00&
-    DataFreshness=Scheduled
-    &PreviewInterval=PT1H"#,
+        r#"/default/siri/2.0/stop-monitoring.json?MonitoringRef=BEATTY_AIRPORT&StartTime=2018-12-15T05:22:00&DataFreshness=Scheduled&PreviewInterval=PT1H"#,
     )
     .await;
     let spd = resp.siri.service_delivery.unwrap();
@@ -199,7 +192,7 @@ fn create_mock_feed_message() -> transit_realtime::FeedMessage {
 // we query the same stop as sp_monitoring_integration_test ("EMSI")
 // but we mock a gtfs_rt saying that the bus will be 30s late
 #[actix_rt::test]
-async fn sp_monitoring_relatime_integration_test() {
+async fn sp_monitoring_realtime_integration_test() {
     let _log_guard = utils::init_log();
     let gtfs_rt = create_mock_feed_message();
     let _server = utils::run_simple_gtfs_rt_server(gtfs_rt);

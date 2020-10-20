@@ -18,7 +18,7 @@ pub async fn siri_endpoint(
         href: req
             .url_for(link, &[&dataset.feed_construction_info.dataset_info.id])
             .map(|u| u.into_string())
-            .unwrap(),
+            .expect(&format!("impossible to find route {} to make a link", link)),
         ..Default::default()
     };
     Ok(web::Json(

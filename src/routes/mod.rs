@@ -12,7 +12,7 @@ mod stoppoints_discovery;
 pub use self::api_entry_point::entry_point;
 pub use self::exposed_dataset::ExposedDataset;
 pub use self::general_message::general_message_query;
-pub use self::gtfs_rt::{gtfs_rt, gtfs_rt_json};
+pub use self::gtfs_rt::{gtfs_rt_json, gtfs_rt_protobuf};
 pub use self::links::{Link, Links};
 pub use self::open_api::documentation;
 pub use self::siri::siri_endpoint;

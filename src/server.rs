@@ -2,8 +2,8 @@ use crate::actors::{BaseScheduleReloader, DatasetActor, RealTimeReloader};
 use crate::datasets;
 use crate::datasets::{Dataset, DatasetInfo, Datasets, Period};
 use crate::routes::{
-    documentation, entry_point, general_message_query, gtfs_rt, gtfs_rt_json, siri_endpoint,
-    status_query, stop_monitoring_query, stoppoints_discovery_query,
+    documentation, entry_point, general_message_query, gtfs_rt_json, gtfs_rt_protobuf,
+    siri_endpoint, status_query, stop_monitoring_query, stoppoints_discovery_query,
 };
 use actix::{Actor, Addr};
 use actix_web::web;
@@ -78,7 +78,7 @@ fn register_dataset_routes(
                 .data(dataset_actor.clone())
                 // .wrap(sentry_actix::SentryMiddleware::new()) TODO
                 .service(status_query)
-                .service(gtfs_rt)
+                .service(gtfs_rt_protobuf)
                 .service(gtfs_rt_json)
                 .service(siri_endpoint)
                 .service(stoppoints_discovery_query)

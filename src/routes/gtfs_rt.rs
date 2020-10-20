@@ -1,10 +1,10 @@
 use crate::actors::{DatasetActor, GetRealtimeDataset};
 use crate::transit_realtime;
 use actix::Addr;
-use actix_web::{error, web, HttpResponse, http::ContentEncoding, get};
+use actix_web::{error, get, http::ContentEncoding, web, HttpResponse};
 
 #[get("/gtfs-rt")]
-pub async fn gtfs_rt(
+pub async fn gtfs_rt_protobuf(
     dataset_actor: web::Data<Addr<DatasetActor>>,
 ) -> actix_web::Result<web::HttpResponse> {
     use actix_web::dev::BodyEncoding;
