@@ -13,8 +13,11 @@ async fn sp_monitoring_integration_test() {
 
     let resp: SiriResponse = utils::get_json(
         &mut srv,
-
-r#"/default/siri/2.0/stop-monitoring.json?MonitoringRef=EMSI&StartTime=2018-12-15T05:22:00&DataFreshness=Scheduled&MaximumStopVisits=3"#,
+        "/default/siri/2.0/stop-monitoring.json?\
+MonitoringRef=EMSI&\
+StartTime=2018-12-15T05:22:00&\
+DataFreshness=Scheduled&\
+MaximumStopVisits=3",
     )
     .await;
     let spd = resp.siri.service_delivery.unwrap();
@@ -150,7 +153,11 @@ async fn test_beatty_stop_call(srv: &mut actix_web::test::TestServer) {
 async fn test_interval_filtering(srv: &mut actix_web::test::TestServer) {
     let resp: SiriResponse = utils::get_json(
         srv,
-        r#"/default/siri/2.0/stop-monitoring.json?MonitoringRef=BEATTY_AIRPORT&StartTime=2018-12-15T05:22:00&DataFreshness=Scheduled&PreviewInterval=PT1H"#,
+        "/default/siri/2.0/stop-monitoring.json?\
+MonitoringRef=BEATTY_AIRPORT&\
+StartTime=2018-12-15T05:22:00&\
+DataFreshness=Scheduled&\
+PreviewInterval=PT1H",
     )
     .await;
     let spd = resp.siri.service_delivery.unwrap();
