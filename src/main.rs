@@ -1,8 +1,8 @@
-use actix_web::server;
 use failure::format_err;
 use failure::ResultExt;
 use structopt::StructOpt;
 use transpo_rt::datasets::{DatasetInfo, Datasets};
+use transpo_rt::middlewares;
 
 #[derive(StructOpt, Debug, Clone)]
 #[structopt(name = "transpo-rt")]
@@ -77,7 +77,8 @@ fn get_datasets(params: &Params) -> Result<Datasets, failure::Error> {
     }
 }
 
-fn main() {
+#[actix_web::main]
+async fn main() -> std::io::Result<()> {
     let _log_guard = transpo_rt::utils::init_logger();
 
     let params = Params::from_args();
@@ -85,27 +86,24 @@ fn main() {
     if sentry.is_enabled() {
         log::info!("sentry activated");
         std::env::set_var("RUST_BACKTRACE", "1");
-        sentry::integrations::panic::register_panic_handler();
     }
+    let bind = format!("{}:{}", &params.bind, &params.port);
+    let today = chrono::Local::today(); //TODO use the timezone's dataset ?
+    let period = transpo_rt::datasets::Period {
+        begin: today.naive_local(),
+        horizon: chrono::Duration::days(2),
+    };
+    let datasets_infos = get_datasets(&params).unwrap();
+    let actors = transpo_rt::server::create_all_actors(&datasets_infos, &period);
 
-    let code = actix::System::run(move || {
-        let bind = format!("{}:{}", &params.bind, &params.port);
-
-        let today = chrono::Local::today(); //TODO use the timezone's dataset ?
-        let period = transpo_rt::datasets::Period {
-            begin: today.naive_local(),
-            horizon: chrono::Duration::days(2),
-        };
-        let datasets_infos = get_datasets(&params).unwrap();
-
-        let datasets_actors_addr = transpo_rt::server::create_all_actors(&datasets_infos, &period);
-        server::new(move || {
-            transpo_rt::server::create_server(&datasets_actors_addr, &datasets_infos)
-        })
-        .bind(bind)
-        .unwrap()
-        .start();
-    });
-
-    std::process::exit(code);
+    actix_web::HttpServer::new(move || {
+        actix_web::App::new()
+            .wrap(actix_cors::Cors::default().allowed_methods(vec!["GET"]))
+            .wrap_fn(middlewares::sentry::sentry_middleware)
+            .wrap(actix_web::middleware::Logger::default())
+            .configure(|cfg| transpo_rt::server::init_routes(cfg, &actors, &datasets_infos))
+    })
+    .bind(bind)?
+    .run()
+    .await
 }

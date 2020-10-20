@@ -1,27 +1,17 @@
-use actix_web::http;
-use actix_web::HttpMessage;
 mod utils;
 
-#[test]
-fn entry_point_integration_test() {
+#[actix_rt::test]
+async fn entry_point_integration_test() {
     let _log_guard = utils::init_log();
     let mut srv = utils::make_simple_test_server();
 
-    test_entrypoint(&mut srv);
-    test_dataset_entrypoint(&mut srv);
-    test_siri_entrypoint(&mut srv);
+    test_entrypoint(&mut srv).await;
+    test_dataset_entrypoint(&mut srv).await;
+    test_siri_entrypoint(&mut srv).await;
 }
 
-fn test_entrypoint(srv: &mut actix_web::test::TestServer) {
-    let request = srv.client(http::Method::GET, "/").finish().unwrap();
-    let response = srv.execute(request.send()).unwrap();
-
-    assert!(response.status().is_success());
-
-    let bytes = srv.execute(response.body()).unwrap();
-    let body = std::str::from_utf8(&bytes).unwrap();
-
-    let resp: serde_json::Value = serde_json::from_str(body).unwrap();
+async fn test_entrypoint(srv: &mut actix_web::test::TestServer) {
+    let resp: serde_json::Value = utils::get_json(srv, "/").await;
     assert_eq!(
         resp,
         serde_json::json! {
@@ -52,15 +42,8 @@ fn test_entrypoint(srv: &mut actix_web::test::TestServer) {
     );
 }
 
-fn test_dataset_entrypoint(srv: &mut actix_web::test::TestServer) {
-    let request = srv.client(http::Method::GET, "/default/").finish().unwrap();
-    let response = srv.execute(request.send()).unwrap();
-    assert!(response.status().is_success());
-
-    let bytes = srv.execute(response.body()).unwrap();
-    let body = std::str::from_utf8(&bytes).unwrap();
-
-    let mut resp: serde_json::Value = serde_json::from_str(body).unwrap();
+async fn test_dataset_entrypoint(srv: &mut actix_web::test::TestServer) {
+    let mut resp: serde_json::Value = utils::get_json(srv, "/default/").await;
 
     // we change the loaded_at datetime to be able to easily compare the response
     *resp.pointer_mut("/loaded_at").unwrap() = "2019-06-20T10:00:00Z".into();
@@ -97,18 +80,8 @@ fn test_dataset_entrypoint(srv: &mut actix_web::test::TestServer) {
     );
 }
 
-fn test_siri_entrypoint(srv: &mut actix_web::test::TestServer) {
-    let request = srv
-        .client(http::Method::GET, "/default/siri/2.0")
-        .finish()
-        .unwrap();
-    let response = srv.execute(request.send()).unwrap();
-    assert!(response.status().is_success());
-
-    let bytes = srv.execute(response.body()).unwrap();
-    let body = std::str::from_utf8(&bytes).unwrap();
-
-    let resp: serde_json::Value = serde_json::from_str(body).unwrap();
+async fn test_siri_entrypoint(srv: &mut actix_web::test::TestServer) {
+    let resp: serde_json::Value = utils::get_json(srv, "/default/siri/2.0").await;
 
     assert_eq!(
         resp,

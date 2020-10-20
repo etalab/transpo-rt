@@ -9,16 +9,16 @@ mod status;
 mod stop_monitoring;
 mod stoppoints_discovery;
 
-pub use self::api_entry_point::api_entry_point;
+pub use self::api_entry_point::entry_point;
 pub use self::exposed_dataset::ExposedDataset;
 pub use self::general_message::general_message_query;
-pub use self::gtfs_rt::{gtfs_rt, gtfs_rt_json};
+pub use self::gtfs_rt::{gtfs_rt_json, gtfs_rt_protobuf};
 pub use self::links::{Link, Links};
 pub use self::open_api::documentation;
 pub use self::siri::siri_endpoint;
 pub use self::status::status_query;
 pub use self::stop_monitoring::stop_monitoring_query;
-pub use self::stoppoints_discovery::sp_discovery;
+pub use self::stoppoints_discovery::stoppoints_discovery_query;
 
 // export the params/responses for the openapi module
 pub(crate) use self::general_message::Params as GeneralMessageParams;

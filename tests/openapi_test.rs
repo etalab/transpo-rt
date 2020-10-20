@@ -1,23 +1,12 @@
-use actix_web::http;
-use actix_web::HttpMessage;
 use maplit::btreeset;
 use std::collections::BTreeSet;
 mod utils;
 
-#[test]
-fn openapi_test() {
+#[actix_rt::test]
+async fn openapi_test() {
     let _log_guard = utils::init_log();
     let mut srv = utils::make_simple_test_server();
-
-    let request = srv.client(http::Method::GET, "/spec").finish().unwrap();
-    let response = srv.execute(request.send()).unwrap();
-
-    assert!(response.status().is_success());
-
-    let bytes = srv.execute(response.body()).unwrap();
-    let body = std::str::from_utf8(&bytes).unwrap();
-
-    let resp: serde_json::Value = serde_json::from_str(body).unwrap();
+    let resp: serde_json::Value = utils::get_json(&mut srv, "/spec").await;
     let paths = resp.pointer("/paths").unwrap();
     assert_eq!(
         paths

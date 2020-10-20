@@ -4,8 +4,7 @@ use crate::siri_lite::shared::CommonDelivery;
 use crate::siri_lite::stop_points_delivery::{AnnotatedStopPoint, StopPointsDelivery};
 use crate::siri_lite::{Siri, SiriResponse};
 use actix::Addr;
-use actix_web::{AsyncResponder, Error, Json, Query, State};
-use futures::future::Future;
+use actix_web::{get, web};
 
 fn default_limit() -> usize {
     20
@@ -82,13 +81,14 @@ pub fn filter(data: &crate::datasets::Dataset, request: Params) -> SiriResponse 
     }
 }
 
-pub fn sp_discovery(
-    actor_addr: State<Addr<DatasetActor>>,
-    query: Query<Params>,
-) -> Box<dyn Future<Item = Json<SiriResponse>, Error = Error>> {
-    actor_addr
-        .send(GetDataset)
-        .map_err(Error::from)
-        .and_then(|dataset| dataset.map(|d| Json(filter(&d, query.into_inner()))))
-        .responder()
+#[get("/siri/2.0/stoppoints-discovery.json")]
+pub async fn stoppoints_discovery_query(
+    web::Query(query): web::Query<Params>,
+    dataset_actor: web::Data<Addr<DatasetActor>>,
+) -> actix_web::Result<web::Json<SiriResponse>> {
+    let dataset = dataset_actor.send(GetDataset).await.map_err(|e| {
+        log::error!("error while querying actor for data: {:?}", e);
+        actix_web::error::ErrorInternalServerError("impossible to get data".to_string())
+    })?;
+    Ok(web::Json(filter(&dataset, query)))
 }

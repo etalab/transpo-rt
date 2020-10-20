@@ -1,6 +1,6 @@
 use crate::datasets::Datasets;
 use crate::routes::{ExposedDataset, Link, Links};
-use actix_web::{HttpRequest, Json};
+use actix_web::{get, web, HttpRequest};
 use maplit::btreemap;
 use openapi_schema::OpenapiSchema;
 
@@ -11,7 +11,7 @@ pub struct ApiEntryPoint {
     pub links: Links,
 }
 
-fn raw_url(req: &HttpRequest<Datasets>, u: &str) -> String {
+fn raw_url(req: &HttpRequest, u: &str) -> String {
     // since there are several App in actix, we can't call url_for for datasets route
     // so we hardcode them
     let conn = req.connection_info();
@@ -19,21 +19,21 @@ fn raw_url(req: &HttpRequest<Datasets>, u: &str) -> String {
 }
 
 /// Api to list all the hosted datasets
-pub fn api_entry_point(req: &HttpRequest<Datasets>) -> Json<ApiEntryPoint> {
-    Json(ApiEntryPoint {
-        datasets: req
-            .state()
+#[get("/")]
+async fn entry_point(req: HttpRequest, datasets: web::Data<Datasets>) -> web::Json<ApiEntryPoint> {
+    web::Json(ApiEntryPoint {
+        datasets: datasets
             .datasets
             .iter()
             .map(|d| {
                 ExposedDataset::from(d)
-                    .add_link("self", &raw_url(req, &format!("/{id}/", id = &d.id)))
+                    .add_link("self", &raw_url(&req, &format!("/{id}/", id = &d.id)))
             })
             .collect(),
         links: btreemap! {
-            "documentation" => Link::from_url(req, "documentation", &[]),
+            "documentation" => Link::from_url(&req, "documentation", &[]),
             "dataset_detail" => Link {
-                href: raw_url(req, "/{id}/"),
+                href: raw_url(&req, "/{id}/"),
                 templated: Some(true),
             }
         }

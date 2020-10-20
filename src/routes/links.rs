@@ -25,9 +25,12 @@ pub struct Link {
 }
 
 impl Link {
-    pub fn from_url<T>(req: &actix_web::HttpRequest<T>, name: &str, params: &[&str]) -> Self {
+    pub fn from_url(req: &actix_web::HttpRequest, name: &str, params: &[&str]) -> Self {
         Self {
-            href: req.url_for(name, params).map(|u| u.into_string()).unwrap(),
+            href: req
+                .url_for(name, params)
+                .map(|u| u.into_string())
+                .unwrap_or_else(|_| panic!("route {} has not been registered with a name", name)),
             ..Default::default()
         }
     }
