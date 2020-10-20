@@ -142,8 +142,11 @@ fn find_corresponging_vjs(
         .map(|vj_idx| (&model.vehicle_journeys[vj_idx], vj_idx))
         .filter(|(vj, _)| {
             // we want all the vjs that are valid this day
-            let service = model.calendars.get(&vj.service_id).unwrap();
-            service.dates.contains(&start_date)
+            model
+                .calendars
+                .get(&vj.service_id)
+                .map(|service| service.dates.contains(&start_date))
+                .unwrap_or(false)
         })
         .filter(|(vj, _)| {
             // and the trip should start at start_time
