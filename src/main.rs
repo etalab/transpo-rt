@@ -2,6 +2,7 @@ use failure::format_err;
 use failure::ResultExt;
 use structopt::StructOpt;
 use transpo_rt::datasets::{DatasetInfo, Datasets};
+use transpo_rt::middlewares;
 
 #[derive(StructOpt, Debug, Clone)]
 #[structopt(name = "transpo-rt")]
@@ -81,12 +82,11 @@ async fn main() -> std::io::Result<()> {
     let _log_guard = transpo_rt::utils::init_logger();
 
     let params = Params::from_args();
-    // let sentry = sentry::init(params.sentry.clone().unwrap_or_else(|| "".to_owned()));
-    // if sentry.is_enabled() {
-    //     log::info!("sentry activated");
-    //     std::env::set_var("RUST_BACKTRACE", "1");
-    //     sentry::integrations::panic::register_panic_handler();
-    // }
+    let sentry = sentry::init(params.sentry.clone().unwrap_or_else(|| "".to_owned()));
+    if sentry.is_enabled() {
+        log::info!("sentry activated");
+        std::env::set_var("RUST_BACKTRACE", "1");
+    }
     let bind = format!("{}:{}", &params.bind, &params.port);
     let today = chrono::Local::today(); //TODO use the timezone's dataset ?
     let period = transpo_rt::datasets::Period {
@@ -98,12 +98,13 @@ async fn main() -> std::io::Result<()> {
 
     actix_web::HttpServer::new(move || {
         actix_web::App::new()
-            .wrap(actix_web::middleware::Logger::default())
             .wrap(
                 actix_cors::Cors::new()
                     .allowed_methods(vec!["GET"])
                     .finish(),
             )
+            .wrap_fn(middlewares::sentry::sentry_middleware)
+            .wrap(actix_web::middleware::Logger::default())
             .configure(|cfg| transpo_rt::server::init_routes(cfg, &actors, &datasets_infos))
     })
     .bind(bind)?
