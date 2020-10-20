@@ -77,7 +77,6 @@ fn register_dataset_routes(
         cfg.service(
             web::scope(&format!("/{id}", id = &id))
                 .data(dataset_actor.clone())
-                // .wrap(sentry_actix::SentryMiddleware::new()) TODO
                 .service(status_query)
                 .service(gtfs_rt_protobuf)
                 .service(gtfs_rt_json)
