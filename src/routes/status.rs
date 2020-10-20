@@ -21,13 +21,13 @@ pub async fn status_query(
 ) -> actix_web::Result<web::Json<Status>> {
     let dataset = dataset_actor.send(GetDataset).await.map_err(|e| {
         log::error!("error while querying actor for data: {:?}", e);
-        actix_web::error::ErrorInternalServerError(format!("impossible to get data",))
+        actix_web::error::ErrorInternalServerError("impossible to get data".to_string())
     })?;
     let url_for = |link: &str| Link {
         href: req
             .url_for(link, &[&dataset.feed_construction_info.dataset_info.id])
             .map(|u| u.into_string())
-            .expect(&format!("impossible to find route {} to make a link", link)),
+            .unwrap_or_else(|_| panic!("impossible to find route {} to make a link", link)),
         ..Default::default()
     };
     Ok(web::Json(Status {

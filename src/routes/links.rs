@@ -30,10 +30,7 @@ impl Link {
             href: req
                 .url_for(name, params)
                 .map(|u| u.into_string())
-                .expect(&format!(
-                    "route {} has not been registered with a name",
-                    name
-                )),
+                .unwrap_or_else(|_| panic!("route {} has not been registered with a name", name)),
             ..Default::default()
         }
     }

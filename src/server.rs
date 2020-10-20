@@ -7,7 +7,6 @@ use crate::routes::{
 };
 use actix::{Actor, Addr};
 use actix_web::web;
-use failure;
 use std::collections::BTreeMap;
 use std::sync::Arc;
 

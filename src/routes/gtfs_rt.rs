@@ -10,7 +10,7 @@ pub async fn gtfs_rt_protobuf(
     use actix_web::dev::BodyEncoding;
     let rt_data = dataset_actor.send(GetRealtimeDataset).await.map_err(|e| {
         log::error!("error while querying actor for realtime data: {:?}", e);
-        error::ErrorInternalServerError(format!("impossible to get realtime data",))
+        error::ErrorInternalServerError("impossible to get realtime data".to_string())
     })?;
     rt_data
         .gtfs_rt
@@ -33,7 +33,7 @@ pub async fn gtfs_rt_json(
 
     let rt_data = dataset_actor.send(GetRealtimeDataset).await.map_err(|e| {
         log::error!("error while querying actor for realtime data: {:?}", e);
-        error::ErrorInternalServerError(format!("impossible to get realtime data",))
+        error::ErrorInternalServerError("impossible to get realtime data".to_string())
     })?;
     rt_data
         .gtfs_rt
