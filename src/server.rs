@@ -13,7 +13,7 @@ use std::sync::Arc;
 fn create_dataset_actors(
     dataset_info: &DatasetInfo,
     generation_period: &Period,
-) -> Result<Addr<DatasetActor>, failure::Error> {
+) -> Result<Addr<DatasetActor>, anyhow::Error> {
     let logger = slog_scope::logger().new(slog::o!("instance" => dataset_info.id.clone()));
     slog_scope::scope(&logger, || {
         log::info!("creating actors");
@@ -73,7 +73,6 @@ fn register_dataset_routes(
     datasets_actors: &BTreeMap<String, Addr<DatasetActor>>,
 ) {
     for (id, dataset_actor) in datasets_actors {
-        log::info!("adding route for {}", id);
         cfg.service(
             web::scope(&format!("/{id}", id = &id))
                 .data(dataset_actor.clone())
@@ -93,10 +92,8 @@ pub fn init_routes(
     datasets_actors: &BTreeMap<String, Addr<DatasetActor>>,
     datasets: &Datasets,
 ) {
-    log::info!("creating default routes");
     cfg.data(datasets.clone())
         .service(documentation)
         .service(entry_point);
-    log::info!("creating dataset routes {}", datasets_actors.len());
     register_dataset_routes(cfg, datasets_actors);
 }

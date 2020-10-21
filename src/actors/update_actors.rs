@@ -36,7 +36,7 @@ impl BaseScheduleReloader {
                     sentry::Hub::current().configure_scope(|scope| {
                         scope.set_tag("dataset", &self.feed_construction_info.dataset_info.id);
                     });
-                    sentry::integrations::failure::capture_error(&e);
+                    sentry::integrations::anyhow::capture_anyhow(&e);
 
                     ctx.run_later(std::time::Duration::from_secs(5 * 60), |act, ctx| {
                         act.update_data(ctx)

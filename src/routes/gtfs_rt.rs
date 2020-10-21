@@ -28,7 +28,6 @@ pub async fn gtfs_rt_protobuf(
 pub async fn gtfs_rt_json(
     dataset_actor: web::Data<Addr<DatasetActor>>,
 ) -> actix_web::Result<web::Json<transit_realtime::FeedMessage>> {
-    use bytes::IntoBuf;
     use prost::Message;
 
     let rt_data = dataset_actor.send(GetRealtimeDataset).await.map_err(|e| {
@@ -41,7 +40,7 @@ pub async fn gtfs_rt_json(
         .ok_or_else(|| error::ErrorNotFound("no realtime data available"))
         .map(|rt| rt.data.clone())
         .and_then(|d| {
-            transit_realtime::FeedMessage::decode(d.into_buf())
+            transit_realtime::FeedMessage::decode(d.as_slice())
                 .map(web::Json)
                 .map_err(|e| {
                     error::ErrorInternalServerError(format!(
