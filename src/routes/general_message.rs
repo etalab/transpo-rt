@@ -125,7 +125,6 @@ fn general_message(request: Params, rt_data: &RealTimeDataset) -> Result<SiriRes
             .naive_local()
     });
     // Note: we decode the gtfs at the query. if needed we can cache this, to parse it once
-    use bytes::IntoBuf;
     use prost::Message;
     let feed = rt_data
         .gtfs_rt
@@ -133,7 +132,7 @@ fn general_message(request: Params, rt_data: &RealTimeDataset) -> Result<SiriRes
         .ok_or_else(|| actix_web::error::ErrorNotFound("no realtime data available"))
         .map(|rt| rt.data.clone())
         .and_then(|d| {
-            transit_realtime::FeedMessage::decode(d.into_buf()).map_err(|e| {
+            transit_realtime::FeedMessage::decode(d.as_slice()).map_err(|e| {
                 actix_web::error::ErrorInternalServerError(format!(
                     "impossible to decode protobuf message: {}",
                     e

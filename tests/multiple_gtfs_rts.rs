@@ -85,7 +85,8 @@ async fn multiple_gtfs_rt_integration_test() {
             mockito::server_url() + "/gtfs_rt_1",
             mockito::server_url() + "/gtfs_rt_2",
         ],
-    )]);
+    )])
+    .await;
 
     test_stop_monitoring(&mut srv).await;
     test_gtfs_rt(&mut srv).await;

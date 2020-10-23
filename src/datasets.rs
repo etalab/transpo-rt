@@ -1,3 +1,4 @@
+use anyhow::anyhow;
 use chrono::{DateTime, NaiveDate, NaiveDateTime, Utc};
 use chrono_tz::Tz;
 use log::info;
@@ -138,15 +139,11 @@ fn create_timetable(ntm: &transit_model::Model, generation_period: &Period) -> T
     let end = begin + generation_period.horizon;
 
     for (vj_idx, vj) in ntm.vehicle_journeys.iter() {
-        let service =
-            skip_fail!(ntm
-                .calendars
-                .get(&vj.service_id)
-                .ok_or_else(|| failure::format_err!(
-                    "impossible to find service {} for vj {}, skipping vj",
-                    &vj.service_id,
-                    &vj.id
-                )));
+        let service = skip_fail!(ntm.calendars.get(&vj.service_id).ok_or_else(|| anyhow!(
+            "impossible to find service {} for vj {}, skipping vj",
+            &vj.service_id,
+            &vj.id
+        )));
         for st in &vj.stop_times {
             for date in service
                 .dates
@@ -180,9 +177,8 @@ fn create_timetable(ntm: &transit_model::Model, generation_period: &Period) -> T
 
 impl GtfsRT {
     pub fn decode_feed_message(&self) -> Option<transit_realtime::FeedMessage> {
-        use bytes::IntoBuf;
         use prost::Message;
-        transit_realtime::FeedMessage::decode(self.data.clone().into_buf())
+        transit_realtime::FeedMessage::decode(self.data.as_slice())
             .map_err(|e| log::warn!("Unable to decode feed message, {}", e))
             .ok()
     }
@@ -236,14 +232,15 @@ impl Dataset {
     pub fn try_from_dataset_info(
         dataset_info: DatasetInfo,
         generation_period: &Period,
-    ) -> Result<Self, failure::Error> {
+    ) -> Result<Self, anyhow::Error> {
         log::info!("reading from path");
         let gtfs = dataset_info.gtfs.as_str();
         let nav_data = if gtfs.starts_with("http") {
-            transit_model::gtfs::read_from_url(gtfs, None::<&str>, None)?
+            transit_model::gtfs::read_from_url(gtfs, None::<&str>, None)
         } else {
-            transit_model::gtfs::read_from_zip(gtfs, None::<&str>, None)?
-        };
+            transit_model::gtfs::read_from_zip(gtfs, None::<&str>, None)
+        }
+        .map_err(|e| anyhow!("impossible to read GTFS {}: {}", gtfs, e))?;
         log::info!("gtfs read");
         Ok(Self::new(dataset_info, nav_data, &generation_period))
     }

@@ -1,8 +1,8 @@
 use crate::datasets::DatedVehicleJourney;
 use crate::transit_realtime;
+use anyhow::anyhow;
+use anyhow::Error;
 use chrono::{DateTime, NaiveDateTime, Utc};
-use failure::format_err;
-use failure::Error;
 use log::{debug, trace, warn};
 use std::collections::HashMap;
 use transit_model::collection::Idx;
@@ -48,7 +48,7 @@ fn create_stop_time_updates(
 ) -> Result<HashMap<u32, StopTimeUpdate>, Error> {
     let mut res = HashMap::default();
     for stop_time_update in &trip_update.stop_time_update {
-        let stop_sequence = skip_fail!(stop_time_update.stop_sequence.ok_or_else(|| format_err!(
+        let stop_sequence = skip_fail!(stop_time_update.stop_sequence.ok_or_else(|| anyhow!(
             "no stop_sequence provided, for the moment we don't handle this case"
         )));
         let stop_id = &stop_time_update.stop_id;
@@ -102,22 +102,22 @@ fn default_date(timezone: chrono_tz::Tz) -> chrono::NaiveDate {
 fn get_date(
     trip: &transit_realtime::TripDescriptor,
     timezone: chrono_tz::Tz,
-) -> Result<chrono::NaiveDate, failure::Error> {
+) -> Result<chrono::NaiveDate, anyhow::Error> {
     trip.start_date.as_ref().map_or_else(
         || Ok(default_date(timezone)),
         |s| {
             chrono::NaiveDate::parse_from_str(s, "%Y%m%d")
-                .map_err(|e| format_err!("Impossible to parse date: {}", e))
+                .map_err(|e| anyhow!("Impossible to parse date: {}", e))
         },
     )
 }
 
 // TODO move this in transit_model ?
-fn make_navitia_route_id(gtfs_route_id: &str, direction_id: u32) -> Result<String, failure::Error> {
+fn make_navitia_route_id(gtfs_route_id: &str, direction_id: u32) -> Result<String, anyhow::Error> {
     match direction_id {
         0 => Ok(gtfs_route_id.to_owned()),
         1 => Ok(format!("{}_R", gtfs_route_id)),
-        n => Err(format_err!("{} is not a valid GTFS direction", n)),
+        n => Err(anyhow!("{} is not a valid GTFS direction", n)),
     }
 }
 
@@ -128,13 +128,13 @@ fn find_corresponging_vjs(
     direction_id: u32,
     start_date: chrono::NaiveDate,
     start_time: transit_model::objects::Time,
-) -> Result<Vec<Idx<transit_model::objects::VehicleJourney>>, failure::Error> {
+) -> Result<Vec<Idx<transit_model::objects::VehicleJourney>>, anyhow::Error> {
     let route_id = make_navitia_route_id(gtfs_route_id, direction_id)?;
 
     let route_idx = model
         .routes
         .get_idx(&route_id)
-        .ok_or_else(|| format_err!("impossible to find route {}", route_id))?;
+        .ok_or_else(|| anyhow!("impossible to find route {}", route_id))?;
 
     Ok(model
         .get_corresponding_from_idx(route_idx)
@@ -164,7 +164,7 @@ fn get_dated_vj(
     trip: &transit_realtime::TripDescriptor,
     entity_id: &str,
     timezone: chrono_tz::Tz,
-) -> Result<DatedVehicleJourney, failure::Error> {
+) -> Result<DatedVehicleJourney, anyhow::Error> {
     let vj_idx = model.vehicle_journeys.get_idx(trip.trip_id());
 
     let vj_idx = if let Some(vj_idx) = vj_idx {
@@ -181,18 +181,18 @@ fn get_dated_vj(
 
             match vjs.len() {
                 1 => Ok(vjs[0]),
-                0 => Err(format_err!(
+                0 => Err(anyhow!(
                     "for entity {}, impossible to find a matching trip",
                     &entity_id
                 )),
-                l => Err(format_err!(
+                l => Err(anyhow!(
                     "for entity {}, there is no trip id, and {} matching trips, we can't choose one",
                     &entity_id,
                     l
                 )),
             }
         } else {
-            Err(format_err!(
+            Err(anyhow!(
                 "impossible to find trip {} for entity {} and no route_id was provided",
                 &trip.trip_id(),
                 &entity_id

@@ -1,5 +1,4 @@
-use failure::format_err;
-use failure::ResultExt;
+use anyhow::{anyhow, Context};
 use structopt::StructOpt;
 use transpo_rt::datasets::{DatasetInfo, Datasets};
 use transpo_rt::middlewares;
@@ -51,27 +50,27 @@ struct Params {
 /// Load datasets from the configuration
 /// if a config file has been given, we get the dataset from here,
 /// else we read the gtfs/url cli parameter to create a 'default' dataset with them
-fn get_datasets(params: &Params) -> Result<Datasets, failure::Error> {
+fn get_datasets(params: &Params) -> Result<Datasets, anyhow::Error> {
     if let Some(config) = &params.config_file {
         let yaml = if config.starts_with("http") {
             serde_yaml::from_reader(
-                reqwest::get(config)
-                    .with_context(|e| format!("impossible to read config url because: {}", e))?,
+                reqwest::blocking::get(config)
+                    .with_context(|| "impossible to read config url".to_string())?,
             )
         } else {
             serde_yaml::from_reader(
                 std::fs::File::open(config)
-                    .with_context(|e| format!("impossible to open config file because: {}", e))?,
+                    .with_context(|| "impossible to open config file".to_string())?,
             )
         };
 
-        Ok(yaml.with_context(|e| format!("impossible to parse config file because: {}", e))?)
+        Ok(yaml.with_context(|| "impossible to parse config file".to_string())?)
     } else if let (Some(gtfs), Some(url)) = (&params.gtfs, &params.url) {
         Ok(Datasets {
             datasets: vec![DatasetInfo::new_default(gtfs, &[url.clone()])],
         })
     } else {
-        Err(format_err!(
+        Err(anyhow!(
             "no config file nor gtfs/url given, impossible to start the api"
         ))
     }
@@ -94,7 +93,10 @@ async fn main() -> std::io::Result<()> {
         horizon: chrono::Duration::days(2),
     };
     let datasets_infos = get_datasets(&params).unwrap();
-    let actors = transpo_rt::server::create_all_actors(&datasets_infos, &period);
+    // we create all the actors
+    // this is an async function as we need to wait for all data (and realtime data too) to be read
+    // we wait for this to be finished before spawning the webserver
+    let actors = transpo_rt::server::create_all_actors(&datasets_infos, &period).await;
 
     actix_web::HttpServer::new(move || {
         actix_web::App::new()

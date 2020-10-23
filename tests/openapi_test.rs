@@ -5,7 +5,7 @@ mod utils;
 #[actix_rt::test]
 async fn openapi_test() {
     let _log_guard = utils::init_log();
-    let mut srv = utils::make_simple_test_server();
+    let mut srv = utils::make_simple_test_server().await;
     let resp: serde_json::Value = utils::get_json(&mut srv, "/spec").await;
     let paths = resp.pointer("/paths").unwrap();
     assert_eq!(

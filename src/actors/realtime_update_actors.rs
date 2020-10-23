@@ -4,20 +4,19 @@ use crate::datasets::{
 };
 use crate::model_update;
 use crate::transit_realtime;
-use actix::fut::ActorFuture;
 use actix::fut::WrapFuture;
 use actix::prelude::ContextFutureSpawner;
 use actix::AsyncContext;
-use failure::format_err;
-use failure::Error;
+use anyhow::{anyhow, Error};
+use futures::future::join_all;
 use prost::Message;
-use sentry::integrations::failure::capture_error;
+use sentry::integrations::anyhow::capture_anyhow;
 use slog::info;
-use std::io::Read;
 use std::sync::Arc;
 
 /// Actor that once in a while reload the BaseSchedule data (GTFS)
 /// and send them to the DatasetActor
+#[derive(Clone)]
 pub struct RealTimeReloader {
     pub gtfs_rt_urls: Vec<String>,
     pub dataset_id: String,
@@ -29,32 +28,30 @@ pub struct RealTimeReloader {
     pub log: slog::Logger,
 }
 
-// TODO: make this async
-fn fetch_gtfs_rt(url: &str, log: &slog::Logger) -> Result<GtfsRT, Error> {
+async fn fetch_gtfs_rt(url: &str, log: &slog::Logger) -> Result<GtfsRT, Error> {
     info!(log, "fetching a gtfs_rt");
-    let gtfs_rt = reqwest::get(url)
+    let resp = reqwest::get(url)
+        .await
         .and_then(reqwest::Response::error_for_status)
-        .map_err(|e| format_err!("Unable to fetch GTFS: {}", e))
-        .and_then(|resp| {
-            resp.bytes()
-                .collect::<Result<Vec<u8>, _>>()
-                .map_err(|e| format_err!("Unable to decode protobuf {}", e))
-        });
+        .map_err(|e| anyhow!("Unable to fetch GTFS: {}", e))?;
+    let gtfs_rt = resp
+        .bytes()
+        .await
+        .map_err(|e| anyhow!("Unable to decode protobuf {}", e))?
+        .into_iter()
+        .collect::<Vec<u8>>();
 
-    match gtfs_rt {
-        Ok(gtfs_rt) => Ok(GtfsRT {
-            data: gtfs_rt,
-            datetime: chrono::Utc::now(),
-        }),
-        Err(e) => Err(format_err!("Unable to fetch GTFS-RT: {}", e)),
-    }
+    Ok(GtfsRT {
+        data: gtfs_rt,
+        datetime: chrono::Utc::now(),
+    })
 }
 
 fn aggregate_rts(feed_messages: &[transit_realtime::FeedMessage]) -> Result<GtfsRT, Error> {
     //We may loose a timestamp, other fields are ok
     let first = feed_messages
         .first()
-        .ok_or_else(|| format_err!("No feed message!"))?;
+        .ok_or_else(|| anyhow!("No feed message!"))?;
     let entity = feed_messages
         .iter()
         .map(|fm| fm.entity.clone())
@@ -66,7 +63,7 @@ fn aggregate_rts(feed_messages: &[transit_realtime::FeedMessage]) -> Result<Gtfs
     };
     let mut data = Vec::new();
     res.encode(&mut data)
-        .map_err(|err| format_err!("Unable to encode protobuf: {}", err))?;
+        .map_err(|err| anyhow!("Unable to encode protobuf: {}", err))?;
     Ok(GtfsRT {
         data,
         datetime: chrono::Utc::now(),
@@ -141,43 +138,45 @@ fn apply_rt_update(
 }
 
 impl RealTimeReloader {
-    fn update_realtime_data(&self, ctx: &mut actix::Context<Self>) {
-        // we fetch the latest baseschedule data
-        let dataset_id = self.dataset_id.clone();
-        self.dataset_actor
+    async fn update_realtime_data_impl(&self) -> anyhow::Result<()> {
+        let dataset = self
+            .dataset_actor
             .send(GetDataset)
-            .into_actor(self)
-            .then(|res, act, _| {
-                sentry::Hub::current().configure_scope(|scope| {
-                    scope.set_tag("dataset", dataset_id);
-                });
-                match res
-                    .map_err(|e| format_err!("maibox error: {}", e))
-                    .and_then(|dataset| act.apply_rt(dataset))
-                {
-                    Ok(()) => {
-                        info!(act.log, "realtime reloaded");
-                    }
-                    Err(e) => {
-                        slog::error!(act.log, "unable to apply realtime update due to: {}", e);
-                        capture_error(&e);
-                    }
-                }
-                actix::fut::ready(())
-            })
-            .wait(ctx);
+            .await
+            .map_err(|e| anyhow!("maibox error: {}", e))?;
+        self.apply_rt(dataset).await
     }
 
-    fn apply_rt(&self, dataset: Arc<Dataset>) -> Result<(), Error> {
-        //TODO: make this async
+    /// fetch the gtfs-rts and apply them to the current dataset
+    /// send the newly created RealTimeDataset to the DatasetActor to update it.
+    /// This method has to be called at the actor creation
+    /// and then will be scheduled to run regularely
+    pub async fn update_realtime_data(&self) {
+        sentry::Hub::current().configure_scope(|scope| {
+            scope.set_tag("dataset", &self.dataset_id);
+        });
+        let res = self.update_realtime_data_impl().await;
+        match res {
+            Ok(()) => {
+                info!(self.log, "realtime reloaded");
+            }
+            Err(e) => {
+                slog::error!(self.log, "unable to apply realtime update due to: {}", e);
+                capture_anyhow(&e);
+            }
+        }
+    }
+
+    async fn apply_rt(&self, dataset: Arc<Dataset>) -> Result<(), Error> {
         let gtfs_rts = self
             .gtfs_rt_urls
             .iter()
-            .filter_map(|url| {
-                fetch_gtfs_rt(&url, &self.log)
-                    .map_err(|e| slog::warn!(self.log, "{}", e))
-                    .ok()
-            })
+            .map(|url| fetch_gtfs_rt(&url, &self.log));
+
+        let gtfs_rts = join_all(gtfs_rts)
+            .await
+            .into_iter()
+            .filter_map(|rt| rt.map_err(|e| slog::warn!(self.log, "{}", e)).ok())
             .collect();
 
         let rt_dataset = self.make_rt_dataset(dataset, gtfs_rts)?;
@@ -213,12 +212,17 @@ impl actix::Actor for RealTimeReloader {
     type Context = actix::Context<Self>;
 
     fn started(&mut self, ctx: &mut Self::Context) {
-        info!(self.log, "Starting the realtime updater actor");
+        info!(self.log, "Realtime updater actor started");
 
-        self.update_realtime_data(ctx);
         ctx.run_interval(std::time::Duration::from_secs(60), |act, ctx| {
             info!(act.log, "reloading realtime data");
-            act.update_realtime_data(ctx);
+            // Note: The actor is cloned there because of lifetime issue.
+            // There should be a way to avoid this, but at the time of the writing
+            // no better solution to make the future 'static was found
+            let cloned = act.clone();
+            async move { cloned.update_realtime_data().await }
+                .into_actor(act)
+                .wait(ctx);
         });
     }
 }
