@@ -93,7 +93,10 @@ async fn main() -> std::io::Result<()> {
         horizon: chrono::Duration::days(2),
     };
     let datasets_infos = get_datasets(&params).unwrap();
-    let actors = transpo_rt::server::create_all_actors(&datasets_infos, &period);
+    // we create all the actors
+    // this is an async function as we need to wait for all data (and realtime data too) to be read
+    // we wait for this to be finished before spawning the webserver
+    let actors = transpo_rt::server::create_all_actors(&datasets_infos, &period).await;
 
     actix_web::HttpServer::new(move || {
         actix_web::App::new()

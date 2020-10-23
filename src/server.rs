@@ -10,62 +10,80 @@ use actix_web::web;
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
-fn create_dataset_actors(
+async fn create_dataset_actors_impl(
     dataset_info: &DatasetInfo,
     generation_period: &Period,
-) -> Result<Addr<DatasetActor>, anyhow::Error> {
-    let logger = slog_scope::logger().new(slog::o!("instance" => dataset_info.id.clone()));
-    slog_scope::scope(&logger, || {
-        log::info!("creating actors");
-        let dataset = Dataset::try_from_dataset_info(dataset_info.clone(), &generation_period)?;
-        let arc_dataset = Arc::new(dataset);
-        let rt_dataset =
-            datasets::RealTimeDataset::new(arc_dataset.clone(), &dataset_info.gtfs_rt_urls);
-        let dataset_actors = DatasetActor {
-            gtfs: arc_dataset,
-            realtime: Arc::new(rt_dataset),
-        };
-        let dataset_actors_addr = dataset_actors.start();
-        let base_schedule_reloader = BaseScheduleReloader {
-            feed_construction_info: datasets::FeedConstructionInfo {
-                dataset_info: dataset_info.clone(),
-                generation_period: generation_period.clone(),
-            },
-            dataset_actor: dataset_actors_addr.clone(),
-            log: logger.clone(),
-        };
-        base_schedule_reloader.start();
-        let realtime_reloader = RealTimeReloader {
-            dataset_id: dataset_info.id.clone(),
-            gtfs_rt_urls: dataset_info.gtfs_rt_urls.clone(),
-            dataset_actor: dataset_actors_addr.clone(),
-            log: logger.clone(),
-        };
-        realtime_reloader.start();
+    logger: &slog::Logger,
+) -> Result<(String, Addr<DatasetActor>), anyhow::Error> {
+    log::info!("creating actors");
+    let dataset = Dataset::try_from_dataset_info(dataset_info.clone(), &generation_period)?;
+    let arc_dataset = Arc::new(dataset);
+    let rt_dataset =
+        datasets::RealTimeDataset::new(arc_dataset.clone(), &dataset_info.gtfs_rt_urls);
+    let dataset_actors = DatasetActor {
+        gtfs: arc_dataset,
+        realtime: Arc::new(rt_dataset),
+    };
+    let dataset_actors_addr = dataset_actors.start();
+    let base_schedule_reloader = BaseScheduleReloader {
+        feed_construction_info: datasets::FeedConstructionInfo {
+            dataset_info: dataset_info.clone(),
+            generation_period: generation_period.clone(),
+        },
+        dataset_actor: dataset_actors_addr.clone(),
+        log: logger.clone(),
+    };
+    base_schedule_reloader.start();
+    let realtime_reloader = RealTimeReloader {
+        dataset_id: dataset_info.id.clone(),
+        gtfs_rt_urls: dataset_info.gtfs_rt_urls.clone(),
+        dataset_actor: dataset_actors_addr.clone(),
+        log: logger.clone(),
+    };
+    // we fetch a first time the gtfs_rt feeds, for them to be available on startup
+    realtime_reloader.update_realtime_data().await;
+    realtime_reloader.start();
 
-        Ok(dataset_actors_addr)
-    })
+    Ok((dataset_info.id.clone(), dataset_actors_addr))
 }
 
-pub fn create_all_actors(
+async fn create_dataset_actors(
+    dataset_info: &DatasetInfo,
+    generation_period: &Period,
+) -> Result<(String, Addr<DatasetActor>), anyhow::Error> {
+    use slog_scope_futures::FutureExt;
+    let logger = slog_scope::logger().new(slog::o!("instance" => dataset_info.id.clone()));
+    create_dataset_actors_impl(dataset_info, generation_period, &logger)
+        .with_logger(&logger)
+        .await
+}
+
+pub async fn create_all_actors(
     datasets: &Datasets,
     generation_period: &Period,
 ) -> BTreeMap<String, Addr<DatasetActor>> {
-    datasets
+    let actors = datasets
         .datasets
         .iter()
-        .map(|d| (d.id.clone(), create_dataset_actors(&d, generation_period)))
-        .filter_map(|(id, d)| match d {
-            Ok(d) => Some((id, d)),
-            Err(e) => {
-                // log on sentry
-                let msg = format!("impossible to create dataset {}: {}", id, e);
-                sentry::capture_message(&msg, sentry::Level::Error);
-                log::error!("{}", &msg);
-                None
-            }
-        })
-        .collect()
+        .map(|d| create_dataset_actors(&d, &generation_period));
+
+    async move {
+        futures::future::join_all(actors)
+            .await
+            .into_iter()
+            .filter_map(|r| match r {
+                Ok((id, d)) => Some((id, d)),
+                Err(e) => {
+                    // log on sentry
+                    let msg = format!("impossible to create dataset {}", e);
+                    sentry::capture_message(&msg, sentry::Level::Error);
+                    log::error!("{}", &msg);
+                    None
+                }
+            })
+            .collect()
+    }
+    .await
 }
 
 fn register_dataset_routes(

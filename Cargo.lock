@@ -3022,6 +3022,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "slog-scope-futures"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a0ad55b694ada4dc7097672e5a32fc16c35b183f9fa2531d17c7f07d25918eca"
+dependencies = [
+ "slog",
+ "slog-scope",
+]
+
+[[package]]
 name = "slog-stdlog"
 version = "4.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3728,10 +3738,12 @@ dependencies = [
  "slog-async",
  "slog-envlogger",
  "slog-scope",
+ "slog-scope-futures",
  "slog-stdlog",
  "slog-term",
  "structopt 0.3.20",
  "time-parse",
+ "tokio 0.2.22",
  "transit_model",
  "transit_model_builder",
  "url 1.7.2",

@@ -6,7 +6,7 @@ mod utils;
 #[actix_rt::test]
 async fn sp_discovery_integration_test() {
     let _log_guard = utils::init_log();
-    let mut srv = utils::make_simple_test_server();
+    let mut srv = utils::make_simple_test_server().await;
 
     filter_query(&mut srv).await;
     limit_query(&mut srv).await;

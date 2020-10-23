@@ -9,7 +9,7 @@ fn string(time: &Option<DateTime>) -> Option<String> {
 #[actix_rt::test]
 async fn sp_monitoring_integration_test() {
     let _log_guard = utils::init_log();
-    let mut srv = utils::make_simple_test_server();
+    let mut srv = utils::make_simple_test_server().await;
 
     let resp: SiriResponse = utils::get_json(
         &mut srv,
@@ -204,7 +204,7 @@ async fn sp_monitoring_realtime_integration_test() {
     let gtfs_rt = create_mock_feed_message();
     let _server = utils::run_simple_gtfs_rt_server(gtfs_rt);
 
-    let mut srv = utils::make_simple_test_server();
+    let mut srv = utils::make_simple_test_server().await;
 
     let resp: SiriResponse = utils::get_json(
         &mut srv,

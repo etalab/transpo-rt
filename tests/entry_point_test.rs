@@ -3,7 +3,7 @@ mod utils;
 #[actix_rt::test]
 async fn entry_point_integration_test() {
     let _log_guard = utils::init_log();
-    let mut srv = utils::make_simple_test_server();
+    let mut srv = utils::make_simple_test_server().await;
 
     test_entrypoint(&mut srv).await;
     test_dataset_entrypoint(&mut srv).await;

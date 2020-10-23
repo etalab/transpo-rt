@@ -11,14 +11,15 @@ pub fn init_log() -> slog_scope::GlobalLoggerGuard {
 }
 
 #[allow(dead_code)]
-pub fn make_simple_test_server() -> actix_web::test::TestServer {
+pub async fn make_simple_test_server() -> actix_web::test::TestServer {
     make_test_server(vec![DatasetInfo::new_default(
         "fixtures/gtfs.zip",
         &[mockito::server_url() + SERVER_PATH],
     )])
+    .await
 }
 
-pub fn make_test_server(datasets_info: Vec<DatasetInfo>) -> actix_web::test::TestServer {
+pub async fn make_test_server(datasets_info: Vec<DatasetInfo>) -> actix_web::test::TestServer {
     let period = transpo_rt::datasets::Period {
         begin: chrono::NaiveDate::from_ymd(2018, 12, 15),
         horizon: chrono::Duration::days(1),
@@ -27,7 +28,7 @@ pub fn make_test_server(datasets_info: Vec<DatasetInfo>) -> actix_web::test::Tes
     let dataset_infos = Datasets {
         datasets: datasets_info.clone(),
     };
-    let actors = transpo_rt::server::create_all_actors(&dataset_infos, &period);
+    let actors = transpo_rt::server::create_all_actors(&dataset_infos, &period).await;
     actix_web::test::start(move || {
         actix_web::App::new()
             .configure(|cfg| transpo_rt::server::init_routes(cfg, &actors, &dataset_infos))
