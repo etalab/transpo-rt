@@ -55,16 +55,16 @@ fn get_datasets(params: &Params) -> Result<Datasets, anyhow::Error> {
         let yaml = if config.starts_with("http") {
             serde_yaml::from_reader(
                 reqwest::blocking::get(config)
-                    .with_context(|| format!("impossible to read config url"))?,
+                    .with_context(|| "impossible to read config url".to_string())?,
             )
         } else {
             serde_yaml::from_reader(
                 std::fs::File::open(config)
-                    .with_context(|| format!("impossible to open config file",))?,
+                    .with_context(|| "impossible to open config file".to_string())?,
             )
         };
 
-        Ok(yaml.with_context(|| format!("impossible to parse config file"))?)
+        Ok(yaml.with_context(|| "impossible to parse config file".to_string())?)
     } else if let (Some(gtfs), Some(url)) = (&params.gtfs, &params.url) {
         Ok(Datasets {
             datasets: vec![DatasetInfo::new_default(gtfs, &[url.clone()])],
