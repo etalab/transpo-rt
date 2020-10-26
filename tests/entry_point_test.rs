@@ -104,3 +104,41 @@ async fn test_siri_entrypoint(srv: &mut actix_web::test::TestServer) {
         }
     );
 }
+
+// test that invalid dataset are filtered
+#[actix_rt::test]
+async fn invalid_dataset_test() {
+    use transpo_rt::datasets::DatasetInfo;
+    let _log_guard = utils::init_log();
+    let mut srv = utils::make_test_server(vec![
+        DatasetInfo {
+            id: "valid".into(),
+            name: "valid dataset".into(),
+            gtfs: "fixtures/gtfs.zip".to_owned(),
+            gtfs_rt_urls: [mockito::server_url() + "/gtfs_rt_1"].to_vec(),
+            extras: std::collections::BTreeMap::default(),
+        },
+        DatasetInfo {
+            id: "non_valid".into(),
+            name: "non valid dataset".into(),
+            gtfs: "non_valid_gtfs.zip".to_owned(),
+            gtfs_rt_urls: [mockito::server_url() + "/gtfs_rt_1"].to_vec(),
+            extras: std::collections::BTreeMap::default(),
+        },
+    ])
+    .await;
+
+    let resp: serde_json::Value = utils::get_json(&mut srv, "/").await;
+
+    // there should be only one dataset exposed, the valid one
+    assert_eq!(
+        resp.get("datasets")
+            .and_then(|v| v.as_array())
+            .map(|a| a.len()),
+        Some(1)
+    );
+    assert_eq!(
+        resp.pointer("/datasets/0/id"),
+        Some(&serde_json::json!("valid"))
+    );
+}

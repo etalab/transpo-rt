@@ -11,10 +11,10 @@ use std::collections::BTreeMap;
 use std::sync::Arc;
 
 async fn create_dataset_actors_impl(
-    dataset_info: &DatasetInfo,
+    dataset_info: DatasetInfo,
     generation_period: &Period,
     logger: &slog::Logger,
-) -> Result<(String, Addr<DatasetActor>), anyhow::Error> {
+) -> Result<(DatasetInfo, Addr<DatasetActor>), anyhow::Error> {
     log::info!("creating actors");
     let dataset = Dataset::try_from_dataset_info(dataset_info.clone(), &generation_period)?;
     let arc_dataset = Arc::new(dataset);
@@ -44,13 +44,13 @@ async fn create_dataset_actors_impl(
     realtime_reloader.update_realtime_data().await;
     realtime_reloader.start();
 
-    Ok((dataset_info.id.clone(), dataset_actors_addr))
+    Ok((dataset_info, dataset_actors_addr))
 }
 
 async fn create_dataset_actors(
-    dataset_info: &DatasetInfo,
+    dataset_info: DatasetInfo,
     generation_period: &Period,
-) -> Result<(String, Addr<DatasetActor>), anyhow::Error> {
+) -> Result<(DatasetInfo, Addr<DatasetActor>), anyhow::Error> {
     use slog_scope_futures::FutureExt;
     let logger = slog_scope::logger().new(slog::o!("instance" => dataset_info.id.clone()));
     create_dataset_actors_impl(dataset_info, generation_period, &logger)
@@ -59,22 +59,22 @@ async fn create_dataset_actors(
 }
 
 pub async fn create_all_actors(
-    datasets: &Datasets,
+    datasets: Datasets,
     generation_period: &Period,
-) -> BTreeMap<String, Addr<DatasetActor>> {
+) -> BTreeMap<DatasetInfo, Addr<DatasetActor>> {
     let actors = datasets
         .datasets
-        .iter()
-        .map(|d| create_dataset_actors(&d, &generation_period));
+        .into_iter()
+        .map(|d| create_dataset_actors(d, &generation_period));
 
     async move {
         futures::future::join_all(actors)
             .await
             .into_iter()
             .filter_map(|r| match r {
-                Ok((id, d)) => Some((id, d)),
+                Ok((d, a)) => Some((d, a)),
                 Err(e) => {
-                    // log on sentry
+                    // the invalid datasets are filtered
                     let msg = format!("impossible to create dataset: {}", e);
                     sentry::capture_message(&msg, sentry::Level::Error);
                     log::error!("{}", &msg);
@@ -88,11 +88,11 @@ pub async fn create_all_actors(
 
 fn register_dataset_routes(
     cfg: &mut web::ServiceConfig,
-    datasets_actors: &BTreeMap<String, Addr<DatasetActor>>,
+    datasets_actors: &BTreeMap<DatasetInfo, Addr<DatasetActor>>,
 ) {
-    for (id, dataset_actor) in datasets_actors {
+    for (d, dataset_actor) in datasets_actors {
         cfg.service(
-            web::scope(&format!("/{id}", id = &id))
+            web::scope(&format!("/{id}", id = &d.id))
                 .data(dataset_actor.clone())
                 .service(status_query)
                 .service(gtfs_rt_protobuf)
@@ -107,10 +107,12 @@ fn register_dataset_routes(
 
 pub fn init_routes(
     cfg: &mut web::ServiceConfig,
-    datasets_actors: &BTreeMap<String, Addr<DatasetActor>>,
-    datasets: &Datasets,
+    datasets_actors: &BTreeMap<DatasetInfo, Addr<DatasetActor>>,
 ) {
-    cfg.data(datasets.clone())
+    let datasets = Datasets {
+        datasets: datasets_actors.keys().cloned().collect(),
+    };
+    cfg.data(datasets)
         .service(documentation)
         .service(entry_point);
     register_dataset_routes(cfg, datasets_actors);
