@@ -243,7 +243,7 @@ impl Dataset {
         } else {
             transit_model::gtfs::read_from_zip(gtfs, None::<&str>, None)
         }
-        .map_err(|e| anyhow!("impossible to read GTFS {}: {}", gtfs, e))?;
+        .map_err(|e| anyhow!("impossible to read GTFS {} because {}", gtfs, e))?;
         log::info!("gtfs read");
         Ok(Self::new(dataset_info, nav_data, &generation_period))
     }

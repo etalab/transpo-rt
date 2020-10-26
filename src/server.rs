@@ -75,7 +75,7 @@ pub async fn create_all_actors(
                 Ok((id, d)) => Some((id, d)),
                 Err(e) => {
                     // log on sentry
-                    let msg = format!("impossible to create dataset {}", e);
+                    let msg = format!("impossible to create dataset: {}", e);
                     sentry::capture_message(&msg, sentry::Level::Error);
                     log::error!("{}", &msg);
                     None
