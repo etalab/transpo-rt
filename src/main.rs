@@ -96,14 +96,14 @@ async fn main() -> std::io::Result<()> {
     // we create all the actors
     // this is an async function as we need to wait for all data (and realtime data too) to be read
     // we wait for this to be finished before spawning the webserver
-    let actors = transpo_rt::server::create_all_actors(&datasets_infos, &period).await;
+    let actors = transpo_rt::server::create_all_actors(datasets_infos, &period).await;
 
     actix_web::HttpServer::new(move || {
         actix_web::App::new()
             .wrap(actix_cors::Cors::default().allowed_methods(vec!["GET"]))
             .wrap_fn(middlewares::sentry::sentry_middleware)
             .wrap(actix_web::middleware::Logger::default())
-            .configure(|cfg| transpo_rt::server::init_routes(cfg, &actors, &datasets_infos))
+            .configure(|cfg| transpo_rt::server::init_routes(cfg, &actors))
     })
     .bind(bind)?
     .run()

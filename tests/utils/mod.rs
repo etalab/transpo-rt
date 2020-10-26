@@ -28,10 +28,9 @@ pub async fn make_test_server(datasets_info: Vec<DatasetInfo>) -> actix_web::tes
     let dataset_infos = Datasets {
         datasets: datasets_info.clone(),
     };
-    let actors = transpo_rt::server::create_all_actors(&dataset_infos, &period).await;
+    let actors = transpo_rt::server::create_all_actors(dataset_infos, &period).await;
     actix_web::test::start(move || {
-        actix_web::App::new()
-            .configure(|cfg| transpo_rt::server::init_routes(cfg, &actors, &dataset_infos))
+        actix_web::App::new().configure(|cfg| transpo_rt::server::init_routes(cfg, &actors))
     })
 }
 

@@ -96,12 +96,12 @@ pub struct Period {
     pub horizon: chrono::Duration,
 }
 
-#[derive(Deserialize, Clone)]
+#[derive(Deserialize, Clone, Default)]
 pub struct Datasets {
     pub datasets: Vec<DatasetInfo>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, OpenapiSchema)]
+#[derive(Serialize, Deserialize, Debug, Clone, OpenapiSchema, PartialEq, Eq, PartialOrd, Ord)]
 #[serde(rename_all = "kebab-case")]
 pub struct DatasetInfo {
     pub name: String,
