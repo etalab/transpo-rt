@@ -108,6 +108,8 @@ pub struct DatasetInfo {
     pub id: String,
     pub gtfs: String,
     pub gtfs_rt_urls: Vec<String>,
+    #[serde(default)]
+    pub extras: std::collections::BTreeMap<String, String>,
 }
 
 impl DatasetInfo {
@@ -117,6 +119,7 @@ impl DatasetInfo {
             name: "default name".into(),
             gtfs: gtfs.to_owned(),
             gtfs_rt_urls: gtfs_rt_urls.to_vec(),
+            extras: std::collections::BTreeMap::default(),
         }
     }
 }
