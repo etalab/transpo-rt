@@ -7,6 +7,7 @@ pub struct ExposedDataset {
     pub name: String,
     pub id: String,
     pub gtfs: String,
+    pub extras: std::collections::BTreeMap<String, String>,
     // we do not expose the gtfs-rt sources since the information can contains api key
     // so we add links to the gtfs-rt routes instead
     #[serde(flatten)]
@@ -19,6 +20,7 @@ impl From<&DatasetInfo> for ExposedDataset {
             name: d.name.clone(),
             id: d.id.clone(),
             gtfs: d.gtfs.clone(),
+            extras: d.extras.clone(),
             links: Links::default(),
         }
     }

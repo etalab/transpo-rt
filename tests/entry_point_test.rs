@@ -34,7 +34,8 @@ async fn test_entrypoint(srv: &mut actix_web::test::TestServer) {
                         },
                         "gtfs": "fixtures/gtfs.zip",
                         "id": "default",
-                        "name": "default name"
+                        "name": "default name",
+                        "extras": {},
                     }
                 ]
             }
@@ -55,6 +56,7 @@ async fn test_dataset_entrypoint(srv: &mut actix_web::test::TestServer) {
                 "id": "default",
                 "gtfs": "fixtures/gtfs.zip",
                 "loaded_at": "2019-06-20T10:00:00Z",
+                "extras": {},
                 "_links": {
                     "general-message": {
                         "href": &srv.url("/default/siri/2.0/general-message.json")

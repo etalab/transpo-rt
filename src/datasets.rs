@@ -108,6 +108,8 @@ pub struct DatasetInfo {
     pub id: String,
     pub gtfs: String,
     pub gtfs_rt_urls: Vec<String>,
+    #[serde(default)]
+    pub extras: std::collections::BTreeMap<String, String>,
 }
 
 impl DatasetInfo {
@@ -117,6 +119,7 @@ impl DatasetInfo {
             name: "default name".into(),
             gtfs: gtfs.to_owned(),
             gtfs_rt_urls: gtfs_rt_urls.to_vec(),
+            extras: std::collections::BTreeMap::default(),
         }
     }
 }
@@ -240,7 +243,7 @@ impl Dataset {
         } else {
             transit_model::gtfs::read_from_zip(gtfs, None::<&str>, None)
         }
-        .map_err(|e| anyhow!("impossible to read GTFS {}: {}", gtfs, e))?;
+        .map_err(|e| anyhow!("impossible to read GTFS {} because {}", gtfs, e))?;
         log::info!("gtfs read");
         Ok(Self::new(dataset_info, nav_data, &generation_period))
     }

@@ -4,3 +4,5 @@ datasets:
     gtfs: https://www.metromobilite.fr/data/Horaires/SEM-GTFS.zip
     gtfs-rt-urls: 
       - https://data.metromobilite.fr/api/gtfs-rt/GAM/trip-update
+    extras:
+      datagouv_id: 5af03701b595081c1880a8a4
