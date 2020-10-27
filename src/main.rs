@@ -100,7 +100,12 @@ async fn main() -> std::io::Result<()> {
 
     actix_web::HttpServer::new(move || {
         actix_web::App::new()
-            .wrap(actix_cors::Cors::default().allowed_methods(vec!["GET"]))
+            .wrap(
+                actix_cors::Cors::default()
+                    .allow_any_origin()
+                    .send_wildcard()
+                    .allowed_methods(vec!["GET"]),
+            )
             .wrap_fn(middlewares::sentry::sentry_middleware)
             .wrap(actix_web::middleware::Logger::default())
             .configure(|cfg| transpo_rt::server::init_routes(cfg, &actors))
