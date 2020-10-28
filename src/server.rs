@@ -14,9 +14,12 @@ async fn create_dataset_actors_impl(
     dataset_info: DatasetInfo,
     generation_period: &Period,
     logger: &slog::Logger,
-) -> Result<(DatasetInfo, Addr<DatasetActor>), anyhow::Error> {
+) -> (DatasetInfo, Result<Addr<DatasetActor>, anyhow::Error>) {
     log::info!("creating actors");
-    let dataset = Dataset::try_from_dataset_info(dataset_info.clone(), &generation_period)?;
+    let dataset = match Dataset::try_from_dataset_info(dataset_info.clone(), &generation_period) {
+        Ok(d) => d,
+        Err(e) => return (dataset_info, Err(e)),
+    };
     let arc_dataset = Arc::new(dataset);
     let rt_dataset =
         datasets::RealTimeDataset::new(arc_dataset.clone(), &dataset_info.gtfs_rt_urls);
@@ -44,13 +47,13 @@ async fn create_dataset_actors_impl(
     realtime_reloader.update_realtime_data().await;
     realtime_reloader.start();
 
-    Ok((dataset_info, dataset_actors_addr))
+    (dataset_info, Ok(dataset_actors_addr))
 }
 
 async fn create_dataset_actors(
     dataset_info: DatasetInfo,
     generation_period: &Period,
-) -> Result<(DatasetInfo, Addr<DatasetActor>), anyhow::Error> {
+) -> (DatasetInfo, Result<Addr<DatasetActor>, anyhow::Error>) {
     use slog_scope_futures::FutureExt;
     let logger = slog_scope::logger().new(slog::o!("instance" => dataset_info.id.clone()));
     create_dataset_actors_impl(dataset_info, generation_period, &logger)
@@ -71,11 +74,11 @@ pub async fn create_all_actors(
         futures::future::join_all(actors)
             .await
             .into_iter()
-            .filter_map(|r| match r {
-                Ok((d, a)) => Some((d, a)),
+            .filter_map(|(d, r)| match r {
+                Ok(a) => Some((d, a)),
                 Err(e) => {
                     // the invalid datasets are filtered
-                    let msg = format!("impossible to create dataset: {}", e);
+                    let msg = format!("impossible to create dataset {}: {}", &d.id, e);
                     sentry::capture_message(&msg, sentry::Level::Error);
                     log::error!("{}", &msg);
                     None
