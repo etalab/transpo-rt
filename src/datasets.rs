@@ -210,17 +210,17 @@ impl Dataset {
         dataset_info: DatasetInfo,
         ntm: transit_model::Model,
         generation_period: &Period,
-    ) -> Self {
+    ) -> Result<Self, anyhow::Error> {
         // To correctly handle GTFS-RT stream we need the dataset's timezone,
         // as all the time in the dataset are in local time and the GTFS-RT gives its time
         // as UTC.
         // We consider that there can be at most one Company (gtfs's agency) in the dataset
         // and we consider that the dataset's timezone is it's agency's timezone
-        let timezone = ntm
-            .timezone()
-            .expect("no timezone found, we will not be able to understand realtime information");
+        let timezone = ntm.timezone().ok_or_else(|| {
+            anyhow!("no timezone found, we will not be able to understand realtime information")
+        })?;
 
-        Self {
+        Ok(Self {
             timetable: create_timetable(&ntm, generation_period),
             ntm,
             timezone,
@@ -229,7 +229,7 @@ impl Dataset {
                 dataset_info,
                 generation_period: generation_period.clone(),
             },
-        }
+        })
     }
 
     pub fn try_from_dataset_info(
@@ -245,7 +245,7 @@ impl Dataset {
         }
         .map_err(|e| anyhow!("impossible to read GTFS {} because {}", gtfs, e))?;
         log::info!("gtfs read");
-        Ok(Self::new(dataset_info, nav_data, &generation_period))
+        Self::new(dataset_info, nav_data, &generation_period)
     }
 }
 
