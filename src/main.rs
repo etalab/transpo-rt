@@ -78,7 +78,8 @@ fn get_datasets(params: &Params) -> Result<Datasets, anyhow::Error> {
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    let _log_guard = transpo_rt::utils::init_logger();
+    let log_guard = transpo_rt::utils::init_logger();
+    log_guard.cancel_reset();
 
     let params = Params::from_args();
     let sentry = sentry::init(params.sentry.clone().unwrap_or_else(|| "".to_owned()));
