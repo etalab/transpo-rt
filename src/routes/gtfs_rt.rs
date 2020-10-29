@@ -1,9 +1,8 @@
 use crate::actors::{DatasetActor, GetRealtimeDataset};
 use crate::transit_realtime;
 use actix::Addr;
-use actix_web::{error, get, http::ContentEncoding, web, HttpResponse};
+use actix_web::{error, http::ContentEncoding, web, HttpResponse};
 
-#[get("/gtfs-rt")]
 pub async fn gtfs_rt_protobuf(
     dataset_actor: web::Data<Addr<DatasetActor>>,
 ) -> actix_web::Result<web::HttpResponse> {
@@ -24,7 +23,6 @@ pub async fn gtfs_rt_protobuf(
         })
 }
 
-#[get("/gtfs-rt.json")]
 pub async fn gtfs_rt_json(
     dataset_actor: web::Data<Addr<DatasetActor>>,
 ) -> actix_web::Result<web::Json<transit_realtime::FeedMessage>> {

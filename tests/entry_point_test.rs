@@ -1,4 +1,6 @@
 mod utils;
+use pretty_assertions::assert_eq;
+use transpo_rt::datasets::DatasetInfo;
 
 #[actix_rt::test]
 async fn entry_point_integration_test() {
@@ -108,7 +110,6 @@ async fn test_siri_entrypoint(srv: &mut actix_web::test::TestServer) {
 // test that invalid dataset are filtered
 #[actix_rt::test]
 async fn invalid_dataset_test() {
-    use transpo_rt::datasets::DatasetInfo;
     let _log_guard = utils::init_log();
     let mut srv = utils::make_test_server(vec![
         DatasetInfo {
@@ -140,5 +141,69 @@ async fn invalid_dataset_test() {
     assert_eq!(
         resp.pointer("/datasets/0/id"),
         Some(&serde_json::json!("valid"))
+    );
+}
+
+#[actix_rt::test]
+async fn multiple_datasets_test() {
+    use transpo_rt::datasets::DatasetInfo;
+    let _log_guard = utils::init_log();
+    let first_dataset = DatasetInfo {
+        id: "first_dataset".into(),
+        name: "First dataset".into(),
+        gtfs: "fixtures/gtfs.zip".to_owned(),
+        gtfs_rt_urls: [mockito::server_url() + "/gtfs_rt_1"].to_vec(),
+        extras: std::collections::BTreeMap::default(),
+    };
+    let second_dataset = DatasetInfo {
+        id: "second_dataset".into(),
+        name: "Seond dataset".into(),
+        gtfs: "fixtures/gtfs.zip".to_owned(),
+        gtfs_rt_urls: [mockito::server_url() + "/gtfs_rt_1"].to_vec(),
+        extras: std::collections::BTreeMap::default(),
+    };
+    let mut srv =
+        utils::make_test_server(vec![first_dataset.clone(), second_dataset.clone()]).await;
+
+    check_datasets_entrypoints(&mut srv, &first_dataset).await;
+    check_datasets_entrypoints(&mut srv, &second_dataset).await;
+}
+
+async fn check_datasets_entrypoints(srv: &mut actix_web::test::TestServer, dataset: &DatasetInfo) {
+    let mut resp: serde_json::Value = utils::get_json(srv, &format!("/{}/", dataset.id)).await;
+
+    // we change the loaded_at datetime to be able to easily compare the response
+    *resp.pointer_mut("/loaded_at").unwrap() = "2019-06-20T10:00:00Z".into();
+    assert_eq!(
+        resp,
+        serde_json::json! {
+            {
+                "name": &dataset.name,
+                "id": &dataset.id,
+                "gtfs": "fixtures/gtfs.zip",
+                "loaded_at": "2019-06-20T10:00:00Z",
+                "extras": {},
+                "_links": {
+                    "general-message": {
+                        "href": &srv.url(&format!("/{}/siri/2.0/general-message.json", &dataset.id))
+                    },
+                    "gtfs-rt": {
+                        "href": &srv.url(&format!("/{}/gtfs-rt", &dataset.id))
+                    },
+                    "gtfs-rt.json": {
+                        "href": &srv.url(&format!("/{}/gtfs-rt.json", &dataset.id))
+                    },
+                    "stop-monitoring": {
+                        "href": &srv.url(&format!("/{}/siri/2.0/stop-monitoring.json", &dataset.id))
+                    },
+                    "siri-lite": {
+                        "href": &srv.url(&format!("/{}/siri/2.0", &dataset.id))
+                    },
+                    "stoppoints-discovery": {
+                        "href": &srv.url(&format!("/{}/siri/2.0/stoppoints-discovery.json", &dataset.id))
+                    }
+                }
+            }
+        }
     );
 }

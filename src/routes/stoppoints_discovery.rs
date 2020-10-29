@@ -4,7 +4,7 @@ use crate::siri_lite::shared::CommonDelivery;
 use crate::siri_lite::stop_points_delivery::{AnnotatedStopPoint, StopPointsDelivery};
 use crate::siri_lite::{Siri, SiriResponse};
 use actix::Addr;
-use actix_web::{get, web};
+use actix_web::web;
 
 fn default_limit() -> usize {
     20
@@ -81,7 +81,6 @@ pub fn filter(data: &crate::datasets::Dataset, request: Params) -> SiriResponse 
     }
 }
 
-#[get("/siri/2.0/stoppoints-discovery.json")]
 pub async fn stoppoints_discovery_query(
     web::Query(query): web::Query<Params>,
     dataset_actor: web::Data<Addr<DatasetActor>>,

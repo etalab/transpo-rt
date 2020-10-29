@@ -31,7 +31,7 @@ async fn entry_point(req: HttpRequest, datasets: web::Data<Datasets>) -> web::Js
             })
             .collect(),
         links: btreemap! {
-            "documentation" => Link::from_url(&req, "documentation", &[]),
+            "documentation" => Link::from_url(&req, "documentation"),
             "dataset_detail" => Link {
                 href: raw_url(&req, "/{id}/"),
                 templated: Some(true),
