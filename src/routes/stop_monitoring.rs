@@ -4,7 +4,7 @@ use crate::datasets::{Connection, Dataset, RealTimeConnection, RealTimeDataset, 
 use crate::siri_lite::{self, service_delivery as model, SiriResponse};
 use crate::utils;
 use actix::Addr;
-use actix_web::{error, get, web};
+use actix_web::{error, web};
 use openapi_schema::OpenapiSchema;
 use transit_model::collection::Idx;
 use transit_model::objects::StopPoint;
@@ -227,7 +227,6 @@ fn stop_monitoring(
     })
 }
 
-#[get("/siri/2.0/stop-monitoring.json")]
 pub async fn stop_monitoring_query(
     web::Query(query): web::Query<Params>,
     dataset_actor: web::Data<Addr<DatasetActor>>,

@@ -1,11 +1,10 @@
 use crate::actors::{DatasetActor, GetDataset};
 use crate::routes::{Link, Links};
 use actix::Addr;
-use actix_web::{get, web, HttpRequest};
+use actix_web::{web, HttpRequest};
 use maplit::btreemap;
 
 /// Api to tell what is available in siri-lite
-#[get("/siri/2.0")]
 pub async fn siri_endpoint(
     req: HttpRequest,
     dataset_actor: web::Data<Addr<DatasetActor>>,
@@ -14,18 +13,12 @@ pub async fn siri_endpoint(
         log::error!("error while querying actor for data: {:?}", e);
         actix_web::error::ErrorInternalServerError("impossible to get data".to_string())
     })?;
-    let url_for = |link: &str| Link {
-        href: req
-            .url_for(link, &[&dataset.feed_construction_info.dataset_info.id])
-            .map(|u| u.into_string())
-            .unwrap_or_else(|_| panic!("impossible to find route {} to make a link", link)),
-        ..Default::default()
-    };
+    let dataset_id = &dataset.feed_construction_info.dataset_info.id;
     Ok(web::Json(
         btreemap! {
-            "stop-monitoring" => url_for("stop_monitoring_query"),
-            "stoppoints-discovery" => url_for("stoppoints_discovery_query"),
-            "general-message" => url_for("general_message_query"),
+            "stop-monitoring" => Link::from_scoped_url(&req, "stop_monitoring_query", dataset_id),
+            "stoppoints-discovery" => Link::from_scoped_url(&req, "stoppoints_discovery_query", dataset_id),
+            "general-message" => Link::from_scoped_url(&req, "general_message_query", dataset_id),
         }
         .into(),
     ))
