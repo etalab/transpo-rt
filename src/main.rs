@@ -111,6 +111,10 @@ async fn main() -> std::io::Result<()> {
             .wrap_fn(middlewares::sentry::sentry_middleware)
             .wrap(actix_web::middleware::Logger::default())
             .configure(|cfg| transpo_rt::server::init_routes(cfg, &actors))
+            .default_service(actix_web::web::get().to(|req: actix_web::HttpRequest| {
+                actix_web::HttpResponse::NotFound()
+                    .body(format!("impossible to find route '{}'", &req.path()))
+            }))
     })
     .bind(bind)?
     .run()
