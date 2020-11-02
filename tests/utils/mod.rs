@@ -30,7 +30,9 @@ pub async fn make_test_server(datasets_info: Vec<DatasetInfo>) -> actix_web::tes
     };
     let actors = transpo_rt::server::create_all_actors(dataset_infos, &period).await;
     actix_web::test::start(move || {
-        actix_web::App::new().configure(|cfg| transpo_rt::server::init_routes(cfg, &actors))
+        actix_web::App::new()
+            .wrap(actix_web::middleware::normalize::NormalizePath::default())
+            .configure(|cfg| transpo_rt::server::init_routes(cfg, &actors))
     })
 }
 

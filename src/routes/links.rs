@@ -35,11 +35,14 @@ impl Link {
         }
     }
     pub fn from_scoped_url(req: &actix_web::HttpRequest, name: &str, scope: &str) -> Self {
+        let route_name = format!("{}/{}", scope, name);
         Self {
             href: req
-                .url_for(&format!("{}/{}", scope, name), &[""])
+                .url_for(&route_name, &[""])
                 .map(|u| u.into_string())
-                .unwrap_or_else(|_| panic!("route {} has not been registered with a name", name)),
+                .unwrap_or_else(|_| {
+                    panic!("route {} has not been registered with a name", route_name)
+                }),
             ..Default::default()
         }
     }
