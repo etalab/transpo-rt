@@ -103,32 +103,32 @@ fn register_dataset_routes(
                         .route(web::get().to(status_query)),
                 )
                 .service(
-                    web::resource("/gtfs-rt")
+                    web::resource("/gtfs-rt/")
                         .name(&format!("{}/gtfs_rt_protobuf", &d.id))
                         .route(web::get().to(gtfs_rt_protobuf)),
                 )
                 .service(
-                    web::resource("/gtfs-rt.json")
+                    web::resource("/gtfs-rt.json/")
                         .name(&format!("{}/gtfs_rt_json", &d.id))
                         .route(web::get().to(gtfs_rt_json)),
                 )
                 .service(
-                    web::resource("/siri/2.0")
+                    web::resource("/siri/2.0/")
                         .name(&format!("{}/siri_endpoint", &d.id))
                         .route(web::get().to(siri_endpoint)),
                 )
                 .service(
-                    web::resource("/siri/2.0/stoppoints-discovery.json")
+                    web::resource("/siri/2.0/stoppoints-discovery.json/")
                         .name(&format!("{}/stoppoints_discovery_query", &d.id))
                         .route(web::get().to(stoppoints_discovery_query)),
                 )
                 .service(
-                    web::resource("/siri/2.0/stop-monitoring.json")
+                    web::resource("/siri/2.0/stop-monitoring.json/")
                         .name(&format!("{}/stop_monitoring_query", &d.id))
                         .route(web::get().to(stop_monitoring_query)),
                 )
                 .service(
-                    web::resource("/siri/2.0/general-message.json")
+                    web::resource("/siri/2.0/general-message.json/")
                         .name(&format!("{}/general_message_query", &d.id))
                         .route(web::get().to(general_message_query)),
                 ),

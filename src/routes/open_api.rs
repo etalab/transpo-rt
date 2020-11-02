@@ -194,7 +194,7 @@ fn create_schema() -> oa::Spec {
     spec
 }
 
-#[get("/spec")]
+#[get("/spec/")]
 pub async fn documentation() -> web::Json<openapi::v3_0::Spec> {
     let mut spec = create_schema();
 
