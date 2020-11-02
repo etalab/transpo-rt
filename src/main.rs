@@ -101,6 +101,7 @@ async fn main() -> std::io::Result<()> {
 
     actix_web::HttpServer::new(move || {
         actix_web::App::new()
+            .wrap(actix_web::middleware::normalize::NormalizePath::default())
             .wrap(
                 actix_cors::Cors::default()
                     .allow_any_origin()
@@ -110,6 +111,10 @@ async fn main() -> std::io::Result<()> {
             .wrap_fn(middlewares::sentry::sentry_middleware)
             .wrap(actix_web::middleware::Logger::default())
             .configure(|cfg| transpo_rt::server::init_routes(cfg, &actors))
+            .default_service(actix_web::web::get().to(|req: actix_web::HttpRequest| {
+                actix_web::HttpResponse::NotFound()
+                    .body(format!("impossible to find route '{}'", &req.path()))
+            }))
     })
     .bind(bind)?
     .run()
