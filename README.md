@@ -68,7 +68,7 @@ This can be configured via a local file, or a HTTP url (see `-h` output for exac
 An example configuration file can be found in [here](example_configuration_file.yml), which you can use like this (in debug mode):
 
 ```
-cargo run -c example_configuration_file.yml
+cargo run -- -c example_configuration_file.yml
 ```
 
 After a bit of time preparing the datasets, an url will appear in the logs (`http://localhost:8080`), showing which datasets are served.
