@@ -80,7 +80,7 @@ pub struct RealTimeDataset {
 }
 
 impl RealTimeDataset {
-    pub fn new(base: Arc<Dataset>, urls: &[String]) -> Self {
+    pub fn new(base: Arc<Result<Dataset, anyhow::Error>>, urls: &[String]) -> Self {
         RealTimeDataset {
             base_schedule_dataset: base,
             gtfs_rt: None,

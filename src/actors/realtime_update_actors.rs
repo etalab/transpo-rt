@@ -74,10 +74,15 @@ fn aggregate_rts(feed_messages: &[transit_realtime::FeedMessage]) -> Result<Gtfs
 // Since the connection are sorted by scheduled departure time we don't need to reorder the connections, we can update them in place
 // For each trip update, we only have to find the corresponding connection and update it.
 fn apply_rt_update(
-    data: &Dataset,
+    data: Arc<Result<Dataset, anyhow::Error>>,
     gtfs_rts: &[transit_realtime::FeedMessage],
     log: &slog::Logger,
 ) -> Result<UpdatedTimetable, Error> {
+    let data = match *data {
+        // TODO comment
+        Err(e) => return Ok(UpdatedTimetable::default()),
+        Ok(data) => data,
+    };
     let mut updated_timetable = UpdatedTimetable::default();
 
     let parsed_trip_update = model_update::get_model_update(&data.ntm, gtfs_rts, data.timezone)?;
@@ -145,15 +150,7 @@ impl RealTimeReloader {
             .await
             .map_err(|e| anyhow!("maibox error: {}", e))?;
 
-        // TODO: determine how to access the arc content safely, or forward result to call
-
-        self.apply_rt(Arc::new((*dataset)?)).await
-
-        // Equivalent of the line above :
-        // return match *dataset {
-        //     Ok(d) => self.apply_rt(Arc::new(d)).await,
-        //     Err(e) => Err(e),
-        // };
+        self.apply_rt(dataset).await
     }
 
     /// fetch the gtfs-rts and apply them to the current dataset
@@ -176,7 +173,7 @@ impl RealTimeReloader {
         }
     }
 
-    async fn apply_rt(&self, dataset: Arc<Dataset>) -> Result<(), Error> {
+    async fn apply_rt(&self, dataset: Arc<Result<Dataset, anyhow::Error>>) -> Result<(), Error> {
         let gtfs_rts = self
             .gtfs_rt_urls
             .iter()
@@ -199,7 +196,7 @@ impl RealTimeReloader {
 
     fn make_rt_dataset(
         &self,
-        dataset: Arc<Dataset>,
+        dataset: Arc<Result<Dataset, anyhow::Error>>,
         gtfs_rts: Vec<GtfsRT>,
     ) -> Result<RealTimeDataset, Error> {
         let feed_messages: Vec<transit_realtime::FeedMessage> = gtfs_rts
@@ -208,7 +205,7 @@ impl RealTimeReloader {
             .collect();
 
         let gtfs_rt = aggregate_rts(&feed_messages)?;
-        let updated_timetable = apply_rt_update(&dataset, &feed_messages, &self.log)?;
+        let updated_timetable = apply_rt_update(dataset, &feed_messages, &self.log)?;
 
         Ok(RealTimeDataset {
             base_schedule_dataset: dataset,
