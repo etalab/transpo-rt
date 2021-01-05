@@ -147,7 +147,13 @@ impl RealTimeReloader {
 
         // TODO: determine how to access the arc content safely, or forward result to call
 
-        self.apply_rt(dataset).await
+        self.apply_rt(Arc::new((*dataset)?)).await
+
+        // Equivalent of the line above :
+        // return match *dataset {
+        //     Ok(d) => self.apply_rt(Arc::new(d)).await,
+        //     Err(e) => Err(e),
+        // };
     }
 
     /// fetch the gtfs-rts and apply them to the current dataset
@@ -179,11 +185,13 @@ impl RealTimeReloader {
         let gtfs_rts = join_all(gtfs_rts)
             .await
             .into_iter()
+            // TODO : understand what happens if some url is down when the function is called
             .filter_map(|rt| rt.map_err(|e| slog::warn!(self.log, "{}", e)).ok())
             .collect();
 
         let rt_dataset = self.make_rt_dataset(dataset, gtfs_rts)?;
         // we send those data as a BaseScheduleReloader message, for the DatasetActor to load those new data
+        // TODO warn the actor if we do not have available dataset ?
         self.dataset_actor
             .do_send(UpdateRealtime(Arc::new(rt_dataset)));
         Ok(())
