@@ -144,6 +144,9 @@ impl RealTimeReloader {
             .send(GetDataset)
             .await
             .map_err(|e| anyhow!("maibox error: {}", e))?;
+
+        // TODO: determine how to access the arc content safely, or forward result to call
+
         self.apply_rt(dataset).await
     }
 
