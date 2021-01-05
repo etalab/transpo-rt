@@ -195,6 +195,10 @@ fn stop_monitoring(
     rt_data: &RealTimeDataset,
 ) -> actix_web::Result<siri_lite::SiriResponse> {
     let data = &rt_data.base_schedule_dataset;
+    // TODO: support error result by returning an actix error
+    // let data = &rt_data
+    //     .base_schedule_dataset
+    //     .map_err(|e| error::BadGateway(format!("pouet: '{}'", e)))?;
     let updated_timetable = &rt_data.updated_timetable;
 
     validate_params(&mut request)?;
