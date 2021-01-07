@@ -85,9 +85,18 @@ pub async fn stoppoints_discovery_query(
     web::Query(query): web::Query<Params>,
     dataset_actor: web::Data<Addr<DatasetActor>>,
 ) -> actix_web::Result<web::Json<SiriResponse>> {
-    let dataset = dataset_actor.send(GetDataset).await.map_err(|e| {
-        log::error!("error while querying actor for data: {:?}", e);
-        actix_web::error::ErrorInternalServerError("impossible to get data".to_string())
-    })?;
+    let dataset = dataset_actor
+        .send(GetDataset)
+        .await
+        .map_err(|e| {
+            log::error!("error while querying actor for data: {:?}", e);
+            actix_web::error::ErrorInternalServerError("impossible to get data".to_string())
+        })?
+        .map_err(|e| {
+            actix_web::error::ErrorInternalServerError(
+                "theoretical dataset temporarily unavailable".to_string(),
+            )
+        })?;
+
     Ok(web::Json(filter(&dataset, query)))
 }
