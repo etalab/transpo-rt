@@ -9,19 +9,20 @@ pub async fn siri_endpoint(
     req: HttpRequest,
     dataset_actor: web::Data<Addr<DatasetActor>>,
 ) -> actix_web::Result<web::Json<Links>> {
-    let dataset = dataset_actor
+    
+    let result = dataset_actor
         .send(GetDataset)
         .await
         .map_err(|e| {
             log::error!("error while querying actor for data: {:?}", e);
             actix_web::error::ErrorInternalServerError("impossible to get data".to_string())
-        })?
-        .map_err(|e| {
-            // TODO : log the error ?
-            actix_web::error::ErrorInternalServerError(
-                "theoretical dataset temporarily unavailable".to_string(),
-            )
-        })?;
+    })?;    
+    
+    // TODO: discuss this with Antoine to figure out how to do this as a one-liner
+    let dataset = match &(*result) {
+        Ok(dataset) => dataset,
+        Err(e) => return Err(actix_web::error::ErrorBadGateway("theoretical dataset temporarily unavailable".to_string()))
+    };
 
     let dataset_id = &dataset.feed_construction_info.dataset_info.id;
     Ok(web::Json(
