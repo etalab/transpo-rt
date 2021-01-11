@@ -119,9 +119,9 @@ fn read_info_messages(
 }
 
 fn general_message(request: Params, rt_data: &RealTimeDataset) -> Result<SiriResponse> {
-    // TODO: use map_err or a DRY helper
-    let timezone = match *(rt_data.base_schedule_dataset) {
-        Err(e) => return Err(actix_web::error::ErrorBadGateway(e)),
+    let timezone = match &(*rt_data.base_schedule_dataset) {
+        // TODO: figure out how to refer to the original error ("static lifetime required")
+        Err(_) => return Err(actix_web::error::ErrorBadGateway("theoretical dataset temporarily unavailable".to_string())),
         Ok(dataset) => dataset.timezone
     };
 
