@@ -119,9 +119,15 @@ fn read_info_messages(
 }
 
 fn general_message(request: Params, rt_data: &RealTimeDataset) -> Result<SiriResponse> {
+    // TODO: use map_err or a DRY helper
+    let timezone = match *(rt_data.base_schedule_dataset) {
+        Err(e) => return Err(actix_web::error::ErrorBadGateway(e)),
+        Ok(dataset) => dataset.timezone
+    };
+
     let requested_dt = request.request_timestamp.map(|d| d.0).unwrap_or_else(|| {
         chrono::Utc::now()
-            .with_timezone(&rt_data.base_schedule_dataset.timezone)
+            .with_timezone(&timezone)
             .naive_local()
     });
     // Note: we decode the gtfs at the query. if needed we can cache this, to parse it once
@@ -149,7 +155,7 @@ fn general_message(request: Params, rt_data: &RealTimeDataset) -> Result<SiriRes
                     info_messages: read_info_messages(
                         &feed,
                         requested_dt,
-                        rt_data.base_schedule_dataset.timezone,
+                        timezone,
                     ),
                     info_messages_cancellation: vec![],
                 }],
