@@ -78,9 +78,9 @@ fn apply_rt_update(
     gtfs_rts: &[transit_realtime::FeedMessage],
     log: &slog::Logger,
 ) -> Result<UpdatedTimetable, Error> {
-    let data = match *data {
+    let data = match &*data {
         // TODO comment
-        Err(e) => return Ok(UpdatedTimetable::default()),
+        Err(_e) => return Ok(UpdatedTimetable::default()),
         Ok(data) => data,
     };
     let mut updated_timetable = UpdatedTimetable::default();
@@ -205,7 +205,7 @@ impl RealTimeReloader {
             .collect();
 
         let gtfs_rt = aggregate_rts(&feed_messages)?;
-        let updated_timetable = apply_rt_update(dataset, &feed_messages, &self.log)?;
+        let updated_timetable = apply_rt_update(dataset.clone(), &feed_messages, &self.log)?;
 
         Ok(RealTimeDataset {
             base_schedule_dataset: dataset,

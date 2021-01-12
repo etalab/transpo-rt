@@ -27,7 +27,7 @@ impl BaseScheduleReloader {
                 },
             );
 
-            if let Err(e) = new_dataset {
+            if let Err(e) = &new_dataset {
                 log::warn!("impossible to update dataset because of: {}", e);
                 log::warn!("rescheduling data loading in 5 mn");
 
