@@ -74,12 +74,11 @@ fn aggregate_rts(feed_messages: &[transit_realtime::FeedMessage]) -> Result<Gtfs
 // Since the connection are sorted by scheduled departure time we don't need to reorder the connections, we can update them in place
 // For each trip update, we only have to find the corresponding connection and update it.
 fn apply_rt_update(
-    data: Arc<Result<Dataset, anyhow::Error>>,
+    data: &Arc<Result<Dataset, anyhow::Error>>,
     gtfs_rts: &[transit_realtime::FeedMessage],
     log: &slog::Logger,
 ) -> Result<UpdatedTimetable, Error> {
-    let data = match &*data {
-        // TODO comment
+    let data = match &(**data) {
         Err(_e) => return Ok(UpdatedTimetable::default()),
         Ok(data) => data,
     };
@@ -205,7 +204,7 @@ impl RealTimeReloader {
             .collect();
 
         let gtfs_rt = aggregate_rts(&feed_messages)?;
-        let updated_timetable = apply_rt_update(dataset.clone(), &feed_messages, &self.log)?;
+        let updated_timetable = apply_rt_update(&dataset, &feed_messages, &self.log)?;
 
         Ok(RealTimeDataset {
             base_schedule_dataset: dataset,
