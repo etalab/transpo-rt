@@ -194,15 +194,13 @@ fn stop_monitoring(
     mut request: Params,
     rt_data: &RealTimeDataset,
 ) -> actix_web::Result<siri_lite::SiriResponse> {
-    // TODO: understand exactly why this compiles
-    // let data = *&(rt_data.base_schedule_dataset)
-    //     .map_err(|e| 
-    //         actix_web::error::ErrorBadGateway("theoretical dataset temporarily unavailable".to_string())
-    //         )?;
-    
     let data = match &(*rt_data.base_schedule_dataset) {
         Ok(dataset) => dataset,
-        Err(_) => return Err(actix_web::error::ErrorBadGateway("theoretical dataset temporarily unavailable".to_string()))
+        Err(_) => {
+            return Err(actix_web::error::ErrorBadGateway(
+                "theoretical dataset temporarily unavailable".to_string(),
+            ))
+        }
     };
 
     let updated_timetable = &rt_data.updated_timetable;

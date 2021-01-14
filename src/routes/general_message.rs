@@ -121,15 +121,18 @@ fn read_info_messages(
 fn general_message(request: Params, rt_data: &RealTimeDataset) -> Result<SiriResponse> {
     let timezone = match &(*rt_data.base_schedule_dataset) {
         // TODO: figure out how to refer to the original error ("static lifetime required")
-        Err(_) => return Err(actix_web::error::ErrorBadGateway("theoretical dataset temporarily unavailable".to_string())),
-        Ok(dataset) => dataset.timezone
+        Err(_) => {
+            return Err(actix_web::error::ErrorBadGateway(
+                "theoretical dataset temporarily unavailable".to_string(),
+            ))
+        }
+        Ok(dataset) => dataset.timezone,
     };
 
-    let requested_dt = request.request_timestamp.map(|d| d.0).unwrap_or_else(|| {
-        chrono::Utc::now()
-            .with_timezone(&timezone)
-            .naive_local()
-    });
+    let requested_dt = request
+        .request_timestamp
+        .map(|d| d.0)
+        .unwrap_or_else(|| chrono::Utc::now().with_timezone(&timezone).naive_local());
     // Note: we decode the gtfs at the query. if needed we can cache this, to parse it once
     use prost::Message;
     let feed = rt_data
@@ -152,11 +155,7 @@ fn general_message(request: Params, rt_data: &RealTimeDataset) -> Result<SiriRes
                 producer_ref: None, // TODO take the id of the dataset ?
                 general_message_delivery: vec![gm::GeneralMessageDelivery {
                     common: CommonDelivery::default(),
-                    info_messages: read_info_messages(
-                        &feed,
-                        requested_dt,
-                        timezone,
-                    ),
+                    info_messages: read_info_messages(&feed, requested_dt, timezone),
                     info_messages_cancellation: vec![],
                 }],
                 ..Default::default()
