@@ -25,10 +25,11 @@ pub async fn status_query(
 
     let dataset = match &(*result) {
         Ok(dataset) => dataset,
-        Err(_e) => {
-            return Err(actix_web::error::ErrorBadGateway(
-                "theoretical dataset temporarily unavailable".to_string(),
-            ))
+        Err(e) => {
+            return Err(actix_web::error::ErrorBadGateway(format!(
+                "theoretical dataset temporarily unavailable : {}",
+                e
+            )))
         }
     };
 

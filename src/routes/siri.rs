@@ -14,7 +14,6 @@ pub async fn siri_endpoint(
         actix_web::error::ErrorInternalServerError("impossible to get data".to_string())
     })?;
 
-    // TODO: discuss this with Antoine to figure out how to do this as a one-liner
     let dataset = match &(*result) {
         Ok(dataset) => dataset,
         Err(_e) => {
