@@ -124,7 +124,7 @@ async fn invalid_dataset_test() {
         DatasetInfo {
             id: "non_valid".into(),
             name: "non valid dataset".into(),
-            gtfs: "non_valid_gtfs.zip".to_owned(),
+            gtfs: "non_existing_gtfs.zip".to_owned(),
             gtfs_rt_urls: [mockito::server_url() + "/gtfs_rt_1"].to_vec(),
             extras: std::collections::BTreeMap::default(),
         },
@@ -133,17 +133,45 @@ async fn invalid_dataset_test() {
 
     let resp: Value = get_json(&mut srv, "/").await;
 
-    // there should be only one dataset exposed, the valid one
+    // there should be only two datasets exposed, the valid one and the non existing
     assert_eq!(
         resp.get("datasets")
             .and_then(|v| v.as_array())
             .map(|a| a.len()),
-        Some(1)
+        Some(2)
     );
-    assert_eq!(
-        resp.pointer("/datasets/0/id"),
-        Some(&serde_json::json!("valid"))
-    );
+
+    if let Some((valid_dataset_index, non_valid_dataset_index)) =
+        match resp.pointer("/datasets/0/id") {
+            Some(Value::String(v)) if v.eq("valid") => Some((0, 1)),
+            Some(Value::String(v)) if v.eq("non_valid") => Some((1, 0)),
+            _ => None,
+        }
+    {
+        assert_eq!(
+            resp.pointer(&format!("/datasets/{}/id", valid_dataset_index)),
+            Some(&serde_json::json!("valid"))
+        );
+        assert_eq!(
+            resp.pointer(&format!("/datasets/{}/name", valid_dataset_index)),
+            Some(&serde_json::json!("valid dataset"))
+        );
+
+        assert_eq!(
+            resp.pointer(&format!("/datasets/{}/id", non_valid_dataset_index)),
+            Some(&serde_json::json!("non_valid"))
+        );
+        assert_eq!(
+            resp.pointer(&format!("/datasets/{}/name", non_valid_dataset_index)),
+            Some(&serde_json::json!("non valid dataset"))
+        );
+    }
+
+    // TODO ?
+    // let resp: Value = get_json(&mut srv, "/datasets/non_valid").await; //502
+    // let resp: Value = get_json(&mut srv, "/datasets/non_valid/gtfs_rt.json").await; // 200
+    // let resp: Value = get_json(&mut srv, "/datasets/non_valid/gtfs_rt").await; // 200
+    // let resp: Value = get_json(&mut srv, "/datasets/non_valid/siri....").await; // 502
 }
 
 #[actix_rt::test]
