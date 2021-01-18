@@ -155,8 +155,11 @@ fn add_path_item_with_undefined_response(
 }
 
 fn create_schema() -> oa::Spec {
-    let mut spec = oa::Spec::default();
-    spec.openapi = "3.0.0".to_owned();
+    let mut spec = oa::Spec {
+        openapi: "3.0.0".to_owned(),
+        ..Default::default()
+    };
+
     spec.info.title = "Transpo-rt".to_owned();
     spec.info.version = VERSION.to_owned();
     add_route!(spec, "/" => crate::datasets::DatasetInfo, description = "list all the datasets", params = vec![], array = true);

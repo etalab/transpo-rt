@@ -74,10 +74,14 @@ fn aggregate_rts(feed_messages: &[transit_realtime::FeedMessage]) -> Result<Gtfs
 // Since the connection are sorted by scheduled departure time we don't need to reorder the connections, we can update them in place
 // For each trip update, we only have to find the corresponding connection and update it.
 fn apply_rt_update(
-    data: &Dataset,
+    data: &Arc<Result<Dataset, anyhow::Error>>,
     gtfs_rts: &[transit_realtime::FeedMessage],
     log: &slog::Logger,
 ) -> Result<UpdatedTimetable, Error> {
+    let data = match &(**data) {
+        Err(_e) => return Ok(UpdatedTimetable::default()),
+        Ok(data) => data,
+    };
     let mut updated_timetable = UpdatedTimetable::default();
 
     let parsed_trip_update = model_update::get_model_update(&data.ntm, gtfs_rts, data.timezone)?;
@@ -144,6 +148,7 @@ impl RealTimeReloader {
             .send(GetDataset)
             .await
             .map_err(|e| anyhow!("maibox error: {}", e))?;
+
         self.apply_rt(dataset).await
     }
 
@@ -167,12 +172,13 @@ impl RealTimeReloader {
         }
     }
 
-    async fn apply_rt(&self, dataset: Arc<Dataset>) -> Result<(), Error> {
+    async fn apply_rt(&self, dataset: Arc<Result<Dataset, anyhow::Error>>) -> Result<(), Error> {
         let gtfs_rts = self
             .gtfs_rt_urls
             .iter()
             .map(|url| fetch_gtfs_rt(&url, &self.log));
 
+        // NOTE: if one of the urls is responding 404, the error is currently logged then ignored
         let gtfs_rts = join_all(gtfs_rts)
             .await
             .into_iter()
@@ -188,7 +194,7 @@ impl RealTimeReloader {
 
     fn make_rt_dataset(
         &self,
-        dataset: Arc<Dataset>,
+        dataset: Arc<Result<Dataset, anyhow::Error>>,
         gtfs_rts: Vec<GtfsRT>,
     ) -> Result<RealTimeDataset, Error> {
         let feed_messages: Vec<transit_realtime::FeedMessage> = gtfs_rts

@@ -49,6 +49,14 @@ pub async fn get_json<T: serde::de::DeserializeOwned>(
     response.json().await.unwrap()
 }
 
+#[allow(dead_code)]
+pub async fn get_status(
+    srv: &mut actix_web::test::TestServer,
+    route: &str,
+) -> actix_web::http::StatusCode {
+    srv.get(route).send().await.unwrap().status()
+}
+
 // Note: as each integration test is build as a separate binary,
 // this helper might be seen as dead code for some tests, thus we remove the warning
 #[allow(dead_code)]
