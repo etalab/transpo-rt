@@ -27,26 +27,22 @@ impl BaseScheduleReloader {
                 },
             );
 
-            match new_dataset {
-                Err(e) => {
-                    log::warn!("impossible to update dataset because of: {}", e);
-                    log::warn!("rescheduling data loading in 5 mn");
+            if let Err(e) = &new_dataset {
+                log::warn!("impossible to update dataset because of: {}", e);
+                log::warn!("rescheduling data loading in 5 mn");
 
-                    // trace error in sentry
-                    sentry::Hub::current().configure_scope(|scope| {
-                        scope.set_tag("dataset", &self.feed_construction_info.dataset_info.id);
-                    });
-                    sentry::integrations::anyhow::capture_anyhow(&e);
+                // trace error in sentry
+                sentry::Hub::current().configure_scope(|scope| {
+                    scope.set_tag("dataset", &self.feed_construction_info.dataset_info.id);
+                });
+                sentry::integrations::anyhow::capture_anyhow(&e);
 
-                    ctx.run_later(std::time::Duration::from_secs(5 * 60), |act, ctx| {
-                        act.update_data(ctx)
-                    });
-                }
-                Ok(d) => {
-                    // we send those data as a BaseScheduleReloader message, for the DatasetActor to load those new data
-                    self.dataset_actor.do_send(UpdateBaseSchedule(Arc::new(d)));
-                }
+                ctx.run_later(std::time::Duration::from_secs(5 * 60), |act, ctx| {
+                    act.update_data(ctx)
+                });
             }
+            self.dataset_actor
+                .do_send(UpdateBaseSchedule(Arc::new(new_dataset)));
         });
     }
 }
@@ -64,7 +60,7 @@ impl actix::Actor for BaseScheduleReloader {
 }
 
 /// Message send to a DatasetActor to update its baseschedule data
-struct UpdateBaseSchedule(Arc<Dataset>);
+struct UpdateBaseSchedule(Arc<Result<Dataset, anyhow::Error>>);
 
 impl actix::Message for UpdateBaseSchedule {
     type Result = ();

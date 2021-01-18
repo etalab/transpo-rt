@@ -73,14 +73,14 @@ pub struct Dataset {
 
 pub struct RealTimeDataset {
     /// shared ptr to the base schedule dataset
-    pub base_schedule_dataset: Arc<Dataset>,
+    pub base_schedule_dataset: Arc<Result<Dataset, anyhow::Error>>,
     pub gtfs_rt: Option<GtfsRT>,
     pub gtfs_rt_provider_urls: Vec<String>,
     pub updated_timetable: UpdatedTimetable,
 }
 
 impl RealTimeDataset {
-    pub fn new(base: Arc<Dataset>, urls: &[String]) -> Self {
+    pub fn new(base: Arc<Result<Dataset, anyhow::Error>>, urls: &[String]) -> Self {
         RealTimeDataset {
             base_schedule_dataset: base,
             gtfs_rt: None,

@@ -16,10 +16,8 @@ async fn create_dataset_actors_impl(
     logger: &slog::Logger,
 ) -> (DatasetInfo, Result<Addr<DatasetActor>, anyhow::Error>) {
     log::info!("creating actors");
-    let dataset = match Dataset::try_from_dataset_info(dataset_info.clone(), &generation_period) {
-        Ok(d) => d,
-        Err(e) => return (dataset_info, Err(e)),
-    };
+    let dataset = Dataset::try_from_dataset_info(dataset_info.clone(), &generation_period);
+
     let arc_dataset = Arc::new(dataset);
     let rt_dataset =
         datasets::RealTimeDataset::new(arc_dataset.clone(), &dataset_info.gtfs_rt_urls);
