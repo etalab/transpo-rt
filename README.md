@@ -24,7 +24,7 @@ The API provides several routes:
 
 ##### /siri/2.0/stop-monitoring.json
 
-The API follow the [Siri-lite specification](http://www.chouette.mobi/irys/wp-content/uploads/20151023-Siri-Lite-Sp%C3%A9cification-Interfaces-V1.4.pdf) (documentation in french).
+The API follows the [Siri-lite specification](http://www.chouette.mobi/irys/wp-content/uploads/20151023-Siri-Lite-Sp%C3%A9cification-Interfaces-V1.4.pdf) (documentation in french).
 
 A formal description of the supported parameters and of the response can be seen in the [OpenAPI endpoint](https://tr.transport.data.gouv.fr/spec/).
 
