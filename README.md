@@ -73,6 +73,12 @@ cargo run -- -c example_configuration_file.yml
 
 After a bit of time preparing the datasets, an url will appear in the logs (`http://localhost:8080`), showing which datasets are served.
 
+Alternatively, you can use:
+
+```
+cargo run -- --gtfs <path or url of gtfs> --url <url fo the gtfs rt>
+```
+
 ### Testing
 
 You can run all the tests (unit test, integration, clippy and fmt) with:
