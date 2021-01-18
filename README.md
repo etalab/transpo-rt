@@ -55,14 +55,30 @@ Then you can build it:
 cargo build
 ```
 
-### Running
+### Configuring & Running
 
 You can check the needed cli parameters with the `-h` option:
 ```
 cargo run --release -- -h
 ```
 
-Note: an example configuration file can be seen [here](example_configuration_file.yml).
+In particular, the application expects a config file from you, to define which datasets (GTFS + GTFS RT) should be handled.
+
+This can be configured via a local file, or a HTTP url (see `-h` output for exact details).
+
+An example configuration file can be found in [here](example_configuration_file.yml), which you can use like this (in debug mode):
+
+```
+cargo run -- -c example_configuration_file.yml
+```
+
+After a bit of time preparing the datasets, an url will appear in the logs (`http://localhost:8080`), showing which datasets are served.
+
+Alternatively, you can use:
+
+```
+cargo run -- --gtfs <path or url of gtfs> --url <url fo the gtfs rt>
+```
 
 ### Testing
 
@@ -72,6 +88,19 @@ make check
 ```
 
 It will save you some time for the code review and continous integration ;)
+
+### Manual testing
+
+One useful trick to experiment locally is to [serve a local folder via HTTP](https://developer.mozilla.org/en-US/docs/Learn/Common_questions/set_up_a_local_testing_server#running_a_simple_local_http_server), using:
+
+```
+mkdir data
+cd data
+# here download files with curl or manually, then start server
+python3 -m http.server
+```
+
+You can use the corresponding urls in a custom `.yml` configuration file. This makes it easier to simulate 404 errors for instance (by simply renaming the files).
 
 ## Architecture
 
