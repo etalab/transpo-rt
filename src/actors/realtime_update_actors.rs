@@ -187,7 +187,6 @@ impl RealTimeReloader {
 
         let rt_dataset = self.make_rt_dataset(dataset, gtfs_rts)?;
         // we send those data as a BaseScheduleReloader message, for the DatasetActor to load those new data
-        // TODO warn the actor if we do not have available dataset ?
         self.dataset_actor
             .do_send(UpdateRealtime(Arc::new(rt_dataset)));
         Ok(())
