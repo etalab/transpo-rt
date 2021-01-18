@@ -178,10 +178,10 @@ impl RealTimeReloader {
             .iter()
             .map(|url| fetch_gtfs_rt(&url, &self.log));
 
+        // NOTE: if one of the urls is responding 404, the error is currently logged then ignored
         let gtfs_rts = join_all(gtfs_rts)
             .await
             .into_iter()
-            // TODO : understand what happens if some url is down when the function is called
             .filter_map(|rt| rt.map_err(|e| slog::warn!(self.log, "{}", e)).ok())
             .collect();
 
