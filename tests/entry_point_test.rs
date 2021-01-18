@@ -145,9 +145,6 @@ async fn invalid_dataset_test() {
             .collect::<std::collections::BTreeSet<_>>(),
         btreeset! {"a_valid_dataset", "a_non_valid_dataset"}
     );
-    // let resp: Value = get_json(&mut srv, "/datasets/non_valid/gtfs_rt.json").await; // 200
-    // let resp: Value = get_json(&mut srv, "/datasets/non_valid/gtfs_rt").await; // 200
-    // let resp: Value = get_json(&mut srv, "/datasets/non_valid/siri....").await; // 502
 }
 
 #[actix_rt::test]
