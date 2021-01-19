@@ -1,9 +1,8 @@
 use super::open_api::make_param;
-use crate::actors::{DatasetActor, GetDataset};
+use crate::extractors::DatasetWrapper;
 use crate::siri_lite::shared::CommonDelivery;
 use crate::siri_lite::stop_points_delivery::{AnnotatedStopPoint, StopPointsDelivery};
 use crate::siri_lite::{Siri, SiriResponse};
-use actix::Addr;
 use actix_web::web;
 
 fn default_limit() -> usize {
@@ -83,21 +82,9 @@ pub fn filter(data: &crate::datasets::Dataset, request: Params) -> SiriResponse 
 
 pub async fn stoppoints_discovery_query(
     web::Query(query): web::Query<Params>,
-    dataset_actor: web::Data<Addr<DatasetActor>>,
+    dataset_wrapper: DatasetWrapper,
 ) -> actix_web::Result<web::Json<SiriResponse>> {
-    let result = dataset_actor.send(GetDataset).await.map_err(|e| {
-        log::error!("error while querying actor for data: {:?}", e);
-        actix_web::error::ErrorInternalServerError("impossible to get data".to_string())
-    })?;
-
-    let dataset = match &(*result) {
-        Ok(dataset) => dataset,
-        Err(_e) => {
-            return Err(actix_web::error::ErrorBadGateway(
-                "theoretical dataset temporarily unavailable".to_string(),
-            ))
-        }
-    };
+    let dataset = dataset_wrapper.get_dataset()?;
 
     Ok(web::Json(filter(&dataset, query)))
 }

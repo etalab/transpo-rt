@@ -1,6 +1,5 @@
-use crate::actors::{DatasetActor, GetDataset};
+use crate::extractors::DatasetWrapper;
 use crate::routes::{Link, Links};
-use actix::Addr;
 use actix_web::{web, HttpRequest};
 use maplit::btreemap;
 use openapi_schema::OpenapiSchema;
@@ -16,22 +15,9 @@ pub struct Status {
 
 pub async fn status_query(
     req: HttpRequest,
-    dataset_actor: web::Data<Addr<DatasetActor>>,
+    dataset_wrapper: DatasetWrapper,
 ) -> actix_web::Result<web::Json<Status>> {
-    let result = dataset_actor.send(GetDataset).await.map_err(|e| {
-        log::error!("error while querying actor for data: {:?}", e);
-        actix_web::error::ErrorInternalServerError("impossible to get data".to_string())
-    })?;
-
-    let dataset = match &(*result) {
-        Ok(dataset) => dataset,
-        Err(e) => {
-            return Err(actix_web::error::ErrorBadGateway(format!(
-                "theoretical dataset temporarily unavailable : {}",
-                e
-            )))
-        }
-    };
+    let dataset = dataset_wrapper.get_dataset()?;
 
     let dataset_id = &dataset.feed_construction_info.dataset_info.id;
 

@@ -1,9 +1,8 @@
 use super::open_api::make_param;
-use crate::actors::{DatasetActor, GetRealtimeDataset};
-use crate::datasets::{Connection, Dataset, RealTimeConnection, RealTimeDataset, UpdatedTimetable};
+use crate::datasets::{Connection, Dataset, RealTimeConnection, UpdatedTimetable};
+use crate::extractors::RealTimeDatasetWrapper;
 use crate::siri_lite::{self, service_delivery as model, SiriResponse};
 use crate::utils;
-use actix::Addr;
 use actix_web::{error, web};
 use openapi_schema::OpenapiSchema;
 use transit_model::collection::Idx;
@@ -192,18 +191,11 @@ fn validate_params(request: &mut Params) -> actix_web::Result<()> {
 
 fn stop_monitoring(
     mut request: Params,
-    rt_data: &RealTimeDataset,
+    rt_dataset_wrapper: RealTimeDatasetWrapper,
 ) -> actix_web::Result<siri_lite::SiriResponse> {
-    let data = match &(*rt_data.base_schedule_dataset) {
-        Ok(dataset) => dataset,
-        Err(_) => {
-            return Err(actix_web::error::ErrorBadGateway(
-                "theoretical dataset temporarily unavailable".to_string(),
-            ))
-        }
-    };
+    let data = rt_dataset_wrapper.get_base_schedule_dataset()?;
 
-    let updated_timetable = &rt_data.updated_timetable;
+    let updated_timetable = &rt_dataset_wrapper.updated_timetable;
 
     validate_params(&mut request)?;
 
@@ -237,11 +229,7 @@ fn stop_monitoring(
 
 pub async fn stop_monitoring_query(
     web::Query(query): web::Query<Params>,
-    dataset_actor: web::Data<Addr<DatasetActor>>,
+    rt_dataset_wrapper: RealTimeDatasetWrapper,
 ) -> actix_web::Result<web::Json<SiriResponse>> {
-    let rt_dataset = dataset_actor.send(GetRealtimeDataset).await.map_err(|e| {
-        log::error!("error while querying actor for data: {:?}", e);
-        actix_web::error::ErrorInternalServerError("impossible to get data".to_string())
-    })?;
-    Ok(web::Json(stop_monitoring(query, &rt_dataset)?))
+    Ok(web::Json(stop_monitoring(query, rt_dataset_wrapper)?))
 }
