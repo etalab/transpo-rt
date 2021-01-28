@@ -1,13 +1,11 @@
 use super::open_api::make_param;
-use crate::actors::{DatasetActor, GetRealtimeDataset};
-use crate::datasets::RealTimeDataset;
+use crate::extractors::RealTimeDatasetWrapper;
 use crate::siri_lite::{
     general_message as gm, service_delivery::ServiceDelivery, shared::CommonDelivery, Siri,
     SiriResponse,
 };
 use crate::transit_realtime;
 use crate::utils;
-use actix::Addr;
 use actix_web::{web, Result};
 
 #[derive(Deserialize, Debug)]
@@ -118,16 +116,11 @@ fn read_info_messages(
         .collect()
 }
 
-fn general_message(request: Params, rt_data: &RealTimeDataset) -> Result<SiriResponse> {
-    let timezone = match &(*rt_data.base_schedule_dataset) {
-        // TODO: figure out how to refer to the original error ("static lifetime required")
-        Err(_) => {
-            return Err(actix_web::error::ErrorBadGateway(
-                "theoretical dataset temporarily unavailable".to_string(),
-            ))
-        }
-        Ok(dataset) => dataset.timezone,
-    };
+fn general_message(
+    request: Params,
+    rt_dataset_wrapper: RealTimeDatasetWrapper,
+) -> Result<SiriResponse> {
+    let timezone = rt_dataset_wrapper.get_base_schedule_dataset()?.timezone;
 
     let requested_dt = request
         .request_timestamp
@@ -135,7 +128,7 @@ fn general_message(request: Params, rt_data: &RealTimeDataset) -> Result<SiriRes
         .unwrap_or_else(|| chrono::Utc::now().with_timezone(&timezone).naive_local());
     // Note: we decode the gtfs at the query. if needed we can cache this, to parse it once
     use prost::Message;
-    let feed = rt_data
+    let feed = rt_dataset_wrapper
         .gtfs_rt
         .as_ref()
         .ok_or_else(|| actix_web::error::ErrorNotFound("no realtime data available"))
@@ -167,11 +160,7 @@ fn general_message(request: Params, rt_data: &RealTimeDataset) -> Result<SiriRes
 
 pub async fn general_message_query(
     web::Query(query): web::Query<Params>,
-    dataset_actor: web::Data<Addr<DatasetActor>>,
+    realtime_dataset_wrapper: RealTimeDatasetWrapper,
 ) -> actix_web::Result<web::Json<SiriResponse>> {
-    let rt_dataset = dataset_actor.send(GetRealtimeDataset).await.map_err(|e| {
-        log::error!("error while querying actor for data: {:?}", e);
-        actix_web::error::ErrorInternalServerError("impossible to get realtime data".to_string())
-    })?;
-    Ok(web::Json(general_message(query, &rt_dataset)?))
+    Ok(web::Json(general_message(query, realtime_dataset_wrapper)?))
 }

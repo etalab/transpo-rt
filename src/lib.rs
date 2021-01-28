@@ -11,6 +11,7 @@ pub mod utils;
 
 pub mod actors;
 pub mod datasets;
+pub mod extractors;
 pub mod middlewares;
 pub(crate) mod model_update;
 pub(crate) mod routes;
